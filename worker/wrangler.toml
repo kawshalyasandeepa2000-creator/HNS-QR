@@ -1,0 +1,13 @@
+name = "qr-referral-api"
+main = "src/index.js"
+compatibility_date = "2026-10-31"
+workers_dev = true
+
+[vars]
+CAMPAIGN_SLUG = "outdoor-2026"
+# Replace YOUR-GITHUB-USERNAME. Include https:// but NOT the repository path.
+SITE_ORIGIN = "https://YOUR-GITHUB-USERNAME.github.io"
+
+# D1 binding gets added automatically when running:
+# npx wrangler d1 create qr-referral-d1 --binding DB --update-config
+# If Wrangler prints a binding instead, paste its [[d1_databases]] block here.

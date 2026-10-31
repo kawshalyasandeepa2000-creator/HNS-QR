@@ -1,363 +1,27 @@
-# Complete Source Code — QR Referral Campaign
+# Full source — GitHub Pages + Cloudflare Workers D1 QR Referral Website
 
-This is a convenience copy. The ZIP contains the original editable source files and folder structure.
-
-## `package.json`
-
-```json
-{
-  "name": "qr-referral-campaign",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "description": "Outdoor campaign QR-to-referral website with SQLite and CSV export",
-  "engines": { "node": ">=22.0.0" },
-  "scripts": {
-    "setup": "node scripts/setup.js",
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "node --test tests/*.test.js"
-  },
-  "dependencies": {
-    "better-sqlite3": "^13.0.3",
-    "dotenv": "^16.6.1",
-    "express": "^5.3.0",
-    "express-rate-limit": "^8.7.1",
-    "helmet": "^8.3.0",
-    "qrcode": "^1.5.4"
-  }
-}
-```
-
-## `.env.example`
-
-```text
-# Run `npm run setup` to create an actual .env with random secrets.
-APP_BASE_URL=http://localhost:3000
-PORT=3000
-NODE_ENV=development
-CAMPAIGN_SLUG=outdoor-2026
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=YOUR_RANDOM_PASSWORD_FROM_SETUP
-COOKIE_SECRET=YOUR_RANDOM_SECRET_FROM_SETUP
-DB_PATH=./data/referrals.sqlite
-```
-
-## `.gitignore`
-
-```text
-node_modules/
-.env
-*.log
-.DS_Store
-data/*
-!data/.gitkeep
-coverage/
-```
-
-## `server.js`
-
-```javascript
-import 'dotenv/config';
-import express from 'express';
-import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
-import Database from 'better-sqlite3';
-import QRCode from 'qrcode';
-import { randomBytes, createHmac, createHash, timingSafeEqual } from 'node:crypto';
-import { readFileSync, mkdirSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const projectRoot = dirname(fileURLToPath(import.meta.url));
-const port = Number(process.env.PORT || 3000);
-const campaign = process.env.CAMPAIGN_SLUG || 'outdoor-2026';
-const baseUrl = process.env.APP_BASE_URL || '';
-const adminUser = process.env.ADMIN_USERNAME || '';
-const adminPassword = process.env.ADMIN_PASSWORD || '';
-const cookieSecret = process.env.COOKIE_SECRET || '';
-const dbPath = resolve(projectRoot, process.env.DB_PATH || './data/referrals.sqlite');
-
-if (!Number.isInteger(port) || port <= 0 || port > 65535) throw new Error('Invalid PORT');
-if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(campaign)) throw new Error('Invalid CAMPAIGN_SLUG');
-if (!adminUser || adminPassword.length < 16 || cookieSecret.length < 32) {
-  throw new Error('Admin credentials/secrets missing or weak. Run npm run setup first.');
-}
-let publicOrigin;
-try {
-  const u = new URL(baseUrl);
-  if (!['http:', 'https:'].includes(u.protocol) || u.pathname !== '/' || u.search || u.hash || u.username || u.password) {
-    throw new Error('URL should be just the origin');
-  }
-  publicOrigin = u.origin;
-} catch {
-  throw new Error('Set APP_BASE_URL to your site origin, e.g. https://yourdomain.com');
-}
-if (process.env.NODE_ENV === 'production' && !publicOrigin.startsWith('https://')) {
-  throw new Error('Production APP_BASE_URL must use HTTPS');
-}
-const isHttps = publicOrigin.startsWith('https://');
-const qrTarget = `${publicOrigin}/c/${campaign}`;
-
-mkdirSync(dirname(dbPath), { recursive: true });
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.pragma('busy_timeout = 5000');
-db.exec(readFileSync(join(projectRoot, 'sql/schema.sql'), 'utf8'));
-
-const selectByVisitor = db.prepare('SELECT code, created_at FROM referrals WHERE campaign_slug = ? AND visitor_hash = ?');
-const insertReferral = db.prepare('INSERT INTO referrals (campaign_slug, code, visitor_hash, created_at) VALUES (?, ?, ?, ?)');
-const getOrCreate = db.transaction((slug, visitorHash) => {
-  const existing = selectByVisitor.get(slug, visitorHash);
-  if (existing) return { code: existing.code, createdAt: existing.created_at, reused: true };
-
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const code = `REF-${randomBytes(8).toString('hex').toUpperCase()}`;
-    const createdAt = new Date().toISOString();
-    try {
-      insertReferral.run(slug, code, visitorHash, createdAt);
-      return { code, createdAt, reused: false };
-    } catch (err) {
-      if (!String(err.code || '').startsWith('SQLITE_CONSTRAINT')) throw err;
-      const concurrentlyCreated = selectByVisitor.get(slug, visitorHash);
-      if (concurrentlyCreated) return { code: concurrentlyCreated.code, createdAt: concurrentlyCreated.created_at, reused: true };
-      // A rare random-code collision. Try another value.
-    }
-  }
-  throw new Error('Could not allocate a unique referral code');
-});
-
-function mac(message) {
-  return createHmac('sha256', cookieSecret).update(message).digest('hex');
-}
-function getVisitorId(req, res) {
-  const rawCookies = req.headers.cookie || '';
-  const item = rawCookies.split(';').map(x => x.trim()).find(x => x.startsWith('qr_visitor='));
-  const signed = item ? item.slice('qr_visitor='.length) : '';
-  const match = /^([a-f0-9]{48})\.([a-f0-9]{64})$/.exec(signed);
-  if (match) {
-    const given = Buffer.from(match[2], 'hex');
-    const expected = Buffer.from(mac(match[1]), 'hex');
-    if (given.length === expected.length && timingSafeEqual(given, expected)) return match[1];
-  }
-  const id = randomBytes(24).toString('hex');
-  res.cookie('qr_visitor', `${id}.${mac(id)}`, {
-    httpOnly: true,
-    secure: isHttps,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 365 * 24 * 60 * 60 * 1000
-  });
-  return id;
-}
-
-function fixedTimeEqual(a, b) {
-  return timingSafeEqual(createHash('sha256').update(a).digest(), createHash('sha256').update(b).digest());
-}
-function adminOnly(req, res, next) {
-  res.set('Cache-Control', 'no-store');
-  const authorization = req.get('authorization') || '';
-  let givenUser = '', givenPassword = '';
-  if (authorization.startsWith('Basic ')) {
-    try {
-      const pair = Buffer.from(authorization.slice(6), 'base64').toString('utf8');
-      const boundary = pair.indexOf(':');
-      if (boundary >= 0) {
-        givenUser = pair.slice(0, boundary);
-        givenPassword = pair.slice(boundary + 1);
-      }
-    } catch { /* invalid authorization */ }
-  }
-  if (fixedTimeEqual(givenUser, adminUser) && fixedTimeEqual(givenPassword, adminPassword)) return next();
-  res.set('WWW-Authenticate', 'Basic realm="Campaign Admin", charset="UTF-8"');
-  return res.status(401).send('Admin login required');
-}
-function csvField(input) {
-  const s = String(input ?? '');
-  // Protect spreadsheet users from formula injection if future columns become editable.
-  const safe = /^[=+@\-\t\r]/.test(s) ? `'${s}` : s;
-  return `"${safe.replaceAll('"', '""')}"`;
-}
-
-const app = express();
-app.disable('x-powered-by');
-app.use(helmet({ contentSecurityPolicy: {
-  directives: {
-    defaultSrc: ["'self'"],
-    scriptSrc: ["'self'"],
-    styleSrc: ["'self'"],
-    imgSrc: ["'self'", 'data:'],
-    connectSrc: ["'self'"],
-    objectSrc: ["'none'"],
-    baseUri: ["'self'"],
-    frameAncestors: ["'none'"],
-    upgradeInsecureRequests: isHttps ? [] : null
-  }
-} }));
-app.use(express.json({ limit: '4kb' }));
-app.use(express.static(join(projectRoot, 'public'), { index: false, maxAge: '1h' }));
-
-app.get('/', (_req, res) => res.redirect(302, `/c/${campaign}`));
-app.get('/c/:slug', (req, res) => {
-  if (req.params.slug !== campaign) return res.status(404).send('Campaign not found');
-  res.set('Cache-Control', 'no-store');
-  return res.sendFile(join(projectRoot, 'public/index.html'));
-});
-app.get('/api/config', (_req, res) => {
-  res.set('Cache-Control', 'no-store');
-  res.json({ campaign });
-});
-
-// A generous per-IP limit avoids blocking a crowd sharing one venue Wi-Fi IP.
-const referralLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5000,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  message: { error: 'Too many requests. Try again shortly.' }
-});
-app.post('/api/referrals', referralLimiter, (req, res, next) => {
-  try {
-    res.set('Cache-Control', 'no-store');
-    const origin = req.get('origin');
-    if (origin && origin !== publicOrigin) return res.status(403).json({ error: 'Invalid origin' });
-    if (!req.is('application/json')) return res.status(415).json({ error: 'JSON required' });
-    if (req.body?.campaign !== campaign) return res.status(400).json({ error: 'Invalid campaign' });
-    const visitorId = getVisitorId(req, res);
-    const visitorHash = createHmac('sha256', cookieSecret).update('visitor:' + visitorId).digest('hex');
-    const result = getOrCreate.immediate(campaign, visitorHash);
-    return res.status(result.reused ? 200 : 201).json({
-      campaign,
-      code: result.code,
-      createdAt: result.createdAt,
-      reused: result.reused
-    });
-  } catch (err) { next(err); }
-});
-
-app.get('/admin', adminOnly, (_req, res) => res.sendFile(join(projectRoot, 'private/admin.html')));
-app.get('/api/admin/stats', adminOnly, (_req, res) => {
-  const total = db.prepare('SELECT COUNT(*) AS n FROM referrals WHERE campaign_slug = ?').get(campaign).n;
-  const recent = db.prepare('SELECT code, created_at AS createdAt FROM referrals WHERE campaign_slug = ? ORDER BY id DESC LIMIT 100').all(campaign);
-  res.json({ campaign, qrTarget, total, recent });
-});
-app.get('/api/admin/export.csv', adminOnly, (_req, res) => {
-  const rows = db.prepare('SELECT code, campaign_slug, created_at FROM referrals WHERE campaign_slug = ? ORDER BY id DESC').iterate(campaign);
-  res.set({
-    'Content-Type': 'text/csv; charset=utf-8',
-    'Content-Disposition': `attachment; filename="referrals-${campaign}.csv"`,
-    'Cache-Control': 'no-store'
-  });
-  res.write('\uFEFFcode,campaign,created_at\r\n');
-  for (const row of rows) {
-    res.write([row.code, row.campaign_slug, row.created_at].map(csvField).join(',') + '\r\n');
-  }
-  res.end();
-});
-app.get('/admin/qr.png', adminOnly, async (_req, res, next) => {
-  try {
-    const png = await QRCode.toBuffer(qrTarget, {
-      type: 'png', errorCorrectionLevel: 'H', margin: 4, width: 1200,
-      color: { dark: '#0f172a', light: '#ffffff' }
-    });
-    res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'no-store', 'Content-Disposition': 'inline; filename="campaign-qr.png"' });
-    res.send(png);
-  } catch (err) { next(err); }
-});
-
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  if (!res.headersSent) res.status(500).json({ error: 'Unexpected server error' });
-});
-
-const server = app.listen(port, () => {
-  console.log(`Customer page: ${qrTarget}`);
-  console.log(`Admin page:     ${publicOrigin}/admin`);
-  console.log(`Database file:  ${dbPath}`);
-});
-function shutDown() { server.close(() => { db.close(); process.exit(0); }); }
-process.on('SIGTERM', shutDown);
-process.on('SIGINT', shutDown);
-```
-
-## `sql/schema.sql`
-
-```sql
-CREATE TABLE IF NOT EXISTS referrals (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  campaign_slug TEXT NOT NULL,
-  code TEXT NOT NULL UNIQUE,
-  visitor_hash TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  UNIQUE (campaign_slug, visitor_hash)
-);
-
-CREATE INDEX IF NOT EXISTS idx_referrals_campaign_created
-  ON referrals (campaign_slug, created_at DESC);
-
--- Example: see all codes, latest first:
--- SELECT code, campaign_slug, created_at FROM referrals ORDER BY id DESC;
--- Example: total codes for a campaign:
--- SELECT COUNT(*) FROM referrals WHERE campaign_slug = 'outdoor-2026';
-```
-
-## `scripts/setup.js`
-
-```javascript
-import { existsSync, writeFileSync } from 'node:fs';
-import { randomBytes } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const output = resolve(root, '.env');
-if (existsSync(output)) {
-  console.log('.env already exists. No changes made.');
-  process.exit(0);
-}
-const adminPassword = randomBytes(18).toString('base64url');
-const cookieSecret = randomBytes(48).toString('hex');
-const data = [
-  '# Edit APP_BASE_URL before printing QR codes or going live.',
-  'APP_BASE_URL=http://localhost:3000',
-  'PORT=3000',
-  'NODE_ENV=development',
-  'CAMPAIGN_SLUG=outdoor-2026',
-  'ADMIN_USERNAME=admin',
-  `ADMIN_PASSWORD=${adminPassword}`,
-  `COOKIE_SECRET=${cookieSecret}`,
-  'DB_PATH=./data/referrals.sqlite',
-  ''
-].join('\n');
-writeFileSync(output, data, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
-console.log('Created .env. Keep it private (never upload it to GitHub).');
-console.log('Admin username: admin');
-console.log(`Admin password: ${adminPassword}`);
-console.log('Your local admin page: http://localhost:3000/admin');
-```
-
-## `public/index.html`
+## docs/index.html
 
 ```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0f766e" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
   <title>Claim Your Referral Code</title>
-  <link rel="stylesheet" href="/style.css" />
-  <script src="/app.js" defer></script>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./config.js" defer></script>
+  <script src="./app.js" defer></script>
 </head>
 <body class="customer-page">
   <main class="layout">
     <div class="intro">
       <div class="eyebrow"><span class="dot"></span> OUTDOOR CAMPAIGN</div>
-      <h1>Your next reward<br /><span>starts here.</span></h1>
-      <p>Thanks for visiting us! Your personal referral code is ready to be created automatically.</p>
-      <div class="features"><span>✓ Unique code</span><span>✓ Instant access</span><span>✓ Save & share</span></div>
+      <h1>Your next reward<br><span>starts here.</span></h1>
+      <p>Thanks for visiting us! Claim your individual referral code instantly. Keep it to share or redeem according to the campaign terms.</p>
+      <div class="features"><span>✓ Unique code</span><span>✓ Instant access</span><span>✓ Save &amp; share</span></div>
     </div>
-
     <section class="ticket" aria-labelledby="ticket-title">
       <div class="ticket-top">
         <div class="ticket-label">YOUR REFERRAL PASS</div>
@@ -374,17 +38,19 @@ console.log('Your local admin page: http://localhost:3000/admin');
         <button id="copy-button" class="button secondary" disabled>Copy code</button>
         <button id="retry-button" class="button secondary hidden">Try again</button>
       </div>
-      <div class="ticket-footer">Keep your code safe. Show or share it when participating in the referral program.</div>
+      <div class="ticket-footer">Keep your referral code safe. The campaign organizer determines referral terms and rewards.</div>
     </section>
-    <footer class="site-footer">One referral code per browser for this campaign. Terms and referral rewards are determined by the campaign organizer.</footer>
+    <footer class="site-footer">One code per browser and campaign in normal use. Browser clearing or another device may produce a new code.</footer>
   </main>
 </body>
 </html>
 ```
 
-## `public/app.js`
+## docs/app.js
 
 ```javascript
+'use strict';
+const cfg = window.CAMPAIGN_CONFIG;
 const codeElement = document.querySelector('#referral-code');
 const statusElement = document.querySelector('#status');
 const createdAtElement = document.querySelector('#created-at');
@@ -393,92 +59,262 @@ const copyButton = document.querySelector('#copy-button');
 const retryButton = document.querySelector('#retry-button');
 let referral = null;
 
+function getVisitorId(campaign) {
+  const key = `qr-referral-visitor:${campaign}`;
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved && /^[a-f0-9]{32}$/.test(saved)) return saved;
+  } catch { /* storage unavailable, use session-only ID */ }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const id = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  try { localStorage.setItem(key, id); } catch { /* same browser may receive new code next time */ }
+  return id;
+}
+function apiUrl(path) {
+  if (!cfg || !/^https:\/\//.test(cfg.apiBaseUrl) || cfg.apiBaseUrl.includes('YOUR-')) {
+    throw new Error('Website not configured yet. Ask the organizer to set the Cloudflare API URL.');
+  }
+  return `${cfg.apiBaseUrl.replace(/\/$/, '')}${path}`;
+}
 async function loadReferral() {
   statusElement.textContent = 'Generating your code...';
   retryButton.classList.add('hidden');
   downloadButton.disabled = true;
   copyButton.disabled = true;
   try {
-    const parts = location.pathname.split('/');
-    const campaign = parts[1] === 'c' ? parts[2] : null;
-    if (!campaign) throw new Error('Campaign link is not valid.');
-    const response = await fetch('/api/referrals', {
+    const response = await fetch(apiUrl('/api/referrals'), {
       method: 'POST',
-      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ campaign })
+      body: JSON.stringify({ campaign: cfg.campaign, visitorId: getVisitorId(cfg.campaign) })
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Could not create your code.');
+    if (!response.ok) throw new Error(data.error || 'Could not generate your code.');
     referral = data;
     codeElement.textContent = data.code;
     codeElement.classList.remove('loading');
     statusElement.textContent = data.reused ? 'Welcome back! Here is your saved code.' : 'Success! Your code is ready.';
-    createdAtElement.textContent = 'Issued: ' + new Date(data.createdAt).toLocaleString();
+    createdAtElement.textContent = `Issued: ${new Date(data.createdAt).toLocaleString()}`;
     downloadButton.disabled = false;
     copyButton.disabled = false;
-  } catch (err) {
-    statusElement.textContent = err.message || 'Something went wrong.';
+  } catch (error) {
+    referral = null;
+    statusElement.textContent = error.message || 'Could not connect. Please try again.';
     codeElement.textContent = 'Unavailable';
+    codeElement.classList.remove('loading');
     createdAtElement.textContent = '';
     retryButton.classList.remove('hidden');
   }
 }
-
 async function downloadCard() {
   if (!referral) return;
   const canvas = document.createElement('canvas');
   canvas.width = 1200;
   canvas.height = 630;
-  const context = canvas.getContext('2d');
-  context.fillStyle = '#f0fdfa';
-  context.fillRect(0, 0, 1200, 630);
-  context.fillStyle = '#115e59';
-  context.fillRect(0, 0, 1200, 165);
-  context.textAlign = 'center';
-  context.fillStyle = '#ffffff';
-  context.font = 'bold 32px Arial, sans-serif';
-  context.fillText('YOUR REFERRAL PASS', 600, 92);
-  context.fillStyle = '#0f172a';
-  context.font = 'bold 42px Arial, sans-serif';
-  context.fillText('Thanks for visiting!', 600, 262);
-  context.fillStyle = '#0f766e';
-  context.font = 'bold 65px monospace';
-  context.fillText(referral.code, 600, 376);
-  context.fillStyle = '#475569';
-  context.font = '26px Arial, sans-serif';
-  context.fillText(`Campaign: ${referral.campaign}`, 600, 455);
-  context.font = '24px Arial, sans-serif';
-  context.fillText('Save this code to share or redeem according to campaign terms.', 600, 515);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f0fdfa'; ctx.fillRect(0, 0, 1200, 630);
+  ctx.fillStyle = '#115e59'; ctx.fillRect(0, 0, 1200, 165);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 32px Arial'; ctx.fillText('YOUR REFERRAL PASS', 600, 92);
+  ctx.fillStyle = '#0f172a'; ctx.font = 'bold 42px Arial'; ctx.fillText('Thanks for visiting!', 600, 262);
+  ctx.fillStyle = '#0f766e'; ctx.font = 'bold 61px monospace'; ctx.fillText(referral.code, 600, 376);
+  ctx.fillStyle = '#475569'; ctx.font = '26px Arial'; ctx.fillText(`Campaign: ${referral.campaign}`, 600, 455);
+  ctx.font = '24px Arial'; ctx.fillText('Keep this code safe and share it according to campaign terms.', 600, 515);
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-  if (!blob) { statusElement.textContent = 'Could not create download. Please copy your code.'; return; }
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${referral.code}.png`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  if (!blob) { statusElement.textContent = 'Image download unavailable. Please copy the code instead.'; return; }
+  const href = URL.createObjectURL(blob);
+  const anchor = document.createElement('a'); anchor.href = href; anchor.download = `${referral.code}.png`;
+  document.body.append(anchor); anchor.click(); anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
 }
-
 async function copyCode() {
   if (!referral) return;
   try {
     await navigator.clipboard.writeText(referral.code);
-    const previous = copyButton.textContent;
-    copyButton.textContent = 'Copied!';
-    setTimeout(() => { copyButton.textContent = previous; }, 1500);
-  } catch { statusElement.textContent = 'Copy unavailable. Select and copy the code above.'; }
+    copyButton.textContent = 'Copied!'; setTimeout(() => { copyButton.textContent = 'Copy code'; }, 1500);
+  } catch { statusElement.textContent = 'Select and manually copy the code above.'; }
 }
-
 downloadButton.addEventListener('click', downloadCard);
 copyButton.addEventListener('click', copyCode);
 retryButton.addEventListener('click', loadReferral);
 loadReferral();
 ```
 
-## `public/style.css`
+## docs/admin.html
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Referral Admin Dashboard</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./config.js" defer></script>
+  <!-- QRCode library is for drawing QR on the admin page only. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="./admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <div class="admin-shell">
+    <header class="admin-header">
+      <div><div class="eyebrow">CAMPAIGN CONTROL CENTER</div><h1>Referral dashboard</h1><p>Print one QR for everyone. Track unique referral codes in Cloudflare D1.</p></div>
+      <a class="button outline" href="./">View customer website</a>
+    </header>
+    <section class="admin-panel login-panel" id="login-panel">
+      <h2>Administrator sign in</h2>
+      <p>Enter the secret ADMIN_TOKEN that you set in Cloudflare. It is never stored in this website's code or in browser storage.</p>
+      <form id="login-form" class="login-form">
+        <label for="token-input">Admin token</label>
+        <input id="token-input" type="password" autocomplete="off" required placeholder="Paste your Cloudflare ADMIN_TOKEN">
+        <button class="button primary" type="submit">Sign in</button>
+      </form>
+      <p id="login-error" class="error" role="alert"></p>
+    </section>
+    <div id="dashboard" class="hidden">
+      <section class="admin-cards">
+        <div class="stat-card"><div>Campaign</div><strong id="campaign-name">—</strong></div>
+        <div class="stat-card"><div>Referral codes issued</div><strong id="total-count">—</strong></div>
+      </section>
+      <div class="admin-columns">
+        <section class="admin-panel poster-panel">
+          <h2>Printable QR flyer</h2><p>The same QR works for every customer, with separate codes in D1.</p>
+          <div class="poster" id="poster">
+            <div class="poster-eyebrow">SCAN • JOIN • SHARE</div>
+            <h2>SCAN &amp; GET YOUR<br>REFERRAL CODE</h2>
+            <p>Scan with your phone camera and download your unique code instantly.</p>
+            <div id="qr-container" class="qr-container" aria-label="QR code for the customer page"></div>
+            <div id="qr-url" class="qr-url"></div>
+          </div>
+          <div class="poster-actions">
+            <button class="button primary" id="print-button" type="button">Print flyer</button>
+            <button class="button secondary" id="qr-download" type="button">Download QR PNG</button>
+          </div>
+          <p class="hint">Use a high-contrast print and test on two phones before printing the flyers.</p>
+        </section>
+        <section class="admin-panel">
+          <div class="section-header"><h2>Latest referral codes</h2><button class="button secondary small" id="refresh-button" type="button">Refresh</button></div>
+          <p>Showing the latest 100. Export CSV to download every code.</p>
+          <button id="csv-button" class="button primary" type="button">↓ Export all referral codes (CSV)</button>
+          <div class="table-scroll"><table><thead><tr><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="2">Loading...</td></tr></tbody></table></div>
+          <p id="admin-error" class="error" role="alert"></p>
+          <button id="logout-button" class="button secondary" type="button">Sign out</button>
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+```
+
+## docs/admin.js
+
+```javascript
+'use strict';
+const cfg = window.CAMPAIGN_CONFIG;
+const origin = cfg?.apiBaseUrl?.replace(/\/$/, '');
+const customerUrl = new URL('./', window.location.href).href;
+const dashboard = document.querySelector('#dashboard');
+const loginPanel = document.querySelector('#login-panel');
+const loginError = document.querySelector('#login-error');
+const adminError = document.querySelector('#admin-error');
+let adminToken = ''; // Only in memory, never localStorage/cookies.
+let qrBuilt = false;
+
+async function api(path) {
+  if (!origin?.startsWith('https://') || origin.includes('YOUR-')) throw new Error('First set the Worker URL in docs/config.js.');
+  const response = await fetch(origin + path, {
+    headers: { Authorization: `Bearer ${adminToken}` }, cache: 'no-store'
+  });
+  if (!response.ok) throw new Error(response.status === 401 ? 'Invalid admin token.' : `Server error (${response.status}).`);
+  return response;
+}
+function renderRows(recent) {
+  const tbody = document.querySelector('#referral-rows'); tbody.replaceChildren();
+  if (!recent.length) {
+    const tr = document.createElement('tr'); const td = document.createElement('td');
+    td.colSpan = 2; td.textContent = 'No referral codes yet.'; tr.append(td); tbody.append(tr); return;
+  }
+  for (const row of recent) {
+    const tr = document.createElement('tr');
+    for (const field of [row.code, row.createdAt]) {
+      const td = document.createElement('td'); td.textContent = field; tr.append(td);
+    }
+    tbody.append(tr);
+  }
+}
+function buildQR() {
+  document.querySelector('#qr-url').textContent = customerUrl;
+  if (qrBuilt) return;
+  if (typeof QRCode === 'undefined') {
+    adminError.textContent = 'QR library could not load. Check internet access or allow cdnjs.cloudflare.com.';
+    return;
+  }
+  new QRCode(document.querySelector('#qr-container'), {
+    text: customerUrl, width: 900, height: 900,
+    colorDark: '#0f172a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H
+  });
+  qrBuilt = true;
+}
+async function refresh() {
+  adminError.textContent = '';
+  try {
+    const response = await api('/api/admin/stats');
+    const data = await response.json();
+    document.querySelector('#campaign-name').textContent = data.campaign;
+    document.querySelector('#total-count').textContent = Number(data.total).toLocaleString();
+    renderRows(data.recent);
+    buildQR();
+  } catch (err) { adminError.textContent = err.message; }
+}
+document.querySelector('#login-form').addEventListener('submit', async event => {
+  event.preventDefault(); loginError.textContent = '';
+  adminToken = document.querySelector('#token-input').value.trim();
+  try {
+    const data = await (await api('/api/admin/stats')).json();
+    document.querySelector('#token-input').value = '';
+    loginPanel.classList.add('hidden'); dashboard.classList.remove('hidden');
+    document.querySelector('#campaign-name').textContent = data.campaign;
+    document.querySelector('#total-count').textContent = Number(data.total).toLocaleString();
+    renderRows(data.recent);
+    buildQR();
+  } catch (err) { adminToken = ''; loginError.textContent = err.message; }
+});
+document.querySelector('#refresh-button').addEventListener('click', refresh);
+document.querySelector('#print-button').addEventListener('click', () => window.print());
+document.querySelector('#logout-button').addEventListener('click', () => {
+  adminToken = ''; dashboard.classList.add('hidden'); loginPanel.classList.remove('hidden');
+});
+document.querySelector('#qr-download').addEventListener('click', () => {
+  const canvas = document.querySelector('#qr-container canvas');
+  const img = document.querySelector('#qr-container img');
+  if (!canvas && !img) { adminError.textContent = 'QR image not ready.'; return; }
+  const a = document.createElement('a');
+  a.href = canvas ? canvas.toDataURL('image/png') : img.src;
+  a.download = 'campaign-qr.png'; document.body.append(a); a.click(); a.remove();
+});
+document.querySelector('#csv-button').addEventListener('click', async () => {
+  adminError.textContent = '';
+  try {
+    const blob = await (await api('/api/admin/export.csv')).blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = href; a.download = `referrals-${cfg.campaign}.csv`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(href), 1000);
+  } catch (err) { adminError.textContent = err.message; }
+});
+```
+
+## docs/config.js
+
+```javascript
+// PUBLIC configuration (safe to store in GitHub).
+// After deploying your Cloudflare Worker, paste its exact workers.dev URL here.
+window.CAMPAIGN_CONFIG = Object.freeze({
+  apiBaseUrl: 'https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev',
+  campaign: 'outdoor-2026'
+});
+```
+
+## docs/style.css
 
 ```css
 :root{color-scheme:light;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-synthesis:none;--ink:#102a33;--teal:#0f766e;--muted:#657680;--line:#e2ecea}
@@ -487,364 +323,254 @@ loadReferral();
 @media(max-width:480px){.ticket-top{padding:27px}.ticket-middle{padding:31px 15px}.ticket-actions{padding:23px}.admin-shell{padding:28px 12px}.admin-cards{grid-template-columns:1fr}.admin-panel{padding:17px}.poster{padding:20px 12px}}
 @page{size:A4 portrait;margin:10mm}
 @media print{body.admin-page{background:#fff}.admin-shell>*{display:none!important}.admin-shell{padding:0}.admin-columns{display:block!important}.admin-panel{display:none!important;border:0!important;padding:0!important}.poster-panel{display:block!important}.poster-panel>*{display:none!important}.poster-panel .poster{display:flex!important;max-width:none;width:185mm;height:263mm;margin:0 auto;border:3px solid #0c695e;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}.poster h2{font-size:46px}.poster p{font-size:22px}.poster .poster-eyebrow{font-size:17px}.poster .qr-image{width:112mm;height:112mm}.poster .qr-url{font-size:15px}}
+/* GitHub Pages dashboard additions */
+.login-panel{max-width:680px;margin:30px auto;padding:32px}
+.login-form{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-top:22px}
+.login-form label{flex-basis:100%;font-weight:700;font-size:14px}
+.login-form input{border:1px solid #b5d3cb;border-radius:10px;font-size:15px;padding:12px;min-height:48px;flex:1;min-width:230px}
+.qr-container{background:#fff;padding:8px;margin:18px auto;min-height:246px;min-width:246px;display:flex;align-items:center;justify-content:center}
+.qr-container canvas,.qr-container img{width:230px!important;height:230px!important;image-rendering:pixelated}
+#csv-button{margin:12px 0 16px}
+@media print{.poster .qr-container{width:120mm;height:120mm;padding:4mm}.poster .qr-container canvas,.poster .qr-container img{width:112mm!important;height:112mm!important}}
+
+/* Allow the nested admin dashboard poster to print, despite the old .admin-shell rules. */
+@media print{
+ .admin-shell>#dashboard{display:block!important}
+ .admin-shell>#dashboard .admin-cards{display:none!important}
+ .admin-shell>#dashboard .admin-columns{display:block!important}
+ .admin-shell>#dashboard .admin-panel{display:none!important}
+ .admin-shell>#dashboard .poster-panel{display:block!important}
+}
 ```
 
-## `private/admin.html`
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Campaign Admin</title>
-  <link rel="stylesheet" href="/style.css" />
-  <script src="/admin.js" defer></script>
-</head>
-<body class="admin-page">
-  <div class="admin-shell">
-    <header class="admin-header">
-      <div><div class="eyebrow">CAMPAIGN CONTROL CENTER</div><h1>Referral dashboard</h1><p>Print one QR for everyone. Track unique codes securely.</p></div>
-      <a class="button outline" href="/api/admin/export.csv">↓ Export all codes (CSV)</a>
-    </header>
-    <section class="admin-cards">
-      <div class="stat-card"><div>Campaign</div><strong id="campaign-name">Loading...</strong></div>
-      <div class="stat-card"><div>Referral codes issued</div><strong id="total-count">—</strong></div>
-    </section>
-    <div class="admin-columns">
-      <section class="admin-panel poster-panel">
-        <h2>Printable QR flyer</h2>
-        <p>All printed copies contain the same campaign URL.</p>
-        <div class="poster" id="poster">
-          <div class="poster-eyebrow">SCAN • JOIN • SHARE</div>
-          <h2>SCAN & GET YOUR<br />REFERRAL CODE</h2>
-          <p>Scan with your phone camera and download your unique code instantly.</p>
-          <img class="qr-image" src="/admin/qr.png" alt="Your campaign QR code" />
-          <div id="qr-url" class="qr-url"></div>
-        </div>
-        <div class="poster-actions">
-          <button class="button primary" id="print-button">Print flyer</button>
-          <a class="button secondary" href="/admin/qr.png" download="campaign-qr.png">Download QR PNG</a>
-        </div>
-        <p class="hint">Print at 100% with strong contrast. Test the QR on a real phone before printing flyers.</p>
-      </section>
-      <section class="admin-panel">
-        <div class="section-header"><h2>Latest referral codes</h2><button class="button secondary small" id="refresh-button">Refresh</button></div>
-        <p>Showing the latest 100. Export CSV for every code.</p>
-        <div class="table-scroll"><table><thead><tr><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="2">Loading...</td></tr></tbody></table></div>
-        <p id="admin-error" class="error" role="alert"></p>
-      </section>
-    </div>
-  </div>
-</body>
-</html>
-```
-
-## `public/admin.js`
+## worker/src/index.js
 
 ```javascript
-const campaignName = document.querySelector('#campaign-name');
-const totalCount = document.querySelector('#total-count');
-const referralRows = document.querySelector('#referral-rows');
-const adminError = document.querySelector('#admin-error');
-const qrUrl = document.querySelector('#qr-url');
-async function refresh() {
-  adminError.textContent = '';
+/**
+ * Cloudflare Worker API for the GitHub Pages QR Referral Campaign.
+ * Database: Cloudflare D1 (SQLite dialect). No Node.js server required.
+ * Secret bindings (wrangler secret put): ADMIN_TOKEN, VISITOR_SECRET.
+ * Plain variables: CAMPAIGN_SLUG, SITE_ORIGIN.
+ */
+const encoder = new TextEncoder();
+const hex = bytes => Array.from(bytes, x => x.toString(16).padStart(2, '0')).join('');
+const validId = /^[a-f0-9]{32}$/;
+const CAMPAIGN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function getSiteOrigin(env) {
   try {
-    const response = await fetch('/api/admin/stats', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Could not load admin data. Check your login.');
-    const data = await response.json();
-    campaignName.textContent = data.campaign;
-    totalCount.textContent = data.total.toLocaleString();
-    qrUrl.textContent = data.qrTarget;
-    referralRows.replaceChildren();
-    if (!data.recent.length) {
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 2;
-      td.textContent = 'No referral codes yet. Scan the QR to create the first one.';
-      tr.append(td);
-      referralRows.append(tr);
-    } else {
-      for (const row of data.recent) {
-        const tr = document.createElement('tr');
-        for (const value of [row.code, row.createdAt]) {
-          const td = document.createElement('td');
-          td.textContent = value;
-          tr.append(td);
-        }
-        referralRows.append(tr);
-      }
-    }
-  } catch (error) { adminError.textContent = error.message; }
+    const url = new URL(env.SITE_ORIGIN);
+    if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash) return null;
+    return url.origin;
+  } catch { return null; }
 }
-document.querySelector('#refresh-button').addEventListener('click', refresh);
-document.querySelector('#print-button').addEventListener('click', () => window.print());
-refresh();
-```
-
-## `tests/app.test.js`
-
-```javascript
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { randomBytes } from 'node:crypto';
-import net from 'node:net';
-import Database from 'better-sqlite3';
-
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function freePort() {
-  return new Promise((resolvePort, reject) => {
-    const server = net.createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const p = server.address().port;
-      server.close(() => resolvePort(p));
-    });
-    server.on('error', reject);
+function headersFor(origin) {
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '600',
+    'Vary': 'Origin',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Content-Security-Policy': "default-src 'none'; frame-ancestors 'none'"
+  };
+}
+function json(data, status, headers) {
+  return new Response(JSON.stringify(data), {
+    status, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' }
   });
 }
+async function sha256(raw) {
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(raw)));
+}
+async function isAdmin(request, env) {
+  const expected = env.ADMIN_TOKEN;
+  if (typeof expected !== 'string' || expected.length < 32) return false;
+  const supplied = request.headers.get('Authorization') || '';
+  if (!supplied.startsWith('Bearer ') || supplied.length > 4096) return false;
+  const token = supplied.substring('Bearer '.length);
+  const [left, right] = await Promise.all([sha256(token), sha256(expected)]);
+  let mismatch = 0;
+  for (let i = 0; i < left.length; i++) mismatch |= left[i] ^ right[i];
+  return mismatch === 0;
+}
+async function visitorHash(visitorId, secret) {
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return hex(new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(`referral-visitor:${visitorId}`))));
+}
+async function issueCode(env, campaign, visitorId) {
+  const visitor = await visitorHash(visitorId, env.VISITOR_SECRET);
+  const existing = await env.DB.prepare(
+    'SELECT code, created_at FROM referrals WHERE campaign_slug = ? AND visitor_hash = ?'
+  ).bind(campaign, visitor).first();
+  if (existing) return { campaign, code: existing.code, createdAt: existing.created_at, reused: true };
 
-test('QR referral, duplicate visits, database and CSV admin flow', { timeout: 30000 }, async () => {
-  const temporary = mkdtempSync(join(tmpdir(), 'qr-referrals-'));
-  const port = await freePort();
-  const origin = `http://localhost:${port}`;
-  const adminPassword = randomBytes(24).toString('hex');
-  const dbPath = join(temporary, 'referrals.sqlite');
-  const server = spawn(process.execPath, ['server.js'], {
-    cwd: root,
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-      PORT: String(port),
-      APP_BASE_URL: origin,
-      CAMPAIGN_SLUG: 'event-test',
-      ADMIN_USERNAME: 'admin',
-      ADMIN_PASSWORD: adminPassword,
-      COOKIE_SECRET: randomBytes(48).toString('hex'),
-      DB_PATH: dbPath
-    },
-    stdio: ['ignore', 'pipe', 'pipe']
-  });
-  let output = '';
-  server.stdout.on('data', c => { output += c; });
-  server.stderr.on('data', c => { output += c; });
-  try {
-    let up = false;
-    for (let i = 0; i < 80; i++) {
-      if (server.exitCode !== null) break;
-      try { const r = await fetch(`${origin}/api/config`); if (r.ok) { up = true; break; } }
-      catch { /* still starting */ }
-      await sleep(200);
-    }
-    assert.equal(up, true, `Server did not start: ${output}`);
-    const route = await fetch(`${origin}/c/event-test`);
-    assert.equal(route.status, 200);
-    assert.match(await route.text(), /Download code as PNG/);
-
-    const claim = (cookie = '') => fetch(`${origin}/api/referrals`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
-      body: JSON.stringify({ campaign: 'event-test' })
-    });
-    const first = await claim();
-    assert.equal(first.status, 201);
-    const firstBody = await first.json();
-    assert.match(firstBody.code, /^REF-[0-9A-F]{16}$/);
-    const firstCookie = first.headers.get('set-cookie').split(';')[0];
-    const again = await claim(firstCookie);
-    assert.equal(again.status, 200);
-    assert.equal((await again.json()).code, firstBody.code);
-
-    const simultaneousRepeats = await Promise.all(Array.from({ length: 10 }, () => claim(firstCookie)));
-    assert.ok(simultaneousRepeats.every(r => r.status === 200));
-    assert.ok((await Promise.all(simultaneousRepeats.map(r => r.json()))).every(x => x.code === firstBody.code));
-    const others = await Promise.all(Array.from({ length: 30 }, () => claim()));
-    assert.ok(others.every(r => r.status === 201));
-    const otherCodes = await Promise.all(others.map(r => r.json()));
-    assert.equal(new Set([firstBody.code, ...otherCodes.map(x => x.code)]).size, 31);
-    const invalidOrigin = await fetch(`${origin}/api/referrals`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://evil.test' },
-      body: JSON.stringify({ campaign: 'event-test' })
-    });
-    assert.equal(invalidOrigin.status, 403);
-    const bad = await fetch(`${origin}/api/admin/stats`);
-    assert.equal(bad.status, 401);
-    const auth = { Authorization: 'Basic ' + Buffer.from('admin:' + adminPassword).toString('base64') };
-    const stats = await fetch(`${origin}/api/admin/stats`, { headers: auth });
-    assert.equal(stats.status, 200);
-    const data = await stats.json();
-    assert.equal(data.total, 31);
-    assert.equal(data.qrTarget, `${origin}/c/event-test`);
-    const qr = await fetch(`${origin}/admin/qr.png`, { headers: auth });
-    assert.equal(qr.status, 200);
-    const bytes = Buffer.from(await qr.arrayBuffer());
-    assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-    const csv = await fetch(`${origin}/api/admin/export.csv`, { headers: auth });
-    assert.equal(csv.status, 200);
-    const csvText = await csv.text();
-    assert.match(csvText, new RegExp(firstBody.code));
-    assert.equal(csvText.trim().split('\n').length, 32);
-    const db = new Database(dbPath, { readonly: true });
-    assert.equal(db.prepare('SELECT COUNT(*) AS total FROM referrals').get().total, 31);
-    db.close();
-  } finally {
-    server.kill('SIGTERM');
-    await sleep(350);
-    rmSync(temporary, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = `REF-${hex(crypto.getRandomValues(new Uint8Array(8))).toUpperCase()}`;
+    const createdAt = new Date().toISOString();
+    // D1 UNIQUE constraints mean simultaneous requests for the same visitor
+    // result in exactly one row; code collisions are retried.
+    const result = await env.DB.prepare(
+      'INSERT OR IGNORE INTO referrals (campaign_slug, code, visitor_hash, created_at) VALUES (?, ?, ?, ?)'
+    ).bind(campaign, code, visitor, createdAt).run();
+    const row = await env.DB.prepare(
+      'SELECT code, created_at FROM referrals WHERE campaign_slug = ? AND visitor_hash = ?'
+    ).bind(campaign, visitor).first();
+    if (row) return { campaign, code: row.code, createdAt: row.created_at,
+      reused: Number(result.meta?.changes ?? 0) === 0 };
   }
-});
+  throw new Error('Unable to issue a unique referral code.');
+}
+function csvCell(value) {
+  let str = String(value ?? '');
+  if (/^[=+@\-\t\r]/.test(str)) str = "'" + str;
+  return `"${str.replaceAll('"', '""')}"`;
+}
+function exportCsv(env, campaign, corsHeaders) {
+  let cursor = Number.MAX_SAFE_INTEGER;
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode('\uFEFFcode,campaign,created_at\r\n'));
+    },
+    async pull(controller) {
+      try {
+        const result = await env.DB.prepare(
+          'SELECT id, code, campaign_slug, created_at FROM referrals WHERE campaign_slug = ? AND id < ? ORDER BY id DESC LIMIT 500'
+        ).bind(campaign, cursor).all();
+        const rows = result.results ?? [];
+        if (rows.length === 0) { controller.close(); return; }
+        cursor = rows[rows.length - 1].id;
+        const chunk = rows.map(row => [row.code, row.campaign_slug, row.created_at].map(csvCell).join(',') + '\r\n').join('');
+        controller.enqueue(encoder.encode(chunk));
+      } catch (error) { controller.error(error); }
+    }
+  });
+  return new Response(stream, { status: 200, headers: {
+    ...corsHeaders, 'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="referrals-${campaign}.csv"`
+  } });
+}
+export default {
+  async fetch(request, env) {
+    const siteOrigin = getSiteOrigin(env);
+    if (!siteOrigin || !CAMPAIGN_PATTERN.test(env.CAMPAIGN_SLUG || '')) {
+      return json({ error: 'Worker configuration incomplete: update SITE_ORIGIN and CAMPAIGN_SLUG.' }, 503,
+        { 'Cache-Control': 'no-store' });
+    }
+    const cors = headersFor(siteOrigin);
+    const url = new URL(request.url);
+    const pathname = url.pathname.replace(/\/$/, '') || '/';
+    if (pathname === '/api/health' && request.method === 'GET') {
+      return json({ ok: true, service: 'qr-referral-api' }, 200, cors);
+    }
+    // Only the configured GitHub Pages site may call the API from a browser.
+    // This is not a substitute for authentication on the admin endpoints.
+    if (request.headers.get('Origin') !== siteOrigin) {
+      return json({ error: 'Origin not allowed.' }, 403, { 'Cache-Control': 'no-store' });
+    }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (!env.DB) return json({ error: 'D1 database not configured.' }, 503, cors);
+
+    try {
+      if (pathname === '/api/referrals' && request.method === 'POST') {
+        if (typeof env.VISITOR_SECRET !== 'string' || env.VISITOR_SECRET.length < 32) {
+          return json({ error: 'Visitor secret is not configured.' }, 503, cors);
+        }
+        if (!request.headers.get('Content-Type')?.toLowerCase().startsWith('application/json')) {
+          return json({ error: 'JSON body required.' }, 415, cors);
+        }
+        if (Number(request.headers.get('Content-Length') || 0) > 2048) {
+          return json({ error: 'Request too large.' }, 413, cors);
+        }
+        const raw = await request.text();
+        if (raw.length > 2048) return json({ error: 'Request too large.' }, 413, cors);
+        let data;
+        try { data = JSON.parse(raw); } catch { return json({ error: 'Invalid JSON.' }, 400, cors); }
+        if (data?.campaign !== env.CAMPAIGN_SLUG || !validId.test(data?.visitorId || '')) {
+          return json({ error: 'Invalid campaign or visitor ID.' }, 400, cors);
+        }
+        const result = await issueCode(env, env.CAMPAIGN_SLUG, data.visitorId);
+        return json(result, result.reused ? 200 : 201, cors);
+      }
+      if (pathname.startsWith('/api/admin/') && request.method === 'GET') {
+        if (!await isAdmin(request, env)) return json({ error: 'Invalid admin token.' }, 401, cors);
+        if (pathname === '/api/admin/stats') {
+          const totalResult = await env.DB.prepare(
+            'SELECT COUNT(*) AS total FROM referrals WHERE campaign_slug = ?'
+          ).bind(env.CAMPAIGN_SLUG).first();
+          const recentResult = await env.DB.prepare(
+            'SELECT code, created_at AS createdAt FROM referrals WHERE campaign_slug = ? ORDER BY id DESC LIMIT 100'
+          ).bind(env.CAMPAIGN_SLUG).all();
+          return json({ campaign: env.CAMPAIGN_SLUG, total: Number(totalResult?.total ?? 0),
+            recent: recentResult.results ?? [] }, 200, cors);
+        }
+        if (pathname === '/api/admin/export.csv') return exportCsv(env, env.CAMPAIGN_SLUG, cors);
+      }
+      return json({ error: 'Not found.' }, 404, cors);
+    } catch (error) {
+      // Log only general failure; never log secrets or visitor IDs.
+      console.error('Referral API error:', error?.message || 'Unknown error');
+      return json({ error: 'Unexpected server or database error.' }, 500, cors);
+    }
+  }
+};
 ```
 
-## `README.md`
+## worker/wrangler.toml
 
-```text
-# Outdoor QR Referral Campaign — Complete JavaScript Website
+```toml
+name = "qr-referral-api"
+main = "src/index.js"
+compatibility_date = "2026-10-31"
+workers_dev = true
 
-One printed QR code, many visitors, unique downloadable referral codes, and an admin SQL/CSV export.
+[vars]
+CAMPAIGN_SLUG = "outdoor-2026"
+# Replace YOUR-GITHUB-USERNAME. Include https:// but NOT the repository path.
+SITE_ORIGIN = "https://YOUR-GITHUB-USERNAME.github.io"
 
-## What happens
-
-1. The organizer prints the QR from `/admin` onto all campaign flyers.
-2. A customer scans with their phone camera, opening `https://yourdomain.com/c/outdoor-2026`.
-3. The browser calls `POST /api/referrals` automatically; no form or signup needed.
-4. The server generates a cryptographically random code such as `REF-A08DF93C5E27B426` and saves it in a **SQLite SQL database**.
-5. The visitor can **Download code as PNG** or **Copy code**.
-6. The organizer logs into `/admin` to see the latest 100 codes or export **all** codes to a CSV file that opens in Excel/Google Sheets.
-
-**Important:** The QR is **the same for everyone**. The code is unique per *browser cookie*, not a verified human identity. Reopening the page from the same browser yields the same code; different phones/browser profiles get different codes. Clearing cookies, private browsing, or another browser may issue a new code. A strict one-per-person policy requires customer signup plus verified phone OTP/account login (not included). Generating a code does not authenticate the customer or prove their identity.
-
-## Requirements
-
-- Node.js 22+ (Node 24 LTS is also suitable)
-- npm
-- A computer for local setup
-- For printing a campaign QR usable by everyone: a publicly reachable HTTPS domain and Node.js hosting with **persistent disk** storage for `data/referrals.sqlite`
-
-## Step-by-step local installation
-
-```bash
-# 1. Unzip the project and enter its directory.
-cd qr-referral-campaign
-
-# 2. Install Node dependencies.
-npm install
-
-# 3. Create .env, random admin password, and cookie signing secret.
-npm run setup
-
-# 4. Start the server.
-npm start
+# D1 binding gets added automatically when running:
+# npx wrangler d1 create qr-referral-d1 --binding DB --update-config
+# If Wrangler prints a binding instead, paste its [[d1_databases]] block here.
 ```
 
-Open **http://localhost:3000/c/outdoor-2026** to see the customer page.
-Open **http://localhost:3000/admin** to see the admin dashboard. When the browser asks for credentials, use username `admin` and the password printed by `npm run setup`. If you forgot it, inspect `ADMIN_PASSWORD` inside your local `.env` file; **do not share it**.
-
-Starting the server creates `data/referrals.sqlite` automatically. Scan from a different browser/profile to see another code. Localhost can only be reached from the same computer, so do **not** print its QR for customers.
-
-## Step-by-step public launch
-
-1. Get a domain, e.g. `campaign.example.com`.
-2. Deploy this Node.js application to a VPS or hosting service that runs persistent Node processes and provides persistent storage. Examples: a VPS with Nginx + Node, or a platform offering a persistent volume. **Do not deploy SQLite to an ephemeral filesystem or deploy multiple independent replicas writing different SQLite files.** For multi-server scale, migrate to a hosted SQL service (PostgreSQL/MySQL) with centralized credentials/identity.
-3. Set environment variables from `.env` on the server, especially:
-
-   ```env
-   NODE_ENV=production
-   APP_BASE_URL=https://campaign.example.com
-   CAMPAIGN_SLUG=outdoor-2026
-   ADMIN_USERNAME=admin
-   ADMIN_PASSWORD=<a-strong-random-password>
-   COOKIE_SECRET=<at-least-32-random-characters>
-   DB_PATH=./data/referrals.sqlite
-   ```
-
-4. Make your domain point to the server, configure HTTPS, forward traffic to Node on `PORT=3000` through your reverse proxy, and ensure the SQLite `data/` directory is writable and permanently stored. Do not expose that directory over the web. Do not commit `.env` to Git.
-5. Restart your server after setting `APP_BASE_URL`, then visit `https://campaign.example.com/admin`.
-6. Print the flyer via **Print flyer**, or choose **Download QR PNG** if you want to place it in your own leaflet design. Confirm the QR contains your **HTTPS live domain**, not `localhost`.
-7. Test with **two different phones**. Both should receive different codes. On refreshing the same phone/browser, its code should stay the same.
-8. Download the **Export all codes (CSV)** file and check the records in Excel.
-
-**If you change `APP_BASE_URL` or `CAMPAIGN_SLUG` after printing, old printed QR links will not update.** Finalize the live URL before printing. Keep the same campaign and domain accessible for the campaign duration.
-
-## URLs and functionality
-
-| URL | Action | Access |
-|---|---|---|
-| `/c/outdoor-2026` | QR destination / customer referral page | Public |
-| `/api/referrals` | Creates/returns code, JSON POST | Public, same-origin |
-| `/admin` | Dashboard with flyer, print and download | Admin password |
-| `/admin/qr.png` | High-resolution print QR | Admin password |
-| `/api/admin/stats` | Count and latest 100 codes | Admin password |
-| `/api/admin/export.csv` | Complete CSV list | Admin password |
-
-### SQL data
-
-SQLite is a real SQL database, **not a spreadsheet**. The generated file is at `data/referrals.sqlite`. It includes a `referrals` table with these columns:
-
-| Column | Description |
-|---|---|
-| `id` | Sequential internal record ID |
-| `campaign_slug` | Campaign whose QR was scanned |
-| `code` | Unique referral code |
-| `visitor_hash` | Pseudonymous hash, not personal name or phone |
-| `created_at` | ISO UTC timestamp when code was created |
-
-You can inspect the database using DB Browser for SQLite or command-line SQLite:
+## worker/sql/schema.sql
 
 ```sql
-SELECT id, code, campaign_slug, created_at
-FROM referrals
-ORDER BY id DESC;
+-- Cloudflare D1 database schema (SQLite dialect).
+CREATE TABLE IF NOT EXISTS referrals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  campaign_slug TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  visitor_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (campaign_slug, visitor_hash)
+);
+CREATE INDEX IF NOT EXISTS idx_campaign_recent ON referrals(campaign_slug, id DESC);
+
+-- To check data in Cloudflare D1:
+-- SELECT id, code, campaign_slug, created_at FROM referrals ORDER BY id DESC LIMIT 20;
 ```
 
-Export **all** codes via the dashboard to CSV (compatible with Excel). Use the CSV download instead of granting the public direct access to the SQL database.
+## worker/package.json
 
-## Test the project
-
-```bash
-npm test
-```
-
-The test automatically launches a disposable server and database; it checks different visitors get different codes, returning visitors get the same code, admin authentication, QR image format, and CSV export.
-
-## Structure
-
-```text
-qr-referral-campaign/
-  .env.example         # editable configuration template (no secrets)
-  .gitignore           # excludes secrets and DB
-  package.json         # dependencies, scripts
-  server.js            # Express API, SQLite, QR image generation, admin access
-  public/
-    index.html         # customer referral page
-    app.js             # auto-claim, copy and PNG download
-    admin.js           # admin stats table
-    style.css          # responsive customer/admin/print styles
-  private/
-    admin.html          # password-protected admin page
-  scripts/
-    setup.js           # generate secure local credentials
-  sql/
-    schema.sql         # SQLite database table
-  data/
-    .gitkeep           # runtime DB lives here (excluded from zip)
-  tests/
-    app.test.js         # integration checks
-```
-
-## Deployment/security notes
-
-- Run your public site on **HTTPS** so visitor cookies and admin Basic authentication are encrypted in transit.
-- Change `ADMIN_PASSWORD` to a unique strong password. Protect `/admin` behind a VPN/SSO if you have large-scale campaigns; Basic authentication is a small-project starter, not an enterprise admin system.
-- The per-IP limiter is deliberately high for venues where many people share one Wi-Fi IP; it is **not** fraud prevention.
-- Use a persistent disk and back up the database, including WAL/SHM files via SQLite's backup API or during a coordinated stop. Running against a non-persistent disk loses referrals on restarts.
-- The QR image simply contains a website URL; the unique referral code is allocated by the backend **when the page loads**, not embedded in the printed QR image.
-- A camera QR preview, antivirus link check, or manually opened URL is not necessarily a confirmed customer. The app does not collect names or verify referrals, purchases, or payouts. Add a redemption/attribution system before paying referral commissions.
-- The frontend automatically calls the API once when opened. If cookies are disabled, a returning visitor might get a new code. Users must keep the code they've downloaded.
-- A single SQLite database is appropriate for small/medium events on one Node server; for very high volumes or multiple replicas, migrate to a managed SQL database.
+```json
+{
+  "name": "qr-referral-cloudflare-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Workers and D1 API for GitHub Pages QR referral campaign",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
 ```

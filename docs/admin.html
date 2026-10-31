@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Referral Admin Dashboard</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./config.js" defer></script>
+  <!-- QRCode library is for drawing QR on the admin page only. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="./admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <div class="admin-shell">
+    <header class="admin-header">
+      <div><div class="eyebrow">CAMPAIGN CONTROL CENTER</div><h1>Referral dashboard</h1><p>Print one QR for everyone. Track unique referral codes in Cloudflare D1.</p></div>
+      <a class="button outline" href="./">View customer website</a>
+    </header>
+    <section class="admin-panel login-panel" id="login-panel">
+      <h2>Administrator sign in</h2>
+      <p>Enter the secret ADMIN_TOKEN that you set in Cloudflare. It is never stored in this website's code or in browser storage.</p>
+      <form id="login-form" class="login-form">
+        <label for="token-input">Admin token</label>
+        <input id="token-input" type="password" autocomplete="off" required placeholder="Paste your Cloudflare ADMIN_TOKEN">
+        <button class="button primary" type="submit">Sign in</button>
+      </form>
+      <p id="login-error" class="error" role="alert"></p>
+    </section>
+    <div id="dashboard" class="hidden">
+      <section class="admin-cards">
+        <div class="stat-card"><div>Campaign</div><strong id="campaign-name">—</strong></div>
+        <div class="stat-card"><div>Referral codes issued</div><strong id="total-count">—</strong></div>
+      </section>
+      <div class="admin-columns">
+        <section class="admin-panel poster-panel">
+          <h2>Printable QR flyer</h2><p>The same QR works for every customer, with separate codes in D1.</p>
+          <div class="poster" id="poster">
+            <div class="poster-eyebrow">SCAN • JOIN • SHARE</div>
+            <h2>SCAN &amp; GET YOUR<br>REFERRAL CODE</h2>
+            <p>Scan with your phone camera and download your unique code instantly.</p>
+            <div id="qr-container" class="qr-container" aria-label="QR code for the customer page"></div>
+            <div id="qr-url" class="qr-url"></div>
+          </div>
+          <div class="poster-actions">
+            <button class="button primary" id="print-button" type="button">Print flyer</button>
+            <button class="button secondary" id="qr-download" type="button">Download QR PNG</button>
+          </div>
+          <p class="hint">Use a high-contrast print and test on two phones before printing the flyers.</p>
+        </section>
+        <section class="admin-panel">
+          <div class="section-header"><h2>Latest referral codes</h2><button class="button secondary small" id="refresh-button" type="button">Refresh</button></div>
+          <p>Showing the latest 100. Export CSV to download every code.</p>
+          <button id="csv-button" class="button primary" type="button">↓ Export all referral codes (CSV)</button>
+          <div class="table-scroll"><table><thead><tr><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="2">Loading...</td></tr></tbody></table></div>
+          <p id="admin-error" class="error" role="alert"></p>
+          <button id="logout-button" class="button secondary" type="button">Sign out</button>
+        </section>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
