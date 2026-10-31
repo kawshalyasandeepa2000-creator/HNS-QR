@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Campaign Admin</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <div class="admin-shell">
+    <header class="admin-header">
+      <div><div class="eyebrow">CAMPAIGN CONTROL CENTER</div><h1>Referral dashboard</h1><p>Print one QR for everyone. Track unique codes securely.</p></div>
+      <a class="button outline" href="/api/admin/export.csv">↓ Export all codes (CSV)</a>
+    </header>
+    <section class="admin-cards">
+      <div class="stat-card"><div>Campaign</div><strong id="campaign-name">Loading...</strong></div>
+      <div class="stat-card"><div>Referral codes issued</div><strong id="total-count">—</strong></div>
+    </section>
+    <div class="admin-columns">
+      <section class="admin-panel poster-panel">
+        <h2>Printable QR flyer</h2>
+        <p>All printed copies contain the same campaign URL.</p>
+        <div class="poster" id="poster">
+          <div class="poster-eyebrow">SCAN • JOIN • SHARE</div>
+          <h2>SCAN & GET YOUR<br />REFERRAL CODE</h2>
+          <p>Scan with your phone camera and download your unique code instantly.</p>
+          <img class="qr-image" src="/admin/qr.png" alt="Your campaign QR code" />
+          <div id="qr-url" class="qr-url"></div>
+        </div>
+        <div class="poster-actions">
+          <button class="button primary" id="print-button">Print flyer</button>
+          <a class="button secondary" href="/admin/qr.png" download="campaign-qr.png">Download QR PNG</a>
+        </div>
+        <p class="hint">Print at 100% with strong contrast. Test the QR on a real phone before printing flyers.</p>
+      </section>
+      <section class="admin-panel">
+        <div class="section-header"><h2>Latest referral codes</h2><button class="button secondary small" id="refresh-button">Refresh</button></div>
+        <p>Showing the latest 100. Export CSV for every code.</p>
+        <div class="table-scroll"><table><thead><tr><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="2">Loading...</td></tr></tbody></table></div>
+        <p id="admin-error" class="error" role="alert"></p>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
