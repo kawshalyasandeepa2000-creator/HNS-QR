@@ -3,25 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Referral Admin Dashboard</title>
+  <meta name="theme-color" content="#092c55">
+  <title>Helen & Sons | Referral Campaign Admin</title>
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./hns-brand.css">
   <script src="./config.js" defer></script>
-  <!-- QRCode library is for drawing QR on the admin page only. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script src="./admin.js" defer></script>
 </head>
-<body class="admin-page">
+<body class="admin-page hns-admin">
   <div class="admin-shell">
     <header class="admin-header">
-      <div><div class="eyebrow">CAMPAIGN CONTROL CENTER</div><h1>Referral dashboard</h1><p>Print one QR for everyone. Track unique referral codes in Cloudflare D1.</p></div>
-      <a class="button outline" href="./">View customer website</a>
+      <div>
+        <div class="hns-brand hns-admin-brand"><span class="hns-monogram" aria-hidden="true">H<span>&amp;</span>S</span><span class="hns-brand-text"><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span></div>
+        <div class="eyebrow">CAMPAIGN CONTROL CENTER</div>
+        <h1>Referral campaign dashboard</h1>
+        <p>Helen &amp; Sons — print one shared QR and manage unique referral codes stored in Cloudflare D1.</p>
+      </div>
+      <a class="button outline" href="./">View customer page</a>
     </header>
     <section class="admin-panel login-panel" id="login-panel">
       <h2>Administrator sign in</h2>
-      <p>Enter the secret ADMIN_TOKEN that you set in Cloudflare. It is never stored in this website's code or in browser storage.</p>
+      <p>Use your private Cloudflare ADMIN_TOKEN. Never add this token to your GitHub files.</p>
       <form id="login-form" class="login-form">
         <label for="token-input">Admin token</label>
-        <input id="token-input" type="password" autocomplete="off" required placeholder="Paste your Cloudflare ADMIN_TOKEN">
+        <input id="token-input" type="password" autocomplete="off" required placeholder="Paste your private ADMIN_TOKEN">
         <button class="button primary" type="submit">Sign in</button>
       </form>
       <p id="login-error" class="error" role="alert"></p>
@@ -29,27 +35,29 @@
     <div id="dashboard" class="hidden">
       <section class="admin-cards">
         <div class="stat-card"><div>Campaign</div><strong id="campaign-name">—</strong></div>
-        <div class="stat-card"><div>Referral codes issued</div><strong id="total-count">—</strong></div>
+        <div class="stat-card"><div>Total referral codes issued</div><strong id="total-count">—</strong></div>
       </section>
       <div class="admin-columns">
         <section class="admin-panel poster-panel">
-          <h2>Printable QR flyer</h2><p>The same QR works for every customer, with separate codes in D1.</p>
+          <h2>Helen &amp; Sons printable QR flyer</h2>
+          <p>Print this same QR on every outdoor leaflet. Each browser receives its own saved referral code.</p>
           <div class="poster" id="poster">
-            <div class="poster-eyebrow">SCAN • JOIN • SHARE</div>
-            <h2>SCAN &amp; GET YOUR<br>REFERRAL CODE</h2>
-            <p>Scan with your phone camera and download your unique code instantly.</p>
-            <div id="qr-container" class="qr-container" aria-label="QR code for the customer page"></div>
+            <div class="poster-eyebrow">HELEN &amp; SONS · VISA CONSULTANCY</div>
+            <h2>SCAN TO GET YOUR<br>REFERRAL PASS</h2>
+            <p>Scan the QR with your phone and receive your Helen &amp; Sons referral code instantly.</p>
+            <div id="qr-container" class="qr-container" aria-label="QR code leading to the customer referral page"></div>
             <div id="qr-url" class="qr-url"></div>
+            <p class="hns-poster-foot">UAE visa &amp; business consultancy · helensons.ae</p>
           </div>
           <div class="poster-actions">
             <button class="button primary" id="print-button" type="button">Print flyer</button>
             <button class="button secondary" id="qr-download" type="button">Download QR PNG</button>
           </div>
-          <p class="hint">Use a high-contrast print and test on two phones before printing the flyers.</p>
+          <p class="hint">Print in high contrast, test on two different phones, and verify both codes are saved in D1 before using the flyers.</p>
         </section>
         <section class="admin-panel">
-          <div class="section-header"><h2>Latest referral codes</h2><button class="button secondary small" id="refresh-button" type="button">Refresh</button></div>
-          <p>Showing the latest 100. Export CSV to download every code.</p>
+          <div class="section-header"><h2>Latest Helen &amp; Sons referral codes</h2><button class="button secondary small" id="refresh-button" type="button">Refresh</button></div>
+          <p>Showing the latest 100 codes. Export CSV to download all records.</p>
           <button id="csv-button" class="button primary" type="button">↓ Export all referral codes (CSV)</button>
           <div class="table-scroll"><table><thead><tr><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="2">Loading...</td></tr></tbody></table></div>
           <p id="admin-error" class="error" role="alert"></p>
