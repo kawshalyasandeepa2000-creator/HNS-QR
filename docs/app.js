@@ -60,19 +60,53 @@ async function downloadCard() {
   canvas.width = 1200;
   canvas.height = 630;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f0fdfa'; ctx.fillRect(0, 0, 1200, 630);
-  ctx.fillStyle = '#115e59'; ctx.fillRect(0, 0, 1200, 165);
+  if (!ctx) return;
+
+  // Helen & Sons branded pass, using the same SQL-issued code as the website.
+  ctx.fillStyle = '#f2f7fc';
+  ctx.fillRect(0, 0, 1200, 630);
+  const blue = ctx.createLinearGradient(0, 0, 1200, 230);
+  blue.addColorStop(0, '#07294f');
+  blue.addColorStop(1, '#0a5c9b');
+  ctx.fillStyle = blue;
+  ctx.fillRect(0, 0, 1200, 226);
+  ctx.fillStyle = '#e4b447';
+  ctx.fillRect(0, 226, 1200, 10);
+
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 32px Arial'; ctx.fillText('YOUR REFERRAL PASS', 600, 92);
-  ctx.fillStyle = '#0f172a'; ctx.font = 'bold 42px Arial'; ctx.fillText('Thanks for visiting!', 600, 262);
-  ctx.fillStyle = '#0f766e'; ctx.font = 'bold 61px monospace'; ctx.fillText(referral.code, 600, 376);
-  ctx.fillStyle = '#475569'; ctx.font = '26px Arial'; ctx.fillText(`Campaign: ${referral.campaign}`, 600, 455);
-  ctx.font = '24px Arial'; ctx.fillText('Keep this code safe and share it according to campaign terms.', 600, 515);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 54px Arial, sans-serif';
+  ctx.fillText('HELEN & SONS', 600, 105);
+  ctx.fillStyle = '#f5d58b';
+  ctx.font = 'bold 25px Arial, sans-serif';
+  ctx.fillText('VISA CONSULTANCY  |  REFERRAL PASS', 600, 160);
+
+  ctx.fillStyle = '#506c8b';
+  ctx.font = 'bold 25px Arial, sans-serif';
+  ctx.fillText('YOUR UNIQUE REFERRAL CODE', 600, 310);
+  ctx.fillStyle = '#082b52';
+  ctx.font = 'bold 64px Consolas, monospace';
+  ctx.fillText(referral.code, 600, 406);
+  ctx.fillStyle = '#375f84';
+  ctx.font = '24px Arial, sans-serif';
+  ctx.fillText('Helen & Sons | UAE visa and business consultancy', 600, 476);
+  ctx.fillStyle = '#7088a1';
+  ctx.font = '20px Arial, sans-serif';
+  ctx.fillText('Keep this pass for referrals. Rewards, if any, are subject to campaign terms.', 600, 537);
+  ctx.fillText('helensons.ae  •  This pass does not guarantee visa approval.', 600, 570);
+
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-  if (!blob) { statusElement.textContent = 'Image download unavailable. Please copy the code instead.'; return; }
+  if (!blob) {
+    statusElement.textContent = 'Image download unavailable. Please copy the code instead.';
+    return;
+  }
   const href = URL.createObjectURL(blob);
-  const anchor = document.createElement('a'); anchor.href = href; anchor.download = `${referral.code}.png`;
-  document.body.append(anchor); anchor.click(); anchor.remove();
+  const anchor = document.createElement('a');
+  anchor.href = href;
+  anchor.download = `Helen-and-Sons-Referral-${referral.code}.png`;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
 }
 async function copyCode() {
