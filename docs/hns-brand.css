@@ -1,0 +1,89 @@
+/* Helen & Sons Visa Consultancy theme (customer site + admin flyer).
+   Existing style.css is retained; these rules only replace visual styling. */
+:root {
+  --ink: #102b4d;
+  --teal: #07559c;
+  --muted: #5c728b;
+  --line: #dbe5ef;
+  --hns-navy: #082b52;
+  --hns-blue: #0760a8;
+  --hns-gold: #e4b447;
+  --hns-pale: #eaf5fc;
+}
+body { color:var(--ink) }
+a { color:var(--hns-blue) }
+.hns-site-header { max-width:1210px; margin:0 auto; padding:22px 32px 0; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+.hns-brand { display:inline-flex; align-items:center; gap:12px; text-decoration:none; color:var(--hns-navy); }
+.hns-monogram { width:47px; height:47px; border:2px solid var(--hns-gold); background:var(--hns-navy); color:white; border-radius:13px; display:flex; justify-content:center; align-items:center; font-size:16px; font-weight:900; letter-spacing:-1px; box-shadow:0 4px 0 #e4b44740; }
+.hns-monogram span {color:var(--hns-gold)}
+.hns-brand-text { display:flex; flex-direction:column; gap:3px; }
+.hns-brand-text strong {font-weight:900; letter-spacing:.08em; font-size:16px;}
+.hns-brand-text small {font-size:9px; letter-spacing:.2em; color:#69809a; font-weight:800;}
+.hns-header-link {font-size:13px; text-decoration:none; font-weight:800; border:1px solid #c7d9ed; border-radius:999px; padding:11px 16px; background:#ffffffcf; }
+.hns-header-link:hover {background:white;}
+.hns-customer.customer-page { background: radial-gradient(circle at 8% 18%,#dceef9 0%,transparent 46%),linear-gradient(135deg,#f8fbff 8%,#e7f1fb 63%,#f9f4e7 100%); }
+.hns-customer .layout { min-height:calc(100vh - 90px); max-width:1210px; grid-template-columns:minmax(0,1fr) minmax(390px,480px); column-gap:75px; padding-top:22px; }
+.hns-customer .intro {padding-bottom:26px}
+.hns-customer .intro h1 {color:var(--hns-navy); font-size:clamp(42px,5.8vw,73px); line-height:1.09;}
+.hns-customer .intro h1 span {color:var(--hns-blue)}
+.hns-customer .intro p {color:#526b86;max-width:510px}
+.hns-customer .eyebrow, .hns-admin .eyebrow {color:#07579d}
+.hns-customer .dot {background:var(--hns-gold)}
+.hns-customer .features span {color:#1f507d; background:white; border-color:#d5e5f5}
+.hns-service-note {max-width:490px; display:flex; align-items:flex-start; gap:14px; margin-top:26px; background:#fff; border:1px solid #dbe8f4; border-left:4px solid var(--hns-gold); border-radius:16px; padding:17px; box-shadow:0 12px 24px #173d6410;}
+.hns-note-icon {color:#be871e;font-size:23px;line-height:1}
+.hns-service-note strong {font-size:14px;color:#123c69}
+.hns-service-note p {font-size:13px;line-height:1.5;margin:7px 0 0}
+.hns-customer .ticket {border:1px solid #d4e4f2;box-shadow:0 22px 80px #062d5630}
+.hns-customer .ticket-top {background:linear-gradient(135deg,#06254b,#0d5a99); border-top:6px solid var(--hns-gold); padding-top:29px}
+.hns-customer .ticket-label {color:#f2d88a}
+.hns-customer .ticket-top p {color:#dceefa}
+.hns-customer .ticket-middle {border-bottom-color:#dde9f5;padding:35px 20px 30px}
+.hns-pass-ribbon {font-size:10px;letter-spacing:.22em;font-weight:800;color:#a07c2e;margin-bottom:16px}
+.hns-customer .code-caption {color:#64809b}
+.hns-customer .code {color:var(--hns-navy);font-size:clamp(19px,2.6vw,29px)}
+.hns-code-tag {color:#7389a2;font-size:11px;margin-top:19px}
+.hns-customer .ticket-footer {color:#647b93}
+.hns-customer .primary,.hns-admin .primary {background:var(--hns-blue);color:white}
+.hns-customer .primary:hover:not(:disabled), .hns-admin .primary:hover:not(:disabled) {background:#074783}
+.hns-customer .secondary,.hns-admin .secondary {background:#ebf3fa;color:#103f6d;border-color:#d5e6f4}
+.hns-customer .site-footer {color:#607994}
+.hns-customer .site-footer a {color:#07559c;font-weight:700}
+.hns-admin.admin-page {background:#f1f6fb}
+.hns-admin .admin-header {margin-bottom:18px}
+.hns-admin-brand {margin-bottom:19px}
+.hns-admin .stat-card,.hns-admin .admin-panel {border-color:#dbe6f3}
+.hns-admin .stat-card strong {color:var(--hns-navy)}
+.hns-admin .outline {color:var(--hns-blue);border-color:#c2d9eb}
+.hns-admin .poster {background:linear-gradient(160deg,#f0f7ff,#fff);border:2px solid var(--hns-navy);box-shadow:inset 0 0 0 6px #e0effb; }
+.hns-admin .poster-eyebrow {color:var(--hns-blue);letter-spacing:.11em}
+.hns-admin .poster h2 {color:var(--hns-navy)}
+.hns-admin .poster p {color:#476783}
+.hns-poster-foot {font-weight:700;font-size:10px!important;margin-top:8px!important}
+.hns-admin th {background:#eaf3fc;color:#476783}
+.hns-admin td {color:#284b6e}
+.hns-admin .poster .qr-container {background:white;padding:8px;border:3px solid #fff;border-radius:7px;}
+.hns-admin .poster .qr-container img,.hns-admin .poster .qr-container canvas {max-width:100%;height:auto!important}
+@media (max-width:860px) {
+  .hns-site-header {padding:20px 18px 0;}
+  .hns-customer .layout {grid-template-columns:1fr;max-width:580px;padding:36px 18px 22px;gap:26px;}
+  .hns-customer .intro {padding-bottom:0}
+  .hns-customer .intro h1 {font-size:clamp(36px,8vw,56px)}
+  .hns-service-note {text-align:left}
+}
+@media (max-width:450px) {
+  .hns-site-header {padding:15px 14px 0}
+  .hns-monogram {width:38px;height:38px;font-size:13px}
+  .hns-brand-text strong {font-size:12px}
+  .hns-brand-text small {font-size:8px}
+  .hns-header-link {font-size:11px;padding:9px 10px}
+  .hns-customer .code {font-size:20px;letter-spacing:0}
+}
+@media print {
+  .hns-admin .admin-header, .hns-admin .admin-cards, .hns-admin .poster-actions, .hns-admin .hint, .hns-admin .admin-columns > section:not(.poster-panel) {display:none!important}
+  .hns-admin .admin-columns {display:block}
+  .hns-admin .admin-panel.poster-panel {border:0;padding:0}
+  .hns-admin .poster-panel > h2,.hns-admin .poster-panel > p {display:none}
+  .hns-admin .poster {height:250mm;max-width:190mm;margin:0 auto;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .hns-admin .admin-shell {padding:0}
+}
