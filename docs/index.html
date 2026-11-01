@@ -23,7 +23,7 @@
     <div class="intro">
       <div class="eyebrow"><span class="dot"></span> HELEN &amp; SONS · REFERRAL CAMPAIGN</div>
       <h1>Your connections.<br><span>Your referral pass.</span></h1>
-      <p>Welcome to Helen &amp; Sons Visa Consultancy. Claim your unique referral code and keep it ready when introducing someone who may need guidance with UAE visa and business services.</p>
+      <p>Welcome to Helen &amp; Sons Visa Consultancy. Enter your name and mobile number to receive your referral code, then keep it ready when introducing someone who may need guidance with UAE visa and business services.</p>
       <div class="features">
         <span>✓ Your unique code</span><span>✓ Ready to save</span><span>✓ Easy to share</span>
       </div>
@@ -36,19 +36,31 @@
       <div class="ticket-top">
         <div class="ticket-label">HELEN &amp; SONS · OFFICIAL CAMPAIGN PASS</div>
         <h2 id="ticket-title">Your Helen &amp; Sons referral pass</h2>
-        <p id="status" role="status" aria-live="polite">Generating your code...</p>
+        <p id="status" role="status" aria-live="polite">Enter your name and mobile number to continue.</p>
       </div>
       <div class="ticket-middle">
-        <div class="hns-pass-ribbon">VISA CONSULTANCY</div>
-        <div class="code-caption">YOUR UNIQUE REFERRAL CODE</div>
-        <div id="referral-code" class="code loading" aria-live="polite">•••• •••• ••••</div>
-        <div id="created-at" class="date"></div>
-        <div class="hns-code-tag">Issued for the Helen &amp; Sons outdoor referral campaign</div>
+        <form id="referral-form" class="hns-referral-form">
+          <label for="full-name">Your full name <span class="required">*</span></label>
+          <input id="full-name" name="fullName" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Enter your full name" required>
+          <label for="mobile-number">Mobile / WhatsApp number <span class="required">*</span></label>
+          <input id="mobile-number" name="mobileNumber" type="tel" autocomplete="tel" inputmode="tel" maxlength="32" placeholder="050 123 4567 or +971 50 123 4567" required>
+          <p class="form-help">Use your real number, including country code if outside the UAE. One registration per mobile number per campaign.</p>
+          <label class="consent-row" for="contact-consent"><input type="checkbox" id="contact-consent" required><span>I agree that Helen &amp; Sons Visa Consultancy can store my name and mobile number to issue and manage this referral code and contact me about my referral. <a href="./privacy.html" target="_blank" rel="noopener">How my details are used</a>.</span></label>
+          <button id="claim-button" class="button primary" type="submit">Get my referral code</button>
+          <p class="form-help">A referral code is issued only after the details above are submitted. Providing a number does not verify ownership.</p>
+        </form>
+        <div id="pass-details" class="hidden">
+          <div class="hns-pass-ribbon">VISA CONSULTANCY</div>
+          <div class="code-caption">YOUR UNIQUE REFERRAL CODE</div>
+          <div id="referral-code" class="code loading" aria-live="polite">•••• •••• ••••</div>
+          <div id="issued-to" class="hns-issued-to"></div>
+          <div id="created-at" class="date"></div>
+          <div class="hns-code-tag">Issued for the Helen &amp; Sons outdoor referral campaign</div>
+        </div>
       </div>
-      <div class="ticket-actions">
+      <div class="ticket-actions hidden" id="referral-actions">
         <button id="download-button" class="button primary" disabled>↓ Download referral pass (PNG)</button>
         <button id="copy-button" class="button secondary" disabled>Copy referral code</button>
-        <button id="retry-button" class="button secondary hidden">Try again</button>
       </div>
       <div class="ticket-footer">Save this code and share it when referring someone to Helen &amp; Sons. Benefits, eligibility and any referral rewards are subject to campaign terms. A referral code does not guarantee visa approval.</div>
     </section>

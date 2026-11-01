@@ -18,7 +18,7 @@
         <div class="hns-brand hns-admin-brand"><span class="hns-monogram" aria-hidden="true">H<span>&amp;</span>S</span><span class="hns-brand-text"><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span></div>
         <div class="eyebrow">CAMPAIGN CONTROL CENTER</div>
         <h1>Referral campaign dashboard</h1>
-        <p>Helen &amp; Sons — print one shared QR and manage unique referral codes stored in Cloudflare D1.</p>
+        <p>Helen &amp; Sons — print one shared QR and manage names, mobile numbers and referral codes stored in Cloudflare D1.</p>
       </div>
       <a class="button outline" href="./">View customer page</a>
     </header>
@@ -44,7 +44,7 @@
           <div class="poster" id="poster">
             <div class="poster-eyebrow">HELEN &amp; SONS · VISA CONSULTANCY</div>
             <h2>SCAN TO GET YOUR<br>REFERRAL PASS</h2>
-            <p>Scan the QR with your phone and receive your Helen &amp; Sons referral code instantly.</p>
+            <p>Scan the QR with your phone and enter your name and mobile number to receive your Helen &amp; Sons referral code.</p>
             <div id="qr-container" class="qr-container" aria-label="QR code leading to the customer referral page"></div>
             <div id="qr-url" class="qr-url"></div>
             <p class="hns-poster-foot">UAE visa &amp; business consultancy · helensons.ae</p>
@@ -56,10 +56,10 @@
           <p class="hint">Print in high contrast, test on two different phones, and verify both codes are saved in D1 before using the flyers.</p>
         </section>
         <section class="admin-panel">
-          <div class="section-header"><h2>Latest Helen &amp; Sons referral codes</h2><button class="button secondary small" id="refresh-button" type="button">Refresh</button></div>
-          <p>Showing the latest 100 codes. Export CSV to download all records.</p>
-          <button id="csv-button" class="button primary" type="button">↓ Export all referral codes (CSV)</button>
-          <div class="table-scroll"><table><thead><tr><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="2">Loading...</td></tr></tbody></table></div>
+          <div class="section-header"><h2>Latest Helen &amp; Sons customer registrations</h2><button class="button secondary small" id="refresh-button" type="button">Refresh</button></div>
+          <p>Showing the latest 100 registrations. Export CSV to download the full customer list. Keep phone numbers confidential.</p>
+          <button id="csv-button" class="button primary" type="button">↓ Export customer details &amp; codes (CSV)</button>
+          <div class="table-scroll"><table><thead><tr><th>Customer name</th><th>Mobile number</th><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="4">Loading...</td></tr></tbody></table></div>
           <p id="admin-error" class="error" role="alert"></p>
           <button id="logout-button" class="button secondary" type="button">Sign out</button>
         </section>

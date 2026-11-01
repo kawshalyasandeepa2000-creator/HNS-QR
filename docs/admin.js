@@ -21,12 +21,22 @@ function renderRows(recent) {
   const tbody = document.querySelector('#referral-rows'); tbody.replaceChildren();
   if (!recent.length) {
     const tr = document.createElement('tr'); const td = document.createElement('td');
-    td.colSpan = 2; td.textContent = 'No referral codes yet.'; tr.append(td); tbody.append(tr); return;
+    td.colSpan = 4; td.textContent = 'No referral codes yet.'; tr.append(td); tbody.append(tr); return;
   }
   for (const row of recent) {
     const tr = document.createElement('tr');
-    for (const field of [row.code, row.createdAt]) {
-      const td = document.createElement('td'); td.textContent = field; tr.append(td);
+    for (const field of [row.fullName || '—', row.mobileNumber || '—', row.code, row.createdAt]) {
+      const td = document.createElement('td');
+      if (field === row.mobileNumber && /^\+[0-9]{8,15}$/.test(field || '')) {
+        const link = document.createElement('a');
+        link.href = `tel:${field}`;
+        link.textContent = field;
+        link.title = 'Call this customer';
+        td.append(link);
+      } else {
+        td.textContent = field;
+      }
+      tr.append(td);
     }
     tbody.append(tr);
   }

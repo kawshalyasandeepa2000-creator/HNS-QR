@@ -87,3 +87,22 @@ a { color:var(--hns-blue) }
   .hns-admin .poster {height:250mm;max-width:190mm;margin:0 auto;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .hns-admin .admin-shell {padding:0}
 }
+
+/* Required customer registration form (before any referral code is displayed). */
+.hns-referral-form {display:flex; flex-direction:column; gap:12px; margin:0 auto; width:min(100%,420px); text-align:left;}
+.hns-referral-form > label:not(.consent-row) {font-size:13px; font-weight:800; color:#173d61;}
+.hns-referral-form input[type="text"],.hns-referral-form input[type="tel"] {width:100%;font:inherit;font-size:16px;color:#123650;border:1px solid #b9cddf;border-radius:10px;padding:13px 14px;background:#fff;}
+.hns-referral-form input:focus-visible {outline:3px solid #8bb9e6;outline-offset:1px;}
+.hns-referral-form .required {color:#ae4b27;}
+.hns-referral-form .form-help {font-size:12px;line-height:1.5;color:#5a728a;margin:0 0 5px;}
+.hns-referral-form .consent-row {display:flex;gap:11px;align-items:flex-start;margin:5px 0 8px;line-height:1.5;color:#38566e;font-size:12px;}
+.hns-referral-form input[type="checkbox"] {flex-shrink:0;width:18px;height:18px;margin-top:2px;accent-color:#07559c;}
+.hns-referral-form .consent-row a {text-decoration:underline;}
+.hns-referral-form .button {width:100%;}
+.hns-issued-to {font-size:16px;font-weight:750;color:#225581;margin-top:12px;}
+.hns-admin .table-scroll {overflow:auto;max-width:100%;}
+.hns-admin .table-scroll table {min-width:650px;}
+.hns-admin .table-scroll td {overflow-wrap:anywhere;}
+
+.hns-admin .table-scroll td:first-child {font-family:inherit;font-weight:700;}
+.hns-admin .table-scroll td a {color:#07559c;text-decoration:underline;font-weight:700;}

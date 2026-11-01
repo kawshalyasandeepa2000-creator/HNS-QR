@@ -5,7 +5,11 @@ const statusElement = document.querySelector('#status');
 const createdAtElement = document.querySelector('#created-at');
 const downloadButton = document.querySelector('#download-button');
 const copyButton = document.querySelector('#copy-button');
-const retryButton = document.querySelector('#retry-button');
+const referralForm = document.querySelector('#referral-form');
+const claimButton = document.querySelector('#claim-button');
+const passDetails = document.querySelector('#pass-details');
+const referralActions = document.querySelector('#referral-actions');
+const issuedTo = document.querySelector('#issued-to');
 let referral = null;
 
 function getVisitorId(campaign) {
@@ -25,33 +29,45 @@ function apiUrl(path) {
   }
   return `${cfg.apiBaseUrl.replace(/\/$/, '')}${path}`;
 }
-async function loadReferral() {
-  statusElement.textContent = 'Generating your code...';
-  retryButton.classList.add('hidden');
+async function submitReferral(event) {
+  event.preventDefault();
+  if (!referralForm.reportValidity()) return;
+  const fullName = document.querySelector('#full-name').value.trim();
+  const mobileNumber = document.querySelector('#mobile-number').value.trim();
+  const consent = document.querySelector('#contact-consent').checked;
+  if (!consent) return;
+
+  statusElement.textContent = 'Saving your details and creating your referral pass...';
+  claimButton.disabled = true;
   downloadButton.disabled = true;
   copyButton.disabled = true;
   try {
     const response = await fetch(apiUrl('/api/referrals'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ campaign: cfg.campaign, visitorId: getVisitorId(cfg.campaign) })
+      body: JSON.stringify({
+        campaign: cfg.campaign, visitorId: getVisitorId(cfg.campaign),
+        fullName, mobileNumber, consent
+      })
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Could not generate your code.');
+    if (!response.ok) throw new Error(data.error || 'Could not issue your code.');
     referral = data;
     codeElement.textContent = data.code;
+    issuedTo.textContent = `Issued to: ${data.fullName || fullName}`;
     codeElement.classList.remove('loading');
-    statusElement.textContent = data.reused ? 'Welcome back! Here is your saved code.' : 'Success! Your code is ready.';
+    statusElement.textContent = data.reused ? 'Welcome back! Here is your registered code.' : 'Success! Your referral pass is ready.';
     createdAtElement.textContent = `Issued: ${new Date(data.createdAt).toLocaleString()}`;
+    passDetails.classList.remove('hidden');
+    referralActions.classList.remove('hidden');
+    referralForm.classList.add('hidden');
     downloadButton.disabled = false;
     copyButton.disabled = false;
   } catch (error) {
     referral = null;
-    statusElement.textContent = error.message || 'Could not connect. Please try again.';
-    codeElement.textContent = 'Unavailable';
-    codeElement.classList.remove('loading');
-    createdAtElement.textContent = '';
-    retryButton.classList.remove('hidden');
+    statusElement.textContent = error.message || 'Could not connect. Please check your details and try again.';
+  } finally {
+    claimButton.disabled = false;
   }
 }
 async function downloadCard() {
@@ -89,11 +105,13 @@ async function downloadCard() {
   ctx.fillText(referral.code, 600, 406);
   ctx.fillStyle = '#375f84';
   ctx.font = '24px Arial, sans-serif';
-  ctx.fillText('Helen & Sons | UAE visa and business consultancy', 600, 476);
+  ctx.fillText(`Issued to: ${(referral.fullName || '').slice(0, 60)}`, 600, 470);
+  ctx.font = '21px Arial, sans-serif';
+  ctx.fillText('Helen & Sons | UAE visa and business consultancy', 600, 499);
   ctx.fillStyle = '#7088a1';
   ctx.font = '20px Arial, sans-serif';
-  ctx.fillText('Keep this pass for referrals. Rewards, if any, are subject to campaign terms.', 600, 537);
-  ctx.fillText('helensons.ae  •  This pass does not guarantee visa approval.', 600, 570);
+  ctx.fillText('Keep this pass for referrals. Rewards, if any, are subject to campaign terms.', 600, 549);
+  ctx.fillText('helensons.ae  •  This pass does not guarantee visa approval.', 600, 580);
 
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   if (!blob) {
@@ -118,5 +136,4 @@ async function copyCode() {
 }
 downloadButton.addEventListener('click', downloadCard);
 copyButton.addEventListener('click', copyCode);
-retryButton.addEventListener('click', loadReferral);
-loadReferral();
+referralForm.addEventListener('submit', submitReferral);
