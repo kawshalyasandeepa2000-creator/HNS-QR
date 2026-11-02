@@ -3,87 +3,151 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#092c55">
-  <title>Helen & Sons | Referral Campaign Admin</title>
-  <link rel="stylesheet" href="./style.css">
-  <link rel="stylesheet" href="./hns-brand.css">
-  <script src="./config.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
-  <script src="./admin.js" defer></script>
+  <meta name="theme-color" content="#091b32">
+  <meta name="description" content="Secure Helen & Sons referral campaign management dashboard.">
+  <title>Helen &amp; Sons | Referral Control Centre</title>
+  <!-- Independent admin stylesheet avoids interfering with your customer website. -->
+  <link rel="stylesheet" href="./hns-admin-3d.css">
+  <script defer src="./config.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script defer src="./admin.js"></script>
 </head>
-<body class="admin-page hns-admin hns-3d-page">
-  <div class="admin-shell">
-    <header class="admin-header">
-      <div>
-        <div class="hns-brand hns-admin-brand"><span class="hns-monogram" aria-hidden="true">H<span>&amp;</span>S</span><span class="hns-brand-text"><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span></div>
-        <div class="eyebrow">CAMPAIGN CONTROL CENTER</div>
-        <h1>Referral campaign dashboard</h1>
-        <p>View customer name, mobile number, optional email address, and generated referral codes.</p>
+<body>
+<div class="backdrop-glow glow-one" aria-hidden="true"></div>
+<div class="backdrop-glow glow-two" aria-hidden="true"></div>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Primary navigation">
+    <a class="brand" href="./admin.html" aria-label="Helen and Sons dashboard home">
+      <span class="brand-emblem" aria-hidden="true">H<span>&amp;</span>S</span>
+      <span class="brand-name"><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span>
+    </a>
+    <div class="sidebar-rule"></div>
+    <p class="nav-caption">CAMPAIGN PORTAL</p>
+    <nav class="side-nav" aria-label="Dashboard sections">
+      <a class="nav-link is-active" href="#overview"><span class="nav-symbol" aria-hidden="true">◫</span>Overview</a>
+      <a class="nav-link" href="#customers"><span class="nav-symbol" aria-hidden="true">≡</span>Customer records</a>
+      <a class="nav-link" href="#qr-flyer"><span class="nav-symbol" aria-hidden="true">▦</span>QR flyer</a>
+      <a class="nav-link" href="./" target="_blank" rel="noopener"><span class="nav-symbol" aria-hidden="true">↗</span>Customer website</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-info">
+        <span class="small-spark" aria-hidden="true">✦</span>
+        <strong>Referral Campaign</strong>
+        <p>One QR. Unique codes. All records in your existing Cloudflare D1 database.</p>
       </div>
-      <a class="button outline" href="./">View customer page</a>
+      <p class="sidebar-foot">Helen &amp; Sons · Campaign admin</p>
+    </div>
+  </aside>
+
+  <main class="main-panel" id="overview">
+    <header class="topbar">
+      <div class="topbar-label"><span class="topbar-dot" aria-hidden="true"></span> HELEN &amp; SONS / REFERRALS</div>
+      <div class="topbar-actions">
+        <span id="connection-status" class="connection-status" role="status" aria-live="polite">Secure admin access</span>
+        <a class="topbar-button" href="./" target="_blank" rel="noopener">View live site <span aria-hidden="true">↗</span></a>
+      </div>
     </header>
 
-    <section class="admin-panel login-panel" id="login-panel">
-      <h2>Administrator sign in</h2>
-      <p>Use your private Cloudflare <strong>ADMIN_TOKEN</strong>. Never upload this token to GitHub.</p>
-      <form id="login-form" class="login-form">
-        <label for="token-input">Admin token</label>
-        <input id="token-input" type="password" autocomplete="off" required placeholder="Paste your private ADMIN_TOKEN">
-        <button class="button primary" type="submit">Sign in</button>
-      </form>
-      <p id="login-error" class="error" role="alert"></p>
+    <section class="hero depth-card" id="hero-card" aria-label="Referral dashboard introduction">
+      <div class="hero-content">
+        <div class="hero-eyebrow"><span class="hero-line"></span> CAMPAIGN CONTROL CENTRE</div>
+        <h1>Every connection,<br><span>a new opportunity.</span></h1>
+        <p>Manage Helen &amp; Sons Visa Consultancy referral registrations, customer contacts and your outdoor campaign QR — all in one place.</p>
+        <div class="hero-tags" aria-label="Included features"><span>Customer records</span><span>Referral codes</span><span>QR campaigns</span></div>
+      </div>
+      <div class="hero-scene" aria-hidden="true">
+        <div class="scene-sun"></div>
+        <div class="mountain mountain-back"></div>
+        <div class="mountain mountain-mid"></div>
+        <div class="mountain mountain-front"></div>
+        <div class="glass-float float-back"><span>H&amp;S</span><small>VISA CONSULTANCY</small></div>
+        <div class="glass-float float-front"><i>✦</i><b>Referral</b><small>CONNECTED</small></div>
+      </div>
     </section>
 
-    <div id="dashboard" class="hidden">
-      <section class="admin-cards">
-        <div class="stat-card"><div>Campaign</div><strong id="campaign-name">—</strong></div>
-        <div class="stat-card"><div>Total referral codes issued</div><strong id="total-count">—</strong></div>
+    <section class="login-wrap" id="login-panel" aria-labelledby="login-title">
+      <div class="login-panel depth-card">
+        <div class="panel-kicker"><span class="gold-spark">✦</span> RESTRICTED ACCESS</div>
+        <h2 id="login-title">Welcome back</h2>
+        <p>Sign in with the private <strong>ADMIN_TOKEN</strong> saved in your Cloudflare Worker. Your token stays in this browser tab's memory only.</p>
+        <form id="login-form" class="login-form">
+          <label for="token-input">Administrator token</label>
+          <div class="token-row"><input id="token-input" type="password" autocomplete="off" placeholder="Paste your private admin token" required><button type="button" id="toggle-token" class="toggle-token" aria-label="Show token" aria-pressed="false">Show</button></div>
+          <button class="btn btn-primary" type="submit" id="sign-in-button">Access dashboard <span aria-hidden="true">→</span></button>
+        </form>
+        <p id="login-error" class="error-message" role="alert"></p>
+      </div>
+    </section>
+
+    <div id="dashboard" class="dashboard hidden">
+      <section class="overview-section" aria-labelledby="overview-title">
+        <div class="section-heading">
+          <div><p class="kicker">LIVE OVERVIEW</p><h2 id="overview-title">Campaign performance</h2></div>
+          <div class="section-actions"><button class="btn btn-outline" id="refresh-button" type="button">↻ Refresh records</button><button class="btn btn-quiet" id="logout-button" type="button">Sign out</button></div>
+        </div>
+        <div class="metrics-grid">
+          <article class="metric-card depth-card metric-featured">
+            <div class="metric-top"><span>Referral codes issued</span><span class="metric-symbol" aria-hidden="true">◇</span></div>
+            <strong id="total-count" class="metric-value">—</strong>
+            <p>All registrations in the active campaign</p>
+          </article>
+          <article class="metric-card depth-card">
+            <div class="metric-top"><span>Recent registrations</span><span class="metric-symbol" aria-hidden="true">≡</span></div>
+            <strong id="recent-count" class="metric-value">—</strong>
+            <p>Latest 100 customer records</p>
+          </article>
+          <article class="metric-card depth-card">
+            <div class="metric-top"><span>Emails provided</span><span class="metric-symbol" aria-hidden="true">✉</span></div>
+            <strong id="email-count" class="metric-value">—</strong>
+            <p>In the latest 100 registrations</p>
+          </article>
+          <article class="metric-card depth-card">
+            <div class="metric-top"><span>Active campaign</span><span class="metric-symbol" aria-hidden="true">✦</span></div>
+            <strong id="campaign-name" class="metric-value metric-campaign">—</strong>
+            <p>Cloudflare D1 · secured records</p>
+          </article>
+        </div>
       </section>
 
-      <div class="admin-columns">
-        <section class="admin-panel poster-panel">
-          <h2>Printable campaign QR flyer</h2>
-          <p>Print this QR on outdoor material. The customer must enter name and mobile number before the code appears. Email is optional.</p>
-          <div class="poster" id="poster">
-            <div class="poster-eyebrow">HELEN &amp; SONS · VISA CONSULTANCY</div>
-            <h2>SCAN TO GET YOUR<br>REFERRAL PASS</h2>
-            <p>Scan the QR and enter your name and mobile number to receive a personal referral code. Email can be added optionally.</p>
-            <div id="qr-container" class="qr-container" aria-label="QR code leading to the customer referral page"></div>
-            <div id="qr-url" class="qr-url"></div>
-            <p class="hns-poster-foot">UAE visa consultancy · helensons.ae</p>
-          </div>
-          <div class="poster-actions">
-            <button class="button primary" id="print-button" type="button">Print flyer</button>
-            <button class="button secondary" id="qr-download" type="button">Download QR PNG</button>
-          </div>
-        </section>
+      <section class="records-section" id="customers" aria-labelledby="customers-title">
+        <div class="records-header">
+          <div><p class="kicker">CUSTOMER DIRECTORY</p><h2 id="customers-title">Latest registrations</h2><p>Search names, phone numbers, optional email addresses and referral codes. Export the entire campaign as CSV.</p></div>
+          <button id="csv-button" class="btn btn-primary" type="button">↓ Export full CSV</button>
+        </div>
+        <div class="table-toolbar">
+          <label class="search-field"><span aria-hidden="true">⌕</span><span class="sr-only">Search recent records</span><input id="record-search" type="search" placeholder="Search recent customers..." autocomplete="off"></label>
+          <span id="display-count" class="table-count">— records shown</span>
+        </div>
+        <div class="table-frame">
+          <table>
+            <thead><tr><th>Customer name</th><th>Mobile number</th><th>Email (optional)</th><th>Referral code</th><th>Created (UTC)</th></tr></thead>
+            <tbody id="referral-rows"><tr><td colspan="5">Sign in to load records.</td></tr></tbody>
+          </table>
+        </div>
+        <p id="admin-error" class="error-message" role="alert"></p>
+        <p class="table-footnote">For privacy, customer details are shown only after admin authentication. Search filters the recent 100 records; CSV export includes the full campaign.</p>
+      </section>
 
-        <section class="admin-panel">
-          <div class="section-header">
-            <h2>Latest customer registrations</h2>
-            <button class="button secondary small" id="refresh-button" type="button">Refresh</button>
+      <section class="qr-section" id="qr-flyer" aria-labelledby="flyer-section-title">
+        <div class="qr-panel">
+          <div class="qr-panel-copy"><p class="kicker">OUTDOOR CAMPAIGN</p><h2 id="flyer-section-title">Print the QR.<br>Share the opportunity.</h2><p>Use the same public QR on your posters. Customers enter their name and mobile number, and may optionally add an email, before receiving their unique referral code.</p><div class="poster-actions"><button class="btn btn-primary" id="print-button" type="button">Print campaign flyer</button><button class="btn btn-outline" id="qr-download" type="button">↓ Download QR PNG</button></div><div class="qr-instruction">Test your printed QR code on two different phones before distributing flyers.</div></div>
+          <div class="flyer-wrap">
+            <div class="poster" id="poster">
+              <div class="poster-glow" aria-hidden="true"></div>
+              <div class="poster-brand"><span class="poster-monogram">H<span>&amp;</span>S</span><span><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span></div>
+              <p class="poster-eyebrow">OUTDOOR REFERRAL CAMPAIGN</p>
+              <h2>SCAN &amp; GET YOUR<br>REFERRAL PASS</h2>
+              <p class="poster-intro">Join the Helen &amp; Sons referral campaign. Name and mobile required. Email optional.</p>
+              <div class="qr-shell"><div id="qr-container" class="qr-container" aria-label="QR code leading to the referral website"></div></div>
+              <div id="qr-url" class="qr-url"></div>
+              <p class="poster-footer">VISIT OUR REFERRAL WEBSITE · HELEN &amp; SONS</p>
+            </div>
           </div>
-          <p>Showing the latest 100 registrations. Export CSV to download the full customer list.</p>
-          <button id="csv-button" class="button primary" type="button">↓ Export customer details &amp; codes (CSV)</button>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Customer name</th>
-                  <th>Mobile number</th>
-                  <th>Email</th>
-                  <th>Referral code</th>
-                  <th>Created (UTC)</th>
-                </tr>
-              </thead>
-              <tbody id="referral-rows"><tr><td colspan="5">Loading...</td></tr></tbody>
-            </table>
-          </div>
-          <p id="admin-error" class="error" role="alert"></p>
-          <button id="logout-button" class="button secondary" type="button">Sign out</button>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
-  </div>
+    <footer class="main-footer"><span>HELEN &amp; SONS VISA CONSULTANCY</span><span>Private campaign dashboard · Do not share your admin token</span></footer>
+  </main>
+</div>
 </body>
 </html>
