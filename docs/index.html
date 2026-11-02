@@ -7,7 +7,28 @@
   <meta name="description" content="Get your Helen & Sons Visa Consultancy referral pass. Full name and mobile number are required; email is optional.">
   <title>Helen & Sons Visa Consultancy | Your Referral Pass</title>
   <link rel="stylesheet" href="./style.css">
-  <link rel="stylesheet" href="./hns-brand.css">
+  <!-- Fresh, versioned stylesheet avoids an old cached HNS style. -->
+  <style>
+    /* Critical layout fallback prevents an unbounded SVG if external CSS is delayed. */
+    body.hns-cinematic { margin:0; overflow-x:hidden; }
+    .hns-cinematic .cinematic-main { max-width:1400px; margin:0 auto; padding:12px 40px 38px; }
+    .hns-cinematic .cinematic-hero { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(360px,.89fr); align-items:center; }
+    .hns-cinematic .stage-wrap { position:relative; min-width:0; }
+    .hns-cinematic .cinematic-stage { position:relative; height:596px; overflow:hidden; border-radius:22px; }
+    .hns-cinematic .scene-art { position:absolute; inset:0; width:100%; height:100%; }
+    .hns-cinematic .stage-message { position:absolute; left:32px; right:32px; bottom:85px; }
+    .hns-cinematic .claim-panel { position:relative; z-index:2; }
+    @media(max-width:850px) {
+      .hns-cinematic .cinematic-main { padding:8px 18px 30px; }
+      .hns-cinematic .cinematic-hero { display:flex; flex-direction:column; align-items:stretch; }
+      .hns-cinematic .cinematic-stage { height:430px; }
+      .hns-cinematic .stage-message { left:24px; right:24px; bottom:70px; }
+    }
+    @media(max-width:570px) {
+      .hns-cinematic .cinematic-stage { height:375px; }
+    }
+  </style>
+  <link rel="stylesheet" href="./hns-cinematic-v2.css?v=20261102">
   <script src="./config.js" defer></script>
   <script src="./app.js" defer></script>
   <script src="./motion.js" defer></script>
