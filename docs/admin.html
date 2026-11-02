@@ -11,20 +11,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script src="./admin.js" defer></script>
 </head>
-<body class="admin-page hns-admin">
+<body class="admin-page hns-admin hns-3d-page">
   <div class="admin-shell">
     <header class="admin-header">
       <div>
         <div class="hns-brand hns-admin-brand"><span class="hns-monogram" aria-hidden="true">H<span>&amp;</span>S</span><span class="hns-brand-text"><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span></div>
         <div class="eyebrow">CAMPAIGN CONTROL CENTER</div>
         <h1>Referral campaign dashboard</h1>
-        <p>Helen &amp; Sons — print one shared QR and manage names, mobile numbers and referral codes stored in Cloudflare D1.</p>
+        <p>View customer name, mobile number, optional email address, and generated referral codes.</p>
       </div>
       <a class="button outline" href="./">View customer page</a>
     </header>
+
     <section class="admin-panel login-panel" id="login-panel">
       <h2>Administrator sign in</h2>
-      <p>Use your private Cloudflare ADMIN_TOKEN. Never add this token to your GitHub files.</p>
+      <p>Use your private Cloudflare <strong>ADMIN_TOKEN</strong>. Never upload this token to GitHub.</p>
       <form id="login-form" class="login-form">
         <label for="token-input">Admin token</label>
         <input id="token-input" type="password" autocomplete="off" required placeholder="Paste your private ADMIN_TOKEN">
@@ -32,34 +33,52 @@
       </form>
       <p id="login-error" class="error" role="alert"></p>
     </section>
+
     <div id="dashboard" class="hidden">
       <section class="admin-cards">
         <div class="stat-card"><div>Campaign</div><strong id="campaign-name">—</strong></div>
         <div class="stat-card"><div>Total referral codes issued</div><strong id="total-count">—</strong></div>
       </section>
+
       <div class="admin-columns">
         <section class="admin-panel poster-panel">
-          <h2>Helen &amp; Sons printable QR flyer</h2>
-          <p>Print this same QR on every outdoor leaflet. Each browser receives its own saved referral code.</p>
+          <h2>Printable campaign QR flyer</h2>
+          <p>Print this QR on outdoor material. The customer must enter name and mobile number before the code appears. Email is optional.</p>
           <div class="poster" id="poster">
             <div class="poster-eyebrow">HELEN &amp; SONS · VISA CONSULTANCY</div>
             <h2>SCAN TO GET YOUR<br>REFERRAL PASS</h2>
-            <p>Scan the QR with your phone and enter your name and mobile number to receive your Helen &amp; Sons referral code.</p>
+            <p>Scan the QR and enter your name and mobile number to receive a personal referral code. Email can be added optionally.</p>
             <div id="qr-container" class="qr-container" aria-label="QR code leading to the customer referral page"></div>
             <div id="qr-url" class="qr-url"></div>
-            <p class="hns-poster-foot">UAE visa &amp; business consultancy · helensons.ae</p>
+            <p class="hns-poster-foot">UAE visa consultancy · helensons.ae</p>
           </div>
           <div class="poster-actions">
             <button class="button primary" id="print-button" type="button">Print flyer</button>
             <button class="button secondary" id="qr-download" type="button">Download QR PNG</button>
           </div>
-          <p class="hint">Print in high contrast, test on two different phones, and verify both codes are saved in D1 before using the flyers.</p>
         </section>
+
         <section class="admin-panel">
-          <div class="section-header"><h2>Latest Helen &amp; Sons customer registrations</h2><button class="button secondary small" id="refresh-button" type="button">Refresh</button></div>
-          <p>Showing the latest 100 registrations. Export CSV to download the full customer list. Keep phone numbers confidential.</p>
+          <div class="section-header">
+            <h2>Latest customer registrations</h2>
+            <button class="button secondary small" id="refresh-button" type="button">Refresh</button>
+          </div>
+          <p>Showing the latest 100 registrations. Export CSV to download the full customer list.</p>
           <button id="csv-button" class="button primary" type="button">↓ Export customer details &amp; codes (CSV)</button>
-          <div class="table-scroll"><table><thead><tr><th>Customer name</th><th>Mobile number</th><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="4">Loading...</td></tr></tbody></table></div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer name</th>
+                  <th>Mobile number</th>
+                  <th>Email</th>
+                  <th>Referral code</th>
+                  <th>Created (UTC)</th>
+                </tr>
+              </thead>
+              <tbody id="referral-rows"><tr><td colspan="5">Loading...</td></tr></tbody>
+            </table>
+          </div>
           <p id="admin-error" class="error" role="alert"></p>
           <button id="logout-button" class="button secondary" type="button">Sign out</button>
         </section>

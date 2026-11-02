@@ -4,67 +4,112 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#092c55">
-  <meta name="description" content="Helen & Sons Visa Consultancy referral pass. Receive your unique campaign referral code and save a copy.">
-  <title>Helen & Sons | Your Referral Pass</title>
+  <meta name="description" content="Helen & Sons Visa Consultancy referral pass. Enter your details and receive your unique referral code.">
+  <title>Helen & Sons | Referral Pass</title>
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./hns-brand.css">
   <script src="./config.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
-<body class="customer-page hns-customer">
+<body class="customer-page hns-customer hns-3d-page">
+  <div class="hns-bg-orb orb-1" aria-hidden="true"></div>
+  <div class="hns-bg-orb orb-2" aria-hidden="true"></div>
+  <div class="hns-bg-grid" aria-hidden="true"></div>
+
   <header class="hns-site-header">
     <a href="https://helensons.ae/" class="hns-brand" aria-label="Helen and Sons main website" target="_blank" rel="noopener noreferrer">
       <span class="hns-monogram" aria-hidden="true">H<span>&amp;</span>S</span>
       <span class="hns-brand-text"><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span>
     </a>
-    <a class="hns-header-link" href="https://helensons.ae/contact/" target="_blank" rel="noopener noreferrer">Contact our team <span aria-hidden="true">↗</span></a>
+    <a class="hns-header-link" href="https://helensons.ae/contact/" target="_blank" rel="noopener noreferrer">Talk to our team <span aria-hidden="true">↗</span></a>
   </header>
+
   <main class="layout">
-    <div class="intro">
+    <section class="intro">
       <div class="eyebrow"><span class="dot"></span> HELEN &amp; SONS · REFERRAL CAMPAIGN</div>
-      <h1>Your connections.<br><span>Your referral pass.</span></h1>
-      <p>Welcome to Helen &amp; Sons Visa Consultancy. Enter your name and mobile number to receive your referral code, then keep it ready when introducing someone who may need guidance with UAE visa and business services.</p>
+      <h1>Premium referral pass <span>with a modern 3D experience.</span></h1>
+      <p>Welcome to Helen &amp; Sons Visa Consultancy. Fill in your name and mobile number to receive your unique referral code. You can also add your email address if you want us to have it, but email is optional.</p>
+
       <div class="features">
-        <span>✓ Your unique code</span><span>✓ Ready to save</span><span>✓ Easy to share</span>
+        <span>✓ Name required</span>
+        <span>✓ Mobile required</span>
+        <span>✓ Email optional</span>
       </div>
-      <div class="hns-service-note">
+
+      <div class="hns-service-note glass-card">
         <span class="hns-note-icon" aria-hidden="true">✦</span>
-        <div><strong>Visa guidance and business support</strong><p>Connect with the Helen &amp; Sons team for information about our services.</p></div>
+        <div>
+          <strong>Helen &amp; Sons Visa Consultancy</strong>
+          <p>Use this pass when referring a client to our team for UAE visa guidance and consultancy support.</p>
+        </div>
       </div>
-    </div>
-    <section class="ticket" aria-labelledby="ticket-title">
+
+      <div class="mini-stack" aria-hidden="true">
+        <div class="mini-card floating-delay-1">
+          <small>TRUSTED TEAM</small>
+          <strong>Helen &amp; Sons</strong>
+        </div>
+        <div class="mini-card floating-delay-2">
+          <small>SMART ACCESS</small>
+          <strong>One referral pass per customer</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="ticket three-d-ticket" aria-labelledby="ticket-title">
+      <div class="ticket-glow" aria-hidden="true"></div>
       <div class="ticket-top">
-        <div class="ticket-label">HELEN &amp; SONS · OFFICIAL CAMPAIGN PASS</div>
-        <h2 id="ticket-title">Your Helen &amp; Sons referral pass</h2>
-        <p id="status" role="status" aria-live="polite">Enter your name and mobile number to continue.</p>
+        <div class="ticket-label">OFFICIAL HELEN &amp; SONS REFERRAL PASS</div>
+        <h2 id="ticket-title">Get your referral pass</h2>
+        <p id="status" role="status" aria-live="polite">Enter your details below to continue.</p>
       </div>
+
       <div class="ticket-middle">
         <form id="referral-form" class="hns-referral-form">
-          <label for="full-name">Your full name <span class="required">*</span></label>
-          <input id="full-name" name="fullName" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Enter your full name" required>
-          <label for="mobile-number">Mobile / WhatsApp number <span class="required">*</span></label>
-          <input id="mobile-number" name="mobileNumber" type="tel" autocomplete="tel" inputmode="tel" maxlength="32" placeholder="050 123 4567 or +971 50 123 4567" required>
-          <p class="form-help">Use your real number, including country code if outside the UAE. One registration per mobile number per campaign.</p>
-          <label class="consent-row" for="contact-consent"><input type="checkbox" id="contact-consent" required><span>I agree that Helen &amp; Sons Visa Consultancy can store my name and mobile number to issue and manage this referral code and contact me about my referral. <a href="./privacy.html" target="_blank" rel="noopener">How my details are used</a>.</span></label>
+          <div class="field-grid">
+            <div class="field-wrap">
+              <label for="full-name">Full name <span class="required">*</span></label>
+              <input id="full-name" name="fullName" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Enter your full name" required>
+            </div>
+            <div class="field-wrap">
+              <label for="mobile-number">Mobile / WhatsApp number <span class="required">*</span></label>
+              <input id="mobile-number" name="mobileNumber" type="tel" autocomplete="tel" inputmode="tel" maxlength="32" placeholder="050 123 4567 or +971 50 123 4567" required>
+            </div>
+          </div>
+
+          <div class="field-wrap">
+            <label for="email-address">Email address <span class="optional">(optional)</span></label>
+            <input id="email-address" name="email" type="email" autocomplete="email" maxlength="254" placeholder="example@email.com">
+          </div>
+
+          <p class="form-help">Name and mobile number are required. Email is optional. One registration per mobile number per campaign.</p>
+          <label class="consent-row" for="contact-consent">
+            <input type="checkbox" id="contact-consent" required>
+            <span>I agree that Helen &amp; Sons Visa Consultancy can store my submitted details to issue and manage this referral code and contact me about my referral. <a href="./privacy.html" target="_blank" rel="noopener">How my details are used</a>.</span>
+          </label>
+
           <button id="claim-button" class="button primary" type="submit">Get my referral code</button>
-          <p class="form-help">A referral code is issued only after the details above are submitted. Providing a number does not verify ownership.</p>
+          <p class="form-help">A referral code is issued only after the required details are submitted.</p>
         </form>
-        <div id="pass-details" class="hidden">
-          <div class="hns-pass-ribbon">VISA CONSULTANCY</div>
+
+        <div id="pass-details" class="hidden pass-reveal">
+          <div class="hns-pass-ribbon">HELEN &amp; SONS VISA CONSULTANCY</div>
           <div class="code-caption">YOUR UNIQUE REFERRAL CODE</div>
           <div id="referral-code" class="code loading" aria-live="polite">•••• •••• ••••</div>
           <div id="issued-to" class="hns-issued-to"></div>
           <div id="created-at" class="date"></div>
-          <div class="hns-code-tag">Issued for the Helen &amp; Sons outdoor referral campaign</div>
+          <div class="hns-code-tag">Issued for the Helen &amp; Sons referral campaign</div>
         </div>
       </div>
+
       <div class="ticket-actions hidden" id="referral-actions">
         <button id="download-button" class="button primary" disabled>↓ Download referral pass (PNG)</button>
         <button id="copy-button" class="button secondary" disabled>Copy referral code</button>
       </div>
-      <div class="ticket-footer">Save this code and share it when referring someone to Helen &amp; Sons. Benefits, eligibility and any referral rewards are subject to campaign terms. A referral code does not guarantee visa approval.</div>
+
+      <div class="ticket-footer">Save this code and share it when referring someone to Helen &amp; Sons. Campaign benefits or referral rewards, if any, are subject to company terms.</div>
     </section>
-    <footer class="site-footer">Helen &amp; Sons Visa Consultancy · <a href="https://helensons.ae/" target="_blank" rel="noopener noreferrer">helensons.ae</a> · One code per browser in normal use; switching devices or clearing storage may issue another.</footer>
+    <footer class="site-footer">Helen &amp; Sons Visa Consultancy · <a href="https://helensons.ae/" target="_blank" rel="noopener noreferrer">helensons.ae</a></footer>
   </main>
 </body>
 </html>
