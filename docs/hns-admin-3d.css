@@ -158,3 +158,27 @@ button:focus-visible,a:focus-visible,input:focus-visible { outline:3px solid #65
 @media (max-width:470px) { .main-panel { padding-inline:15px; } .topbar-label { letter-spacing:.05em; } .connection-status { font-size:10px; } .hero { border-radius:21px; } .hero h1 { font-size:31px; } .hero-tags { gap:6px; } .hero-tags span { font-size:9px; } .login-panel { padding:23px; } .metrics-grid { gap:10px; } .metric-card { min-height:150px; padding:17px 14px; } .metric-top { font-size:10px; } .metric-value { font-size:31px; } .metric-campaign { font-size:17px; } .records-section,.qr-panel { padding:18px; } .table-toolbar { flex-direction:column; align-items:stretch; } .search-field { width:100%; } .poster { padding:19px 15px; } .poster h2 { font-size:25px; } }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { animation:none!important; transition:none!important; transform:none!important; translate:none!important; } }
 @media print { @page { size:A4 portrait; margin:10mm; } html,body { margin:0!important; padding:0!important; background:#fff!important; } .app-shell { display:block; min-height:0; } .sidebar,.topbar,.hero,.login-wrap,.overview-section,.records-section,.qr-panel-copy,.main-footer { display:none!important; } .main-panel { padding:0!important; margin:0!important; } #dashboard,#qr-flyer,.qr-panel,.flyer-wrap { display:block!important; margin:0!important; padding:0!important; border:0!important; box-shadow:none!important; background:#fff!important; width:100%!important; max-width:none!important; } .poster { width:190mm!important; height:266mm!important; min-height:0!important; max-width:none!important; margin:0 auto!important; padding:20mm 14mm 12mm!important; border:2px solid #0a2644!important; border-radius:12px!important; background:linear-gradient(180deg,#0a2644 0%,#13527e 39%,#fff 39%,#fff 100%)!important; transform:none!important; box-shadow:none!important; break-inside:avoid; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; } .poster-brand strong { font-size:21px!important; } .poster-brand small { font-size:13px!important; } .poster-monogram { font-size:23px!important; } .poster-eyebrow { margin-top:20mm!important; font-size:14px!important; } .poster h2 { font-size:42px!important; } .poster-intro { font-size:14px!important; max-width:125mm; } .qr-shell { margin:23mm auto 6mm; width:85mm!important; height:85mm!important; border-radius:0!important; padding:8mm!important; } .qr-container { width:100%!important; height:100%!important; } .qr-url { font-size:12px!important; max-width:155mm!important; } .poster-footer { font-size:11px!important; } }
+
+
+/* Original Helen & Sons H&S mark restored from the earlier website.
+   This override only affects this admin stylesheet. */
+.app-shell { grid-template-columns:274px minmax(0,1fr); }
+.hns-brand { display:inline-flex; align-items:center; gap:12px; text-decoration:none; color:#082b52; }
+.hns-monogram { width:47px; height:47px; flex:0 0 47px; border:2px solid #e4b447; background:#082b52; color:#fff; border-radius:13px; display:flex; justify-content:center; align-items:center; font-size:16px; font-weight:900; letter-spacing:-1px; box-shadow:0 4px 0 #e4b44740; }
+.hns-monogram span { color:#e4b447; }
+.hns-brand-text { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.hns-brand-text strong { font-weight:900; letter-spacing:.08em; font-size:16px; color:#082b52; line-height:1.2; white-space:nowrap; }
+.hns-brand-text small { font-size:9px; letter-spacing:.2em; color:#69809a; font-weight:800; line-height:1.25; white-space:nowrap; }
+.sidebar .brand.hns-admin-brand { color:#082b52; width:100%; margin:0; padding:12px 10px; border-radius:17px; background:linear-gradient(150deg,#fff,#f2f7fc); border:1px solid #cfdfeb; box-shadow:0 12px 23px #06192b66; }
+.sidebar .hns-brand-text strong { font-size:14px; }
+.sidebar .hns-brand-text small { font-size:8px; letter-spacing:.15em; }
+.hero-scene .float-back { align-items:center; text-align:center; gap:9px; }
+.hero-scene .float-back .hns-monogram { font-size:16px; width:45px; height:45px; flex:0 0 45px; }
+.hero-scene .float-back .hns-monogram span { font-size:16px; letter-spacing:-1px; }
+.hero-scene .float-back small { color:#e8f3fa; font-weight:800; letter-spacing:.13em; }
+.poster .poster-brand.hns-admin-brand { display:flex; gap:10px; margin-inline:auto; padding:10px 13px; border:1px solid #c7dbea; border-radius:16px; background:linear-gradient(145deg,#fff,#f1f7ff); color:#082b52; box-shadow:0 12px 25px rgba(4,27,53,.16); }
+.poster .hns-brand-text strong { font-size:14px; }
+.poster .hns-brand-text small { font-size:9px; }
+@media (max-width:900px) { .app-shell { grid-template-columns:1fr; } }
+@media (max-width:430px) { .sidebar .brand.hns-admin-brand { max-width:280px; } .poster .poster-brand.hns-admin-brand { padding:8px; } .poster .hns-brand-text strong { font-size:12px; } .poster .hns-brand-text small { font-size:8px; } .poster .hns-monogram { width:42px; height:42px; flex-basis:42px; } }
+@media print { .poster .poster-brand.hns-admin-brand { background:#fff!important; border:1px solid #c7dbea; box-shadow:none; padding:10px 15px; } .poster .hns-monogram { width:53px; height:53px; font-size:18px; flex-basis:53px; } .poster .hns-brand-text strong { font-size:21px!important; } .poster .hns-brand-text small { font-size:12px!important; } }
