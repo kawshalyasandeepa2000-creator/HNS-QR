@@ -3,133 +3,82 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0b2847">
-  <meta name="description" content="Get your Helen & Sons Visa Consultancy referral pass. Full name and mobile number are required; email is optional.">
-  <title>Helen & Sons Visa Consultancy | Your Referral Pass</title>
-  <link rel="stylesheet" href="./style.css">
-  <!-- Fresh, versioned stylesheet avoids an old cached HNS style. -->
-  <style>
-    /* Critical layout fallback prevents an unbounded SVG if external CSS is delayed. */
-    body.hns-cinematic { margin:0; overflow-x:hidden; }
-    .hns-cinematic .cinematic-main { max-width:1400px; margin:0 auto; padding:12px 40px 38px; }
-    .hns-cinematic .cinematic-hero { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(360px,.89fr); align-items:center; }
-    .hns-cinematic .stage-wrap { position:relative; min-width:0; }
-    .hns-cinematic .cinematic-stage { position:relative; height:596px; overflow:hidden; border-radius:22px; }
-    .hns-cinematic .scene-art { position:absolute; inset:0; width:100%; height:100%; }
-    .hns-cinematic .stage-message { position:absolute; left:32px; right:32px; bottom:85px; }
-    .hns-cinematic .claim-panel { position:relative; z-index:2; }
-    @media(max-width:850px) {
-      .hns-cinematic .cinematic-main { padding:8px 18px 30px; }
-      .hns-cinematic .cinematic-hero { display:flex; flex-direction:column; align-items:stretch; }
-      .hns-cinematic .cinematic-stage { height:430px; }
-      .hns-cinematic .stage-message { left:24px; right:24px; bottom:70px; }
-    }
-    @media(max-width:570px) {
-      .hns-cinematic .cinematic-stage { height:375px; }
-    }
-  </style>
-  <link rel="stylesheet" href="./hns-cinematic-v2.css?v=20261102">
-  <script src="./config.js" defer></script>
-  <script src="./app.js" defer></script>
-  <script src="./motion.js" defer></script>
+  <meta name="theme-color" content="#00005C">
+  <meta name="description" content="Helen and Sons Visa Consultancy official referral campaign. Register your name and mobile number; email is optional, then download your unique referral pass.">
+  <title>Helen and Sons | Referral Programme</title>
+  <!-- Independent CSS: avoids old styling conflicts and cached broken 3D layouts. -->
+  <style>html{box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}body{margin:0}.hns-main{width:min(1400px,calc(100% - 48px));margin:auto}.hero-layout{display:grid;grid-template-columns:minmax(0,1.13fr) minmax(370px,.87fr);gap:28px;align-items:start}.brand-art{position:relative;max-width:100%;overflow:hidden}.brand-art img{display:block;width:100%;max-height:440px;object-fit:contain}@media(max-width:880px){.hero-layout{grid-template-columns:1fr}.hns-main{width:min(100% - 28px,700px)}} </style>
+  <link rel="stylesheet" href="./hns-official-ui.css?v=20261109-a">
+  <script defer src="./config.js"></script>
+  <script defer src="./app.js?v=20261109-brand-a"></script>
+  <script defer src="./motion.js?v=20261109-brand-a"></script>
 </head>
-<body class="customer-page hns-customer hns-cinematic">
-  <header class="hns-site-header">
-    <!-- Keep the exact existing Helen & Sons logo / branding, unchanged. -->
-    <a href="https://helensons.ae/" class="hns-brand" aria-label="Helen and Sons main website" target="_blank" rel="noopener noreferrer">
-      <span class="hns-monogram" aria-hidden="true">H<span>&amp;</span>S</span>
-      <span class="hns-brand-text"><strong>HELEN &amp; SONS</strong><small>VISA CONSULTANCY</small></span>
+<body class="hns-official hns-cinematic hns-customer">
+  <div class="ambient ambient-left" aria-hidden="true"></div>
+  <div class="ambient ambient-right" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand-lockup" href="./" aria-label="Helen and Sons Visa Consultancy — referral homepage">
+      <img id="hns-official-logo" src="./helen-sons-logo.png" alt="Helen and Sons official logo — since 2007" width="136" height="159">
+      <span class="brand-words"><strong>Helen and Sons</strong><small>VISA CONSULTANCY · SINCE 2007</small></span>
     </a>
-    <a class="hns-header-link" href="https://helensons.ae/contact/" target="_blank" rel="noopener noreferrer">Contact our team <span aria-hidden="true">↗</span></a>
+    <nav class="header-links" aria-label="Navigation">
+      <a href="#how-it-works">How it works</a>
+      <a href="./privacy.html">Privacy</a>
+      <a class="header-cta" href="#get-code">Get referral code <span aria-hidden="true">↗</span></a>
+    </nav>
   </header>
-
-  <main class="cinematic-main">
-    <div class="cinematic-kicker" data-reveal><span class="gold-spark">✦</span> HELEN &amp; SONS · REFERRAL CAMPAIGN <span class="kicker-rule"></span> UAE VISA CONSULTANCY</div>
-
-    <section class="cinematic-hero" aria-label="Helen & Sons referral registration">
-      <div class="stage-wrap" data-reveal>
-        <div class="stage-shadow" aria-hidden="true"></div>
-        <div class="cinematic-stage" id="cinematic-stage">
-          <svg class="scene-art" viewBox="0 0 900 640" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Stylized mountain landscape at sunset">
-            <defs>
-              <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stop-color="#c1a882"/><stop offset=".43" stop-color="#dfc49d"/><stop offset=".75" stop-color="#e9d9b9"/><stop offset="1" stop-color="#e2d4bb"/>
-              </linearGradient>
-              <linearGradient id="nearHill" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0" stop-color="#5c6450"/><stop offset=".46" stop-color="#304738"/><stop offset="1" stop-color="#162d2a"/>
-              </linearGradient>
-              <linearGradient id="foreground" x1="0" x2=".9" y1="0" y2="1">
-                <stop offset="0" stop-color="#52624b"/><stop offset=".5" stop-color="#253f36"/><stop offset="1" stop-color="#152729"/>
-              </linearGradient>
-              <radialGradient id="haze"><stop offset="0" stop-color="#fff8de" stop-opacity=".8"/><stop offset="1" stop-color="#fff8de" stop-opacity="0"/></radialGradient>
-              <linearGradient id="sceneShade" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#081d22" stop-opacity=".08"/><stop offset=".55" stop-color="#061e21" stop-opacity=".08"/><stop offset="1" stop-color="#001b1e" stop-opacity=".7"/></linearGradient>
-              <filter id="blurS"><feGaussianBlur stdDeviation="16"/></filter>
-            </defs>
-            <rect width="900" height="640" fill="url(#sky)"/>
-            <ellipse cx="575" cy="202" rx="280" ry="145" fill="url(#haze)"/>
-            <circle cx="553" cy="238" r="42" fill="#f3e1ad" opacity=".52" filter="url(#blurS)"/>
-            <path d="M0 262 C100 234 135 244 194 250 S333 211 440 222 S620 209 727 241 S841 224 900 212 L900 640 H0Z" fill="#a9a18a" opacity=".6"/>
-            <path d="M0 320 C96 281 185 301 275 286 S442 270 517 281 S712 249 900 274 L900 640 H0Z" fill="#8e9082" opacity=".55"/>
-            <path d="M0 376 C118 334 186 339 258 332 S390 321 478 344 S690 295 900 325 L900 640 H0Z" fill="#647468" opacity=".62"/>
-            <path d="M0 416 C140 362 218 369 314 380 S475 413 556 398 S733 347 900 381 L900 640 H0Z" fill="#667466" opacity=".62"/>
-            <path d="M0 468 C139 428 242 434 338 467 S532 504 618 481 S752 408 900 392 L900 640 H0Z" fill="url(#nearHill)"/>
-            <path d="M0 640 L0 528 C158 460 275 490 384 546 S580 590 674 524 S838 463 900 478 L900 640Z" fill="url(#foreground)"/>
-            <path d="M470 640 C560 588 599 590 641 563 S710 523 900 518" fill="none" stroke="#bda476" stroke-width="13" opacity=".22"/>
-            <path d="M457 640 C554 586 603 594 648 565 S718 521 900 515" fill="none" stroke="#ead7a0" stroke-width="3" opacity=".24"/>
-            <rect width="900" height="640" fill="url(#sceneShade)"/>
-          </svg>
-          <div class="scene-tint" aria-hidden="true"></div>
-          <div class="stage-navigation" aria-hidden="true"><span>H&amp;S</span><span class="nav-dashes">— &nbsp; — &nbsp; —</span><span>VISA CONSULTANCY</span></div>
-          <div class="stage-message depth-2">
-            <div class="scene-label">HELEN &amp; SONS VISA CONSULTANCY</div>
-            <h1>Your connections.<br><em>New horizons.</em></h1>
-            <p>One introduction can open a new opportunity. Register your details and receive your personal referral pass.</p>
-          </div>
-          <div class="scene-bottom" aria-hidden="true"><span>UAE · VISA SERVICES</span><span>THE REFERRAL JOURNEY</span><span>✦ &nbsp; 01 / 03</span></div>
+  <main class="hns-main">
+    <div class="trust-band"><span class="mini-gold-dot"></span> OFFICIAL REFERRAL PROGRAMME <span class="trust-line"></span> HELEN AND SONS VISA CONSULTANCY</div>
+    <div class="hero-layout">
+      <section class="hero-story" aria-labelledby="hero-title" data-reveal>
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="gold-rule"></span> A WORLD OF OPPORTUNITIES</div>
+          <h1 id="hero-title">Your connections.<br><em>New horizons.</em></h1>
+          <p>Refer someone to Helen and Sons Visa Consultancy. Register for your unique referral code and keep your digital pass ready to share.</p>
+          <div class="hero-pills"><span><span aria-hidden="true">✦</span> Quick registration</span><span><span aria-hidden="true">✦</span> Your own referral code</span></div>
         </div>
-        <div class="floating-note" aria-hidden="true"><span class="note-icon">✦</span><div><small>YOUR REFERRAL JOURNEY</small><b>Simple. Personal. Ready to share.</b></div></div>
-        <div class="floating-mini" aria-hidden="true"><span>H&amp;S</span><small>EXCLUSIVE REFERRAL PASS</small></div>
-      </div>
-
-      <section class="claim-panel" aria-labelledby="ticket-title" data-reveal>
-        <div class="claim-accent" aria-hidden="true"></div>
-        <div class="claim-panel-top">
-          <div class="claim-eyebrow"><span class="pulse-dot"></span> OFFICIAL REFERRAL REGISTRATION</div>
-          <h2 id="ticket-title">Get your <em>referral pass.</em></h2>
-          <p id="status" role="status" aria-live="polite">Enter your details below to receive your code.</p>
+        <div class="brand-art stage-wrap" id="cinematic-stage">
+          <div class="globe-halo" aria-hidden="true"></div>
+          <div class="travel-orbit orbit-one" aria-hidden="true"></div>
+          <div class="travel-orbit orbit-two" aria-hidden="true"></div>
+          <img class="travel-image" src="./3d-travel-hero.jpg" alt="3D travel illustration featuring a passport, globe, airplane and visa" width="485" height="410" loading="eager">
+          <div class="floating-glass floating-one" aria-hidden="true"><span class="sparkle">✦</span><span>CONNECTED<br><b>ACROSS BORDERS</b></span></div>
+          <div class="floating-glass floating-two" aria-hidden="true"><b>2007</b><span>TRUST BUILT OVER TIME</span></div>
         </div>
-
-        <div class="claim-panel-body">
-          <form id="referral-form" class="hns-referral-form">
-            <div class="field-wrap"><label for="full-name">Full name <span class="required">*</span></label><input id="full-name" name="fullName" type="text" autocomplete="name" minlength="2" maxlength="100" placeholder="Your full name" required></div>
-            <div class="field-wrap"><label for="mobile-number">Mobile / WhatsApp number <span class="required">*</span></label><input id="mobile-number" name="mobileNumber" type="tel" autocomplete="tel" inputmode="tel" maxlength="32" placeholder="+971 50 123 4567" required></div>
-            <div class="field-wrap"><label for="email-address">Email address <span class="optional">(optional)</span></label><input id="email-address" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com"></div>
-            <p class="claim-hint">Name and mobile are required. Email is completely optional.</p>
-            <label class="consent-row" for="contact-consent"><input type="checkbox" id="contact-consent" required><span>I agree that Helen &amp; Sons may store my submitted details to issue and manage my referral code and contact me about this referral. <a href="./privacy.html" target="_blank" rel="noopener">Privacy notice</a>.</span></label>
-            <button id="claim-button" class="button primary claim-button" type="submit">Get my referral code <span aria-hidden="true">↗</span></button>
-          </form>
-
-          <div id="pass-details" class="hidden reveal-pass">
-            <div class="pass-border"><span>HELEN &amp; SONS</span><span>VISA CONSULTANCY</span></div>
-            <div class="pass-copy">YOUR UNIQUE REFERRAL CODE</div>
-            <div id="referral-code" class="code loading" aria-live="polite">•••• •••• ••••</div>
-            <div id="issued-to" class="issued-to"></div>
-            <div id="created-at" class="date"></div>
-            <p class="claim-hint">Keep this pass ready when referring someone to Helen &amp; Sons.</p>
-          </div>
-
-          <div class="ticket-actions hidden" id="referral-actions"><button id="download-button" class="button primary" disabled>↓ Download pass as PNG</button><button id="copy-button" class="button secondary" disabled>Copy code</button></div>
-        </div>
-        <div class="claim-footer"><span>✦</span> Helen &amp; Sons Visa Consultancy <span class="footer-rule"></span> UAE</div>
+        <div class="hero-bottom"><span>VISA CONSULTANCY · UAE</span><span>SHARE THE OPPORTUNITY <span aria-hidden="true">↗</span></span></div>
       </section>
+      <section class="registration-card" id="get-code" aria-labelledby="ticket-title" data-reveal>
+        <div class="registration-card-top"><div class="card-badge">✦</div><div><div class="card-kicker">YOUR REFERRAL JOURNEY STARTS HERE</div><h2 id="ticket-title">Get your <span>referral code</span></h2></div></div>
+        <p class="card-summary">Complete the form below to receive your personal referral code and downloadable PNG pass.</p>
+        <p id="status" class="form-status" role="status" aria-live="polite">Enter your details to begin.</p>
+        <form id="referral-form" class="registration-form">
+          <label for="full-name">Full name <span class="required">*</span></label>
+          <input id="full-name" name="fullName" autocomplete="name" minlength="2" maxlength="100" placeholder="Your full name" required>
+          <label for="mobile-number">Mobile / WhatsApp number <span class="required">*</span></label>
+          <input id="mobile-number" name="mobileNumber" type="tel" autocomplete="tel" inputmode="tel" maxlength="32" placeholder="+971 50 123 4567" required>
+          <label for="email-address">Email address <span class="optional">(optional)</span></label>
+          <input id="email-address" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com">
+          <p class="form-note">Name and mobile are required. Email is optional.</p>
+          <label class="consent" for="contact-consent"><input type="checkbox" id="contact-consent" required><span>I consent to Helen and Sons storing the details I submit for this referral campaign and contacting me about my referral. I have read the <a href="./privacy.html" target="_blank" rel="noopener noreferrer">privacy notice</a>.</span></label>
+          <button id="claim-button" class="button button-gold button-full" type="submit">Get my referral code <span aria-hidden="true">→</span></button>
+        </form>
+        <div id="pass-details" class="pass-details hidden">
+          <div class="pass-top"><img src="./helen-sons-logo.png" alt="Helen and Sons logo" width="136" height="159"><div><span>OFFICIAL REFERRAL PASS</span><strong>Helen and Sons</strong><small>VISA CONSULTANCY</small></div></div>
+          <div class="pass-label">YOUR UNIQUE REFERRAL CODE</div>
+          <div id="referral-code" class="referral-code loading" aria-live="polite">••••••••</div>
+          <p id="issued-to" class="pass-detail-text"></p>
+          <p id="created-at" class="pass-detail-text"></p>
+          <p class="form-note">Share the referral code with people you refer.</p>
+        </div>
+        <div id="referral-actions" class="referral-actions hidden"><button id="download-button" class="button button-gold" type="button" disabled>↓ Download PNG pass</button><button id="copy-button" class="button button-white" type="button" disabled>Copy code</button></div>
+        <div class="registration-footer"><span class="footer-sparkle">✦</span> YOUR DETAILS ARE USED FOR THIS REFERRAL CAMPAIGN</div>
+      </section>
+    </div>
+    <section class="steps-section" id="how-it-works" aria-label="How referral registration works" data-reveal>
+      <div class="steps-intro"><p class="section-kicker">HOW IT WORKS</p><h2>Three simple steps to get started.</h2></div>
+      <div class="steps-grid"><article class="step"><div class="step-number">01</div><h3>Register</h3><p>Enter your name and mobile. Add your email only if you want to.</p></article><article class="step"><div class="step-number">02</div><h3>Get your code</h3><p>Your unique referral code is generated from the campaign system.</p></article><article class="step"><div class="step-number">03</div><h3>Save &amp; share</h3><p>Download your PNG referral pass and keep your code handy.</p></article></div>
     </section>
-
-    <section class="how-it-works" aria-label="How your referral pass works" data-reveal>
-      <div class="how-heading"><small>THE PROCESS</small><h2>Three simple steps.</h2></div>
-      <div class="step-stack"><article class="step-card"><span>01</span><b>Scan the QR</b><p>Open this page on your phone.</p></article><article class="step-card"><span>02</span><b>Register your details</b><p>Name and mobile are required; email is optional.</p></article><article class="step-card"><span>03</span><b>Get your referral code</b><p>Download your pass and keep it ready.</p></article></div>
-    </section>
-
-    <footer class="cinematic-footer">© Helen &amp; Sons Visa Consultancy · <a href="https://helensons.ae/" target="_blank" rel="noopener noreferrer">helensons.ae</a> · Referral benefits, if any, are subject to campaign terms.</footer>
+    <footer class="customer-footer"><div class="footer-brand"><img src="./helen-sons-logo.png" width="136" height="159" alt="Helen and Sons official logo"><span>Helen and Sons Visa Consultancy<br><small>Official referral programme</small></span></div><div><a href="./privacy.html">Privacy notice</a><span>© Helen and Sons Visa Consultancy</span></div></footer>
   </main>
 </body>
 </html>

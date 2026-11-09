@@ -82,81 +82,134 @@ async function submitReferral(event) {
   }
 }
 
-async function downloadCard() {
-  if (!referral) return;
-  const canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 630;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+function showSaveImageFallback(imageData, fileName) {
+  let help = document.querySelector("#hns-save-image-help");
+  if (!help) {
+    help = document.createElement("section");
+    help.id = "hns-save-image-help";
+    help.setAttribute("aria-label", "Save your referral pass image");
+    help.style.cssText = "margin-top:18px;padding:16px;border:1px solid #F5C400;border-radius:14px;background:#fff;color:#00005C;text-align:center;max-width:100%;";
 
-  const bg = ctx.createLinearGradient(0, 0, 1200, 630);
-  bg.addColorStop(0, "#e6f4ff");
-  bg.addColorStop(0.45, "#f9fdff");
-  bg.addColorStop(1, "#e9f0ff");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, 1200, 630);
+    const description = document.createElement("p");
+    description.style.cssText = "margin:0 0 12px;font-size:14px;line-height:1.55;";
+    description.textContent = "If the image did not download automatically, tap Save PNG below. On an iPhone, you can also touch and hold the image to save it to Photos.";
 
-  ctx.fillStyle = "rgba(13,99,168,0.08)";
-  ctx.beginPath();
-  ctx.arc(160, 110, 120, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(1040, 520, 140, 0, Math.PI * 2);
-  ctx.fill();
+    const saveLink = document.createElement("a");
+    saveLink.id = "hns-manual-png-link";
+    saveLink.textContent = "⬇ Save referral image (PNG)";
+    saveLink.style.cssText = "display:inline-block;padding:12px 16px;background:#00005C;color:#F5C400;border-radius:9px;font-weight:700;text-decoration:none;margin-bottom:12px;";
 
-  ctx.fillStyle = "#ffffff";
-  roundRect(ctx, 70, 60, 1060, 510, 34, true, false);
-  ctx.strokeStyle = "rgba(10, 42, 82, 0.12)";
-  ctx.lineWidth = 2;
-  roundRect(ctx, 70, 60, 1060, 510, 34, false, true);
+    const preview = document.createElement("img");
+    preview.id = "hns-pass-image-preview";
+    preview.alt = "Your Helen and Sons referral pass: touch and hold to save the image";
+    preview.style.cssText = "display:block;width:100%;max-width:460px;height:auto;margin:0 auto;border-radius:10px;border:1px solid #F5C400;";
 
-  const banner = ctx.createLinearGradient(0, 0, 1060, 0);
-  banner.addColorStop(0, "#06264a");
-  banner.addColorStop(1, "#1171bc");
-  ctx.fillStyle = banner;
-  roundRect(ctx, 90, 82, 1020, 145, 26, true, false);
+    help.append(description, saveLink, preview);
+    (referralActions || passDetails || document.body).insertAdjacentElement("afterend", help);
+  }
+  const saveLink = help.querySelector("#hns-manual-png-link");
+  const preview = help.querySelector("#hns-pass-image-preview");
+  saveLink.href = imageData;
+  saveLink.download = fileName;
+  preview.src = imageData;
+  help.hidden = false;
+}
 
-  ctx.fillStyle = "#f8d46c";
-  ctx.fillRect(90, 214, 1020, 4);
-
-  ctx.textAlign = "left";
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 24px Arial, sans-serif";
-  ctx.fillText("HELEN & SONS VISA CONSULTANCY", 130, 135);
-  ctx.font = "bold 46px Arial, sans-serif";
-  ctx.fillText("REFERRAL PASS", 130, 190);
-
-  ctx.fillStyle = "#5e7690";
-  ctx.font = "bold 19px Arial, sans-serif";
-  ctx.fillText("YOUR UNIQUE REFERRAL CODE", 130, 302);
-  ctx.fillStyle = "#082b52";
-  ctx.font = "bold 60px Consolas, monospace";
-  ctx.fillText(referral.code, 130, 385);
-
-  ctx.fillStyle = "#264866";
-  ctx.font = "bold 24px Arial, sans-serif";
-  ctx.fillText(`Issued to: ${(referral.fullName || "").slice(0, 60)}`, 130, 445);
-  ctx.font = "21px Arial, sans-serif";
-  ctx.fillText(`Mobile: ${(referral.mobileNumber || "").slice(0, 30)}`, 130, 480);
-  ctx.fillText(`Issued: ${new Date(referral.createdAt).toLocaleString()}`, 130, 515);
-  ctx.font = "20px Arial, sans-serif";
-  ctx.fillStyle = "#5b7088";
-  ctx.fillText("Keep this pass for Helen & Sons referrals. Email is optional and is not printed on the pass.", 130, 555);
-
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-  if (!blob) {
-    statusElement.textContent = "Image download unavailable. Please copy the code instead.";
+// Keep this function synchronous: iPhone/Safari can block downloads triggered
+// after awaiting toBlob(), because they are no longer within the original tap.
+function downloadCard(event) {
+  if (event) event.preventDefault();
+  if (!referral || !referral.code) {
+    statusElement.textContent = "Please create your referral code before downloading the pass.";
     return;
   }
-  const href = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = href;
-  anchor.download = `Helen-and-Sons-Referral-${referral.code}.png`;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(href), 1000);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 630;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Image creation is unavailable in this browser.");
+
+    // Official Helen and Sons brand colours and the customer-provided logo.
+    const NAVY = "#00005C";
+    const GOLD = "#F5C400";
+    const WHITE = "#FFFFFF";
+    ctx.fillStyle = NAVY;
+    ctx.fillRect(0, 0, 1200, 630);
+    const glow = ctx.createRadialGradient(1010, 450, 50, 1010, 450, 580);
+    glow.addColorStop(0, "rgba(245,196,0,.28)");
+    glow.addColorStop(1, "rgba(245,196,0,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, 1200, 630);
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = GOLD;
+    roundRect(ctx, 38, 35, 1124, 560, 32, false, true);
+    ctx.fillStyle = WHITE;
+    roundRect(ctx, 62, 60, 1076, 511, 25, true, false);
+    ctx.fillStyle = NAVY;
+    roundRect(ctx, 81, 78, 1038, 163, 19, true, false);
+    ctx.fillStyle = GOLD;
+    ctx.fillRect(81, 233, 1038, 5);
+
+    // The official image is already displayed on the page; no async fetch
+    // is needed here, preserving the click-triggered mobile PNG download.
+    const logo = document.querySelector("#hns-official-logo");
+    if (logo && logo.complete && logo.naturalWidth) {
+      ctx.drawImage(logo, 104, 86, 119, 139);
+    }
+    ctx.textAlign = "left";
+    ctx.fillStyle = GOLD;
+    ctx.font = "bold 30px Arial, sans-serif";
+    ctx.fillText("HELEN AND SONS", 255, 135);
+    ctx.fillStyle = WHITE;
+    ctx.font = "bold 20px Arial, sans-serif";
+    ctx.fillText("VISA CONSULTANCY  •  SINCE 2007", 255, 169);
+    ctx.font = "bold 40px Arial, sans-serif";
+    ctx.fillText("OFFICIAL REFERRAL PASS", 255, 214);
+
+    ctx.fillStyle = NAVY;
+    ctx.font = "bold 20px Arial, sans-serif";
+    ctx.fillText("YOUR UNIQUE REFERRAL CODE", 117, 306);
+    ctx.fillStyle = "rgba(245,196,0,.25)";
+    roundRect(ctx, 113, 325, 971, 87, 12, true, false);
+    ctx.fillStyle = NAVY;
+    ctx.font = "bold 55px Consolas, Arial, sans-serif";
+    ctx.fillText(String(referral.code).slice(0, 30), 137, 384, 923);
+
+    ctx.fillStyle = NAVY;
+    ctx.font = "bold 23px Arial, sans-serif";
+    ctx.fillText(`Issued to: ${String(referral.fullName || "").slice(0, 65)}`, 120, 455, 960);
+    ctx.font = "20px Arial, sans-serif";
+    ctx.fillText(`Mobile: ${String(referral.mobileNumber || "").slice(0, 30)}`, 120, 490);
+    const issuedDate = new Date(referral.createdAt);
+    const issuedDateText = Number.isNaN(issuedDate.getTime()) ? "Not available" : issuedDate.toLocaleString();
+    ctx.fillText(`Issued: ${issuedDateText}`, 120, 526);
+    ctx.fillStyle = "#48487B";
+    ctx.font = "17px Arial, sans-serif";
+    ctx.fillText("Keep your code ready when referring someone. Email is optional and is not shown on this pass.", 120, 556, 960);
+
+    // Synchronous PNG generation preserves the browser's original user action.
+    const imageData = canvas.toDataURL("image/png");
+    if (!imageData.startsWith("data:image/png;base64,")) throw new Error("Unable to create the PNG image.");
+    const safeCode = String(referral.code).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 64);
+    const fileName = `Helen-and-Sons-Referral-${safeCode}.png`;
+
+    const link = document.createElement("a");
+    link.href = imageData;
+    link.download = fileName;
+    link.style.display = "none";
+    document.body.append(link);
+    link.click();
+    link.remove();
+
+    // Always offer an alternative for iPhones and browser download restrictions.
+    showSaveImageFallback(imageData, fileName);
+    statusElement.textContent = "Your PNG is ready. If it didn't download, use Save referral image below or touch and hold the preview.";
+  } catch (error) {
+    statusElement.textContent = `Image download could not start: ${error.message || "Please try another browser."} You can still copy your referral code.`;
+    console.error("Helen & Sons referral image error:", error);
+  }
 }
 
 function roundRect(ctx, x, y, width, height, radius, fill, stroke) {

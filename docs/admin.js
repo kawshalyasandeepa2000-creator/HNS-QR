@@ -91,6 +91,48 @@ function paintStats(data) {
   dom.status.textContent = "● Data connected";
   dom.status.classList.add("connected");
   renderRecords();
+  renderDailyChart(list);
+}
+
+
+// Chart uses only actual timestamps returned by the existing Cloudflare API.
+// It is deliberately labelled "from the latest 100" rather than claiming a
+// complete campaign-wide 7-day historical report.
+function renderDailyChart(list) {
+  const chart = $("#daily-chart");
+  if (!chart) return;
+  const today = new Date();
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + index);
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    return { d, key, count: 0 };
+  });
+  const dayLookup = new Map(days.map(item => [item.key, item]));
+  for (const row of list) {
+    const d = new Date(row.createdAt);
+    if (Number.isNaN(d.getTime())) continue;
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const target = dayLookup.get(key);
+    if (target) target.count++;
+  }
+  const max = Math.max(1, ...days.map(item => item.count));
+  chart.replaceChildren();
+  for (const item of days) {
+    const root = document.createElement("div");
+    root.className = "daily-bar-item";
+    const count = document.createElement("span");
+    count.className = "daily-bar-count";
+    count.textContent = String(item.count);
+    const bar = document.createElement("div");
+    bar.className = "daily-bar";
+    bar.style.height = `${Math.max(3, Math.round(item.count / max * 103))}px`;
+    bar.title = `${item.count} registrations`;
+    const date = document.createElement("span");
+    date.className = "daily-bar-date";
+    date.textContent = item.d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    root.append(count, bar, date);
+    chart.append(root);
+  }
 }
 
 function buildQR() {
@@ -106,7 +148,7 @@ function buildQR() {
     text: customerUrl,
     width: 320,
     height: 320,
-    colorDark: "#0b294c",
+    colorDark: "#00005C",
     colorLight: "#ffffff",
     correctLevel: QRCode.CorrectLevel.H
   });
@@ -180,18 +222,73 @@ $("#print-button").addEventListener("click", () => {
 });
 
 $("#qr-download").addEventListener("click", () => {
-  const canvas = $("#qr-container canvas");
-  const image = $("#qr-container img");
-  if (!canvas && !image) {
-    dom.adminError.textContent = "QR image is not ready.";
+  // Synchronous image creation allows mobile browsers to save the branded PNG.
+  const notice = $("#qr-notice");
+  if (notice) notice.textContent = "";
+  const qrCanvas = $("#qr-container canvas");
+  const qrImg = $("#qr-container img");
+  if (!qrCanvas && !(qrImg && qrImg.complete && qrImg.naturalWidth)) {
+    if (notice) notice.textContent = "QR code is not ready. Try Refresh records.";
     return;
   }
-  const a = document.createElement("a");
-  a.href = canvas ? canvas.toDataURL("image/png") : image.src;
-  a.download = "Helen-and-Sons-Campaign-QR.png";
-  document.body.append(a);
-  a.click();
-  a.remove();
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 850;
+    canvas.height = 1180;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("This browser cannot create an image.");
+    ctx.fillStyle = "#00005C";
+    ctx.fillRect(0, 0, 850, 1180);
+    ctx.fillStyle = "#F5C400";
+    ctx.fillRect(24, 24, 802, 1132);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(42, 42, 766, 1096);
+    ctx.fillStyle = "#00005C";
+    ctx.fillRect(42, 42, 766, 20);
+
+    const brandImg = $(".poster-logo img");
+    if (brandImg && brandImg.complete && brandImg.naturalWidth) {
+      ctx.fillStyle = "#00005C";
+      ctx.fillRect(318, 95, 214, 225);
+      ctx.drawImage(brandImg, 332, 103, 188, 220);
+    } else {
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#00005C";
+      ctx.font = "bold 35px Arial, sans-serif";
+      ctx.fillText("HELEN AND SONS", 425, 237);
+    }
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#00005C";
+    ctx.font = "bold 27px Arial, sans-serif";
+    ctx.fillText("OFFICIAL REFERRAL PROGRAMME", 425, 373, 720);
+    ctx.font = "bold 49px Arial, sans-serif";
+    ctx.fillText("SCAN & GET YOUR", 425, 458, 730);
+    ctx.fillStyle = "#ad8b00";
+    ctx.fillText("REFERRAL CODE", 425, 521, 730);
+    ctx.fillStyle = "#00005C";
+    ctx.font = "24px Arial, sans-serif";
+    ctx.fillText("Name and mobile required. Email optional.", 425, 574, 730);
+
+    ctx.fillStyle = "#00005C";
+    ctx.fillRect(190, 622, 470, 470);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(201, 633, 448, 448);
+    ctx.drawImage(qrCanvas || qrImg, 216, 648, 418, 418);
+    ctx.fillStyle = "#00005C";
+    ctx.font = "bold 18px Arial, sans-serif";
+    ctx.fillText("HELEN AND SONS VISA CONSULTANCY", 425, 1117, 720);
+
+    const url = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.download = "Helen-and-Sons-Branded-Campaign-QR.png";
+    link.href = url;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    if (notice) notice.textContent = "Branded QR PNG is ready. If the file did not download, check your browser's Downloads.";
+  } catch (error) {
+    if (notice) notice.textContent = error.message || "QR download failed. Please try again.";
+  }
 });
 
 $("#csv-button").addEventListener("click", async () => {
