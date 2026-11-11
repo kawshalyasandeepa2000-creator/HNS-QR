@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#00005C">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#00005C"><link rel="icon" type="image/png" href="./helen-sons-logo.png?v=20261111">
   <meta name="description" content="Helen and Sons Visa Consultancy private referral campaign admin dashboard.">
   <title>Helen and Sons | Referral Admin Dashboard</title>
-  <link rel="stylesheet" href="./hns-admin-official.css?v=20261109-a">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261111-b">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261109-brand-a"></script>
+  <script defer src="./admin.js?v=20261111-brand-b"></script>
 </head>
 <body class="hns-admin">
 <div class="dashboard-shell">
@@ -18,9 +18,9 @@
     <p class="sidebar-footer">HELEN AND SONS · SINCE 2007</p>
   </aside>
   <div class="admin-content">
-    <header class="topbar"><div><p class="topbar-kicker">OFFICIAL CAMPAIGN PORTAL</p><div class="topbar-heading">Referral dashboard</div></div><div class="topbar-right"><span id="connection-status" class="connection-status" role="status" aria-live="polite">Secure admin access</span><a href="./" target="_blank" rel="noopener noreferrer" class="live-link">View live website ↗</a></div></header>
+    <header class="topbar"><div class="topbar-brand"><img src="./helen-sons-logo.png" alt="Helen and Sons official company logo" width="44" height="51"><div><p class="topbar-kicker">OFFICIAL CAMPAIGN PORTAL</p><div class="topbar-heading">Referral dashboard</div></div></div><div class="topbar-right"><span id="connection-status" class="connection-status" role="status" aria-live="polite">Secure admin access</span><a href="./" target="_blank" rel="noopener noreferrer" class="live-link">View live website ↗</a></div></header>
     <main id="overview">
-      <section class="admin-hero" id="hero-card"><div class="hero-words"><p class="hero-kicker">✦ HELEN AND SONS · REFERRAL PROGRAMME</p><h1>Manage every connection.<br><em>Grow new opportunities.</em></h1><p>Securely manage referral codes, customer registrations and your outdoor campaign QR — all in one place.</p><div class="hero-tags"><span>Cloudflare D1</span><span>QR Campaign</span><span>Customer Records</span></div></div><div class="hero-graphic" aria-hidden="true"><div class="hero-ring"></div><img src="./3d-travel-hero.jpg" alt="" width="485" height="410"></div></section>
+      <section class="admin-hero" id="hero-card"><div class="hero-words"><p class="hero-kicker">✦ HELEN AND SONS · REFERRAL PROGRAMME</p><h1>Manage every connection.<br><em>Grow new opportunities.</em></h1><p>Securely manage referral codes, customer registrations and your outdoor campaign QR — all in one place.</p><div class="hero-tags"><span>Cloudflare D1</span><span>QR Campaign</span><span>Customer Records</span></div></div><div class="hero-graphic"><div class="hero-ring" aria-hidden="true"></div><img src="./helen-sons-consultation-2026.jpg" alt="Helen and Sons visa consultation with a client" width="1700" height="1096" loading="eager"><div class="hero-photo-tag" aria-hidden="true">✦ &nbsp; PERSONAL CONSULTATION</div></div></section>
       <section id="login-panel" class="login-wrap" aria-labelledby="login-title"><div class="login-card"><div class="section-kicker">🔒 RESTRICTED ACCESS</div><h2 id="login-title">Welcome back.</h2><p>Enter your existing Cloudflare <strong>ADMIN_TOKEN</strong>. Your token stays in this browser tab's memory and is not stored in a file.</p><form id="login-form"><label for="token-input">Administrator token</label><div class="token-row"><input id="token-input" type="password" placeholder="Paste your private admin token" autocomplete="off" required><button type="button" id="toggle-token" aria-label="Show token" aria-pressed="false">Show</button></div><button class="btn btn-gold btn-full" type="submit" id="sign-in-button">Access dashboard →</button></form><p class="error-message" id="login-error" role="alert"></p></div></section>
       <div id="dashboard" class="dashboard hidden">
         <section class="overview-section" aria-labelledby="overview-title"><div class="section-row"><div><p class="section-kicker">LIVE PERFORMANCE</p><h2 id="overview-title">Campaign at a glance</h2></div><div class="section-actions"><button id="refresh-button" class="btn btn-outline" type="button">↻ Refresh data</button><button id="logout-button" class="btn btn-soft" type="button">Sign out</button></div></div>

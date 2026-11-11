@@ -1,0 +1,74 @@
+HELEN AND SONS VISA CONSULTANCY — WEBSITE + ADMIN UPDATE
+11 November 2026 — OFFICIAL LOGO + CONSULTATION PHOTO
+=========================================================
+
+This package updates BOTH your customer website and admin dashboard.
+The old passport/globe hero picture is REPLACED by the same uploaded
+business-consultation photo on BOTH pages.
+
+Your actual official Helen and Sons logo is used in:
+- Customer site header, referral pass preview and footer
+- Downloaded customer referral-pass PNG
+- Admin dashboard sidebar AND top header
+- Admin QR flyer and downloaded QR flyer PNG
+- Privacy page header
+- Browser tab icon on all three pages
+
+Official UI palette: navy #00005C, gold #F5C400, white #FFFFFF.
+
+HOW TO UPLOAD TO GITHUB
+-----------------------
+1. Download and right-click the ZIP file -> Extract All.
+2. Open the extracted folder -> docs (do not upload the whole outer folder).
+3. Go to your EXISTING GitHub folder:
+   https://github.com/kawshalyasandeepa2000-creator/HNS-QR/tree/main/docs
+4. Choose Add file -> Upload files.
+5. Upload ALL 10 files from this ZIP's docs folder into GitHub's EXISTING docs folder.
+6. Click Commit changes (main branch).
+7. Open GitHub Actions and wait for the Pages deployment green check.
+8. Press Ctrl + Shift + R on your customer site and dashboard.
+
+Files inside docs:
+  index.html                         UPDATED customer UI and image
+  admin.html                         UPDATED admin UI and image
+  privacy.html                       UPDATED privacy branding
+  app.js                             Existing customer registration / PNG logic
+  admin.js                           Existing admin stats / export / QR logic
+  motion.js                          Existing gentle 3D motion
+  hns-official-ui.css                UPDATED customer styling
+  hns-admin-official.css             UPDATED admin styling
+  helen-sons-logo.png                EXACT original official logo
+  helen-sons-consultation-2026.jpg   Supplied business meeting photo, cropped
+
+IMPORTANT — DO NOT DELETE OR CHANGE
+-----------------------------------
+- docs/config.js (the LIVE API settings on GitHub)
+- Your Cloudflare Worker, D1 database, bindings, secrets, or customer data
+- Other files in docs; old 3d-travel-hero.jpg can remain but is NO LONGER USED.
+- Your GitHub Pages settings
+
+EXISTING FEATURES PRESERVED
+---------------------------
+- Required full name and mobile, optional email, privacy consent.
+- Existing /api/referrals connection and referral code creation.
+- Customer PNG pass download + backup save option on phones.
+- Admin login, latest 100 customer records, search, stats, CSV export.
+- Printable QR flyer and downloadable branded QR PNG.
+
+LINKS
+-----
+Customer: https://kawshalyasandeepa2000-creator.github.io/HNS-QR/
+Admin: https://kawshalyasandeepa2000-creator.github.io/HNS-QR/admin.html
+Cloudflare health: https://qr-referral-api.kawshalyasandeepa2000.workers.dev/api/health
+
+TEST BEFORE PUBLIC LAUNCH
+-------------------------
+- Ensure latest site / dashboard show the consultation photo.
+- Register using your own controlled test number, email can be blank.
+- Download referral PNG and confirm official logo.
+- In the dashboard check test row and download CSV.
+- Download and scan QR from a phone.
+
+Design tests can be run with simulated API responses. Your live Cloudflare
+and database availability must be checked on the deployed site separately.
+Do not send/share your ADMIN_TOKEN or actual customer records.
