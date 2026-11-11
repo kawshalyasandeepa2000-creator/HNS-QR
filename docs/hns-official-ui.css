@@ -23,3 +23,14 @@ html{scroll-behavior:smooth}body.hns-official{font-family:Inter,ui-sans-serif,sy
 .pass-top{gap:13px}
 .footer-brand img{width:170px!important;height:auto!important;max-height:54px;object-fit:contain}
 @media(max-width:520px){.brand-lockup img{width:165px!important;max-height:64px}.header-cta{font-size:10px!important;padding:10px!important}}
+
+/* iOS Safari: real PNG file sharing + visible personal-pass save fallback. */
+.pass-save-help{margin:16px 0 22px;border:1px solid #C89116;border-radius:16px;padding:17px;background:#fff;color:#0B2463;box-shadow:0 9px 25px rgba(11,36,99,.14)}
+.pass-save-instructions{font-size:13px;line-height:1.65;margin:0 0 13px;color:#183d85}
+.pass-save-links{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:13px}
+.pass-save-links .button{flex:1;min-width:150px;text-align:center}
+#hns-pass-image-preview{display:block;width:100%;height:auto;max-width:520px;margin:0 auto;border-radius:10px;border:1px solid #C89116;-webkit-touch-callout:default;user-select:auto;-webkit-user-select:auto}
+@media(hover:none) and (pointer:coarse){.brand-art .travel-image,.floating-glass{animation:none!important}.brand-art{transform:none!important}.floating-glass{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}}
+@media(max-width:520px){.pass-save-help{padding:12px}.pass-save-links{flex-direction:column}.pass-save-links .button{width:100%}}
+
+#hns-save-image-help .button-white{background:#fff!important;color:#0B2463!important;border:1px solid #bdd0eb!important}
