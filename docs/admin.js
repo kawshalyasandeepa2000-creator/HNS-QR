@@ -148,7 +148,7 @@ function buildQR() {
     text: customerUrl,
     width: 320,
     height: 320,
-    colorDark: "#00005C",
+    colorDark: "#0B2463",
     colorLight: "#ffffff",
     correctLevel: QRCode.CorrectLevel.H
   });
@@ -237,44 +237,53 @@ $("#qr-download").addEventListener("click", () => {
     canvas.height = 1180;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("This browser cannot create an image.");
-    ctx.fillStyle = "#00005C";
+    ctx.fillStyle = "#0B2463";
     ctx.fillRect(0, 0, 850, 1180);
-    ctx.fillStyle = "#F5C400";
+    const flyerBand = ctx.createLinearGradient(24,24,826,1156);
+    flyerBand.addColorStop(0, "#F5E77E");
+    flyerBand.addColorStop(1, "#C89116");
+    ctx.fillStyle = flyerBand;
     ctx.fillRect(24, 24, 802, 1132);
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(42, 42, 766, 1096);
-    ctx.fillStyle = "#00005C";
+    const topBand = ctx.createLinearGradient(42,42,808,62);
+    topBand.addColorStop(0, "#0B2463");
+    topBand.addColorStop(1, "#0D286A");
+    ctx.fillStyle = topBand;
     ctx.fillRect(42, 42, 766, 20);
 
     const brandImg = $(".poster-logo img");
     if (brandImg && brandImg.complete && brandImg.naturalWidth) {
-      ctx.fillStyle = "#00005C";
+      ctx.fillStyle = "#0B2463";
       ctx.fillRect(318, 95, 214, 225);
       ctx.drawImage(brandImg, 332, 103, 188, 220);
     } else {
       ctx.textAlign = "center";
-      ctx.fillStyle = "#00005C";
+      ctx.fillStyle = "#0B2463";
       ctx.font = "bold 35px Arial, sans-serif";
       ctx.fillText("HELEN AND SONS", 425, 237);
     }
     ctx.textAlign = "center";
-    ctx.fillStyle = "#00005C";
+    ctx.fillStyle = "#0B2463";
     ctx.font = "bold 27px Arial, sans-serif";
     ctx.fillText("OFFICIAL REFERRAL PROGRAMME", 425, 373, 720);
     ctx.font = "bold 49px Arial, sans-serif";
     ctx.fillText("SCAN & GET YOUR", 425, 458, 730);
-    ctx.fillStyle = "#ad8b00";
+    ctx.fillStyle = "#C89116";
     ctx.fillText("REFERRAL CODE", 425, 521, 730);
     ctx.fillStyle = "#00005C";
     ctx.font = "24px Arial, sans-serif";
     ctx.fillText("Name and mobile required. Email optional.", 425, 574, 730);
 
-    ctx.fillStyle = "#00005C";
+    const qrBack = ctx.createLinearGradient(190,622,660,1092);
+    qrBack.addColorStop(0, "#0B2463");
+    qrBack.addColorStop(1, "#0D286A");
+    ctx.fillStyle = qrBack;
     ctx.fillRect(190, 622, 470, 470);
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(201, 633, 448, 448);
     ctx.drawImage(qrCanvas || qrImg, 216, 648, 418, 418);
-    ctx.fillStyle = "#00005C";
+    ctx.fillStyle = "#0B2463";
     ctx.font = "bold 18px Arial, sans-serif";
     ctx.fillText("HELEN AND SONS VISA CONSULTANCY", 425, 1117, 720);
 

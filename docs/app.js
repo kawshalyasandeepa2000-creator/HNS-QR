@@ -88,7 +88,7 @@ function showSaveImageFallback(imageData, fileName) {
     help = document.createElement("section");
     help.id = "hns-save-image-help";
     help.setAttribute("aria-label", "Save your referral pass image");
-    help.style.cssText = "margin-top:18px;padding:16px;border:1px solid #F5C400;border-radius:14px;background:#fff;color:#00005C;text-align:center;max-width:100%;";
+    help.style.cssText = "margin-top:18px;padding:16px;border:1px solid #C89116;border-radius:14px;background:#fff;color:#0B2463;text-align:center;max-width:100%;";
 
     const description = document.createElement("p");
     description.style.cssText = "margin:0 0 12px;font-size:14px;line-height:1.55;";
@@ -97,12 +97,12 @@ function showSaveImageFallback(imageData, fileName) {
     const saveLink = document.createElement("a");
     saveLink.id = "hns-manual-png-link";
     saveLink.textContent = "⬇ Save referral image (PNG)";
-    saveLink.style.cssText = "display:inline-block;padding:12px 16px;background:#00005C;color:#F5C400;border-radius:9px;font-weight:700;text-decoration:none;margin-bottom:12px;";
+    saveLink.style.cssText = "display:inline-block;padding:12px 16px;background:linear-gradient(135deg,#0B2463,#0D286A);color:#F5E77E;border-radius:9px;font-weight:700;text-decoration:none;margin-bottom:12px;";
 
     const preview = document.createElement("img");
     preview.id = "hns-pass-image-preview";
     preview.alt = "Your Helen and Sons referral pass: touch and hold to save the image";
-    preview.style.cssText = "display:block;width:100%;max-width:460px;height:auto;margin:0 auto;border-radius:10px;border:1px solid #F5C400;";
+    preview.style.cssText = "display:block;width:100%;max-width:460px;height:auto;margin:0 auto;border-radius:10px;border:1px solid #C89116;";
 
     help.append(description, saveLink, preview);
     (referralActions || passDetails || document.body).insertAdjacentElement("afterend", help);
@@ -131,14 +131,17 @@ function downloadCard(event) {
     if (!ctx) throw new Error("Image creation is unavailable in this browser.");
 
     // Official Helen and Sons brand colours and the customer-provided logo.
-    const NAVY = "#00005C";
-    const GOLD = "#F5C400";
+    const NAVY = "#0B2463";
+    const ROYAL = "#0D286A";
+    const SKY = "#163B89";
+    const GOLD = "#C89116";
+    const SOFT_GOLD = "#F5E77E";
     const WHITE = "#FFFFFF";
     ctx.fillStyle = NAVY;
     ctx.fillRect(0, 0, 1200, 630);
     const glow = ctx.createRadialGradient(1010, 450, 50, 1010, 450, 580);
-    glow.addColorStop(0, "rgba(245,196,0,.28)");
-    glow.addColorStop(1, "rgba(245,196,0,0)");
+    glow.addColorStop(0, "rgba(245,231,126,.30)");
+    glow.addColorStop(1, "rgba(245,231,126,0)");
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, 1200, 630);
 
@@ -147,9 +150,13 @@ function downloadCard(event) {
     roundRect(ctx, 38, 35, 1124, 560, 32, false, true);
     ctx.fillStyle = WHITE;
     roundRect(ctx, 62, 60, 1076, 511, 25, true, false);
-    ctx.fillStyle = NAVY;
+    const bannerGrad = ctx.createLinearGradient(81,78,1119,241);
+    bannerGrad.addColorStop(0, NAVY);
+    bannerGrad.addColorStop(.72, ROYAL);
+    bannerGrad.addColorStop(1, SKY);
+    ctx.fillStyle = bannerGrad;
     roundRect(ctx, 81, 78, 1038, 163, 19, true, false);
-    ctx.fillStyle = GOLD;
+    ctx.fillStyle = SOFT_GOLD;
     ctx.fillRect(81, 233, 1038, 5);
 
     // The official image is already displayed on the page; no async fetch
@@ -171,7 +178,7 @@ function downloadCard(event) {
     ctx.fillStyle = NAVY;
     ctx.font = "bold 20px Arial, sans-serif";
     ctx.fillText("YOUR UNIQUE REFERRAL CODE", 117, 306);
-    ctx.fillStyle = "rgba(245,196,0,.25)";
+    ctx.fillStyle = "rgba(245,231,126,.32)";
     roundRect(ctx, 113, 325, 971, 87, 12, true, false);
     ctx.fillStyle = NAVY;
     ctx.font = "bold 55px Consolas, Arial, sans-serif";
@@ -185,7 +192,7 @@ function downloadCard(event) {
     const issuedDate = new Date(referral.createdAt);
     const issuedDateText = Number.isNaN(issuedDate.getTime()) ? "Not available" : issuedDate.toLocaleString();
     ctx.fillText(`Issued: ${issuedDateText}`, 120, 526);
-    ctx.fillStyle = "#48487B";
+    ctx.fillStyle = "#4C6697";
     ctx.font = "17px Arial, sans-serif";
     ctx.fillText("Keep your code ready when referring someone. Email is optional and is not shown on this pass.", 120, 556, 960);
 
