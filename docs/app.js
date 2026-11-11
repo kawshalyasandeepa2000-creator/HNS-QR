@@ -79,8 +79,6 @@ async function submitReferral(event) {
     referralForm.classList.add("hidden");
     downloadButton.disabled = false;
     copyButton.disabled = false;
-    // Refresh anonymous campaign activity after a successful registration.
-    if (typeof loadActivity === "function") loadActivity();
   } catch (error) {
     referral = null;
     statusElement.textContent = error.message || "Could not connect. Please check your details and try again.";
@@ -219,7 +217,8 @@ function downloadCard(event) {
 
     // Always offer an alternative for iPhones and browser download restrictions.
     showSaveImageFallback(imageData, fileName);
-    statusElement.textContent = "Your PNG is ready. If it didn't download, use Save referral image below or touch and hold the preview.";
+    // Only show this visitor's own code; no public campaign activity is displayed.
+    statusElement.textContent = `Your referral pass is ready. YOUR CODE: ${referral.code}. If the PNG did not download, tap Save referral image below or touch and hold the preview.`;
   } catch (error) {
     statusElement.textContent = `Image download could not start: ${error.message || "Please try another browser."} You can still copy your referral code.`;
     console.error("Helen & Sons referral image error:", error);
@@ -259,62 +258,3 @@ async function copyCode() {
 downloadButton.addEventListener("click", downloadCard);
 copyButton.addEventListener("click", copyCode);
 referralForm.addEventListener("submit", submitReferral);
-
-// Public activity displays only issue dates and aggregated totals.
-// Never display names, phone numbers, emails or unmasked referral codes.
-const activityFeed = document.querySelector("#activity-feed");
-const activityTotal = document.querySelector("#activity-total");
-let activityRequest = null;
-async function loadActivity() {
-  if (!activityFeed || !activityTotal) return;
-  if (activityRequest) return activityRequest;
-  activityRequest = (async () => {
-    try {
-      const response = await fetch(apiUrl("/api/public/activity"), { cache: "no-store" });
-      if (!response.ok) throw new Error("Activity unavailable");
-      const data = await response.json();
-      if (!Array.isArray(data.recent) || !Number.isSafeInteger(data.total) || data.total < 0) throw new Error("Invalid activity data");
-      activityTotal.textContent = data.total.toLocaleString();
-      activityFeed.replaceChildren();
-      if (!data.recent.length) {
-        const empty = document.createElement("p");
-        empty.className = "activity-placeholder";
-        empty.textContent = "No referral passes have been issued yet. Be the first!";
-        activityFeed.append(empty);
-        return;
-      }
-      for (const item of data.recent.slice(0, 6)) {
-        const dt = new Date(item.issuedAt);
-        if (Number.isNaN(dt.getTime())) continue;
-        const row = document.createElement("article");
-        row.className = "activity-entry";
-        const symbol = document.createElement("span");
-        symbol.className = "activity-icon";
-        symbol.textContent = "✓";
-        symbol.setAttribute("aria-hidden", "true");
-        const label = document.createElement("span");
-        label.className = "activity-entry-label";
-        label.textContent = "Referral pass issued";
-        const when = document.createElement("time");
-        when.dateTime = dt.toISOString();
-        when.textContent = dt.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
-        row.append(symbol, label, when);
-        activityFeed.append(row);
-      }
-    } catch {
-      activityFeed.replaceChildren();
-      const notice = document.createElement("p");
-      notice.className = "activity-placeholder";
-      notice.textContent = "Live activity is not available yet. The Cloudflare Worker activity update may still need to be deployed.";
-      activityFeed.append(notice);
-      activityTotal.textContent = "—";
-    }
-  })();
-  try { await activityRequest; } finally { activityRequest = null; }
-}
-if (activityFeed) {
-  loadActivity();
-  document.querySelector("#activity-refresh")?.addEventListener("click", loadActivity);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadActivity(); });
-  setInterval(() => { if (!document.hidden) loadActivity(); }, 60000);
-}
