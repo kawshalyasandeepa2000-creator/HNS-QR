@@ -3,27 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0B2463"><link rel="icon" type="image/png" href="./helen-sons-logo.png?v=20261111">
-  <meta name="description" content="Helen and Sons Visa Consultancy official referral campaign. Register your name and mobile number; email is optional, then download your unique referral pass.">
+  <meta name="theme-color" content="#0B2463"><link rel="icon" type="image/png" href="./helen-sons-logo-icon.png?v=20261111-claim-v1">
+  <meta name="description" content="Helen and Sons Visa Consultancy official referral campaign. Register your name, mobile number and email address to receive your unique referral pass.">
   <title>Helen and Sons | Referral Programme</title>
   <!-- Independent CSS: avoids old styling conflicts and cached broken 3D layouts. -->
   <style>html{box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}body{margin:0}.hns-main{width:min(1400px,calc(100% - 48px));margin:auto}.hero-layout{display:grid;grid-template-columns:minmax(0,1.13fr) minmax(370px,.87fr);gap:28px;align-items:start}.brand-art{position:relative;max-width:100%;overflow:hidden}.brand-art img{display:block;width:100%;max-height:440px;object-fit:contain}@media(max-width:880px){.hero-layout{grid-template-columns:1fr}.hns-main{width:min(100% - 28px,700px)}} </style>
-  <link rel="stylesheet" href="./hns-official-ui.css?v=20261111-promo-01">
+  <link rel="stylesheet" href="./hns-official-ui.css?v=20261111-claim-v1">
   <script defer src="./config.js"></script>
-  <script defer src="./app.js?v=20261111-promo-01"></script>
+  <script defer src="./app.js?v=20261111-claim-v1"></script>
   <script defer src="./motion.js?v=20261111-crand-b"></script>
 </head>
-  <!-- HNS Cloudflare Pages refresh 2026-11-11 -->
 <body class="hns-official hns-cinematic hns-customer">
   <div class="ambient ambient-left" aria-hidden="true"></div>
   <div class="ambient ambient-right" aria-hidden="true"></div>
   <header class="site-header">
     <a class="brand-lockup" href="./" aria-label="Helen and Sons Visa Consultancy — referral homepage">
-      <img id="hns-official-logo" src="./helen-sons-logo.png" alt="Helen and Sons official logo — since 2007" width="136" height="159">
-      <span class="brand-words"><strong>Helen and Sons</strong><small>VISA CONSULTANCY · SINCE 2007</small></span>
+      <img id="hns-official-logo" src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official logo — since 2007" width="1500" height="454">
+      
     </a>
     <nav class="header-links" aria-label="Navigation">
-      <a href="#how-it-works">How it works</a>
+      <a href="#recent-activity">Recent activity</a>
       <a href="./privacy.html">Privacy</a>
       <a class="header-cta" href="#get-code">Get referral code <span aria-hidden="true">↗</span></a>
     </nav>
@@ -60,14 +59,14 @@
           <input id="full-name" name="fullName" autocomplete="name" minlength="2" maxlength="100" placeholder="Your full name" required>
           <label for="mobile-number">Mobile / WhatsApp number <span class="required">*</span></label>
           <input id="mobile-number" name="mobileNumber" type="tel" autocomplete="tel" inputmode="tel" maxlength="32" placeholder="+971 50 123 4567" required>
-          <label for="email-address">Email address <span class="optional">(optional)</span></label>
-          <input id="email-address" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com">
-          <p class="form-note">Name and mobile are required. Email is optional.</p>
+          <label for="email-address">Email address <span class="required">*</span></label>
+          <input id="email-address" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+          <p class="form-note">Full name, mobile number and email address are required.</p>
           <label class="consent" for="contact-consent"><input type="checkbox" id="contact-consent" required><span>I consent to Helen and Sons storing the details I submit for this referral campaign and contacting me about my referral. I have read the <a href="./privacy.html" target="_blank" rel="noopener noreferrer">privacy notice</a>.</span></label>
           <button id="claim-button" class="button button-gold button-full" type="submit">Get my referral code <span aria-hidden="true">→</span></button>
         </form>
         <div id="pass-details" class="pass-details hidden">
-          <div class="pass-top"><img src="./helen-sons-logo.png" alt="Helen and Sons logo" width="136" height="159"><div><span>OFFICIAL REFERRAL PASS</span><strong>Helen and Sons</strong><small>VISA CONSULTANCY</small></div></div>
+          <div class="pass-top"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons logo" width="1500" height="454"><div><span>OFFICIAL REFERRAL PASS</span><strong>Helen and Sons</strong><small>VISA CONSULTANCY</small></div></div>
           <div class="pass-label">YOUR UNIQUE REFERRAL CODE</div>
           <div id="referral-code" class="referral-code loading" aria-live="polite">••••••••</div>
           <p id="issued-to" class="pass-detail-text"></p>
@@ -78,11 +77,24 @@
         <div class="registration-footer"><span class="footer-sparkle">✦</span> YOUR DETAILS ARE USED FOR THIS REFERRAL CAMPAIGN</div>
       </section>
     </div>
-    <section class="steps-section" id="how-it-works" aria-label="How referral registration works" data-reveal>
-      <div class="steps-intro"><p class="section-kicker">HOW IT WORKS</p><h2>Three simple steps to get started.</h2></div>
-      <div class="steps-grid"><article class="step"><div class="step-number">01</div><h3>Register</h3><p>Enter your name and mobile. Add your email only if you want to.</p></article><article class="step"><div class="step-number">02</div><h3>Get your code</h3><p>Your unique referral code is generated from the campaign system.</p></article><article class="step"><div class="step-number">03</div><h3>Save &amp; share</h3><p>Download your PNG referral pass and keep your code handy.</p></article></div>
+    <section class="activity-section" id="recent-activity" aria-labelledby="activity-title" data-reveal>
+      <div class="activity-copy">
+        <p class="section-kicker">LIVE REFERRAL ACTIVITY</p>
+        <h2 id="activity-title">Every connection counts.</h2>
+        <p>See when referral passes are issued. Details stay private—no customer names, phone numbers, email addresses or referral codes are published.</p>
+      </div>
+      <div class="activity-panel">
+        <div class="activity-overview">
+          <div><span class="activity-caption">Referral passes issued</span><strong id="activity-total" aria-live="polite">—</strong></div>
+          <button type="button" id="activity-refresh" class="activity-refresh" aria-label="Refresh recent referral activity">↻ Refresh</button>
+        </div>
+        <div id="activity-feed" class="activity-feed" aria-label="Recent anonymous referral pass activity" aria-live="polite">
+          <p class="activity-placeholder">Checking recent referral activity…</p>
+        </div>
+        <p class="activity-disclaimer">A pass being issued does not mean a discount has been redeemed.</p>
+      </div>
     </section>
-    <footer class="customer-footer"><div class="footer-brand"><img src="./helen-sons-logo.png" width="136" height="159" alt="Helen and Sons official logo"><span>Helen and Sons Visa Consultancy<br><small>Official referral programme</small></span></div><div><a href="./privacy.html">Privacy notice</a><span>© Helen and Sons Visa Consultancy</span></div></footer>
+    <footer class="customer-footer"><div class="footer-brand"><img src="./helen-sons-logo.png?v=20261111-wide-2" width="1500" height="454" alt="Helen and Sons official logo"><span>Helen and Sons Visa Consultancy<br><small>Official referral programme</small></span></div><div><a href="./privacy.html">Privacy notice</a><span>© Helen and Sons Visa Consultancy</span></div></footer>
   </main>
 </body>
 </html>

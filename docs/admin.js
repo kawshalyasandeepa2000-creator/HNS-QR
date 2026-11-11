@@ -3,7 +3,7 @@
 // Admin token lives only in this tab's memory; it is never saved to disk.
 const config = window.CAMPAIGN_CONFIG;
 const apiOrigin = config?.apiBaseUrl?.replace(/\/$/, "");
-const customerUrl = new URL("./", window.location.href).href;
+const customerUrl = new URL("./", document.baseURI).href;
 const $ = selector => document.querySelector(selector);
 const dom = {
   dashboard: $("#dashboard"), loginPanel: $("#login-panel"), loginError: $("#login-error"),
@@ -255,8 +255,12 @@ $("#qr-download").addEventListener("click", () => {
     const brandImg = $(".poster-logo img");
     if (brandImg && brandImg.complete && brandImg.naturalWidth) {
       ctx.fillStyle = "#0B2463";
-      ctx.fillRect(318, 95, 214, 225);
-      ctx.drawImage(brandImg, 332, 103, 188, 220);
+      ctx.beginPath();
+      ctx.roundRect(107, 110, 636, 170, 19);
+      ctx.fill();
+      const logoWidth = 560;
+      const logoHeight = logoWidth * brandImg.naturalHeight / brandImg.naturalWidth;
+      ctx.drawImage(brandImg, (850 - logoWidth) / 2, 120 + (150-logoHeight)/2, logoWidth, logoHeight);
     } else {
       ctx.textAlign = "center";
       ctx.fillStyle = "#0B2463";
@@ -273,7 +277,7 @@ $("#qr-download").addEventListener("click", () => {
     ctx.fillText("REFERRAL CODE", 425, 521, 730);
     ctx.fillStyle = "#00005C";
     ctx.font = "24px Arial, sans-serif";
-    ctx.fillText("Name and mobile required. Email optional.", 425, 574, 730);
+    ctx.fillText("Name, mobile and email required.", 425, 574, 730);
 
     const qrBack = ctx.createLinearGradient(190,622,660,1092);
     qrBack.addColorStop(0, "#0B2463");

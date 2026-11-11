@@ -39,6 +39,11 @@ async function submitReferral(event) {
   const mobileNumber = document.querySelector("#mobile-number").value.trim();
   const email = document.querySelector("#email-address").value.trim();
   const consent = document.querySelector("#contact-consent").checked;
+  if (!email || !document.querySelector("#email-address").checkValidity()) {
+    statusElement.textContent = "Please enter a valid email address to receive your referral code.";
+    document.querySelector("#email-address").focus();
+    return;
+  }
   if (!consent) return;
 
   statusElement.textContent = "Saving your details and creating your referral pass...";
@@ -74,6 +79,8 @@ async function submitReferral(event) {
     referralForm.classList.add("hidden");
     downloadButton.disabled = false;
     copyButton.disabled = false;
+    // Refresh anonymous campaign activity after a successful registration.
+    if (typeof loadActivity === "function") loadActivity();
   } catch (error) {
     referral = null;
     statusElement.textContent = error.message || "Could not connect. Please check your details and try again.";
@@ -163,17 +170,17 @@ function downloadCard(event) {
     // is needed here, preserving the click-triggered mobile PNG download.
     const logo = document.querySelector("#hns-official-logo");
     if (logo && logo.complete && logo.naturalWidth) {
-      ctx.drawImage(logo, 104, 86, 119, 139);
+      const logoW = 450;
+      const logoH = logoW * logo.naturalHeight / logo.naturalWidth;
+      ctx.drawImage(logo, 106, 89, logoW, logoH);
     }
     ctx.textAlign = "left";
-    ctx.fillStyle = GOLD;
-    ctx.font = "bold 30px Arial, sans-serif";
-    ctx.fillText("HELEN AND SONS", 255, 135);
     ctx.fillStyle = WHITE;
+    ctx.font = "bold 36px Arial, sans-serif";
+    ctx.fillText("OFFICIAL REFERRAL PASS", 595, 162, 492);
+    ctx.fillStyle = "#F5E77E";
     ctx.font = "bold 20px Arial, sans-serif";
-    ctx.fillText("VISA CONSULTANCY  •  SINCE 2007", 255, 169);
-    ctx.font = "bold 40px Arial, sans-serif";
-    ctx.fillText("OFFICIAL REFERRAL PASS", 255, 214);
+    ctx.fillText("VISA CONSULTANCY", 595, 198);
 
     ctx.fillStyle = NAVY;
     ctx.font = "bold 20px Arial, sans-serif";
@@ -194,7 +201,7 @@ function downloadCard(event) {
     ctx.fillText(`Issued: ${issuedDateText}`, 120, 526);
     ctx.fillStyle = "#4C6697";
     ctx.font = "17px Arial, sans-serif";
-    ctx.fillText("Keep your code ready when referring someone. Email is optional and is not shown on this pass.", 120, 556, 960);
+    ctx.fillText("Keep your code ready when referring someone. Contact details are not shared publicly.", 120, 556, 960);
 
     // Synchronous PNG generation preserves the browser's original user action.
     const imageData = canvas.toDataURL("image/png");
@@ -252,3 +259,62 @@ async function copyCode() {
 downloadButton.addEventListener("click", downloadCard);
 copyButton.addEventListener("click", copyCode);
 referralForm.addEventListener("submit", submitReferral);
+
+// Public activity displays only issue dates and aggregated totals.
+// Never display names, phone numbers, emails or unmasked referral codes.
+const activityFeed = document.querySelector("#activity-feed");
+const activityTotal = document.querySelector("#activity-total");
+let activityRequest = null;
+async function loadActivity() {
+  if (!activityFeed || !activityTotal) return;
+  if (activityRequest) return activityRequest;
+  activityRequest = (async () => {
+    try {
+      const response = await fetch(apiUrl("/api/public/activity"), { cache: "no-store" });
+      if (!response.ok) throw new Error("Activity unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data.recent) || !Number.isSafeInteger(data.total) || data.total < 0) throw new Error("Invalid activity data");
+      activityTotal.textContent = data.total.toLocaleString();
+      activityFeed.replaceChildren();
+      if (!data.recent.length) {
+        const empty = document.createElement("p");
+        empty.className = "activity-placeholder";
+        empty.textContent = "No referral passes have been issued yet. Be the first!";
+        activityFeed.append(empty);
+        return;
+      }
+      for (const item of data.recent.slice(0, 6)) {
+        const dt = new Date(item.issuedAt);
+        if (Number.isNaN(dt.getTime())) continue;
+        const row = document.createElement("article");
+        row.className = "activity-entry";
+        const symbol = document.createElement("span");
+        symbol.className = "activity-icon";
+        symbol.textContent = "✓";
+        symbol.setAttribute("aria-hidden", "true");
+        const label = document.createElement("span");
+        label.className = "activity-entry-label";
+        label.textContent = "Referral pass issued";
+        const when = document.createElement("time");
+        when.dateTime = dt.toISOString();
+        when.textContent = dt.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
+        row.append(symbol, label, when);
+        activityFeed.append(row);
+      }
+    } catch {
+      activityFeed.replaceChildren();
+      const notice = document.createElement("p");
+      notice.className = "activity-placeholder";
+      notice.textContent = "Live activity is not available yet. The Cloudflare Worker activity update may still need to be deployed.";
+      activityFeed.append(notice);
+      activityTotal.textContent = "—";
+    }
+  })();
+  try { await activityRequest; } finally { activityRequest = null; }
+}
+if (activityFeed) {
+  loadActivity();
+  document.querySelector("#activity-refresh")?.addEventListener("click", loadActivity);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadActivity(); });
+  setInterval(() => { if (!document.hidden) loadActivity(); }, 60000);
+}

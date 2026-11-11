@@ -14,3 +14,14 @@
 .admin-offer strong{font-size:12px;color:var(--soft-gold);font-weight:900}
 .admin-offer span{font-size:11px;color:#fff;font-weight:700}
 @media(max-width:560px){.admin-offers{gap:7px}.admin-offer{padding:8px 10px}}
+
+
+/* 2026-11-11: official supplied full-width Helen and Sons company logo */
+.admin-brand img{width:192px!important;height:auto!important;max-height:85px!important;object-fit:contain}
+.admin-brand-copy{display:none!important}
+.topbar-brand img{width:168px!important;height:auto!important;max-height:50px!important;object-fit:contain}
+.poster-logo{display:grid;place-items:center;margin:0 auto 8px;padding:5px 8px;width:100%;background:#0B2463;border-radius:8px}
+.poster-logo img{width:235px!important;height:auto!important;max-height:82px!important;object-fit:contain;background:transparent!important;margin:0!important}
+@media(max-width:820px){.admin-brand img{width:150px!important;max-height:57px!important}.topbar-brand img{width:137px!important;max-height:41px!important}}
+@media(max-width:560px){.admin-brand img{width:140px!important}.topbar-brand img{width:112px!important;max-height:34px!important}.topbar-brand{gap:7px}.topbar-heading{font-size:15px!important}}
+@media print{.poster-logo{background:#0B2463!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.poster-logo img{width:105mm!important;height:auto!important;max-height:29mm!important}}

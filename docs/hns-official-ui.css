@@ -14,3 +14,17 @@ html{scroll-behavior:smooth}body.hns-official{font-family:Inter,ui-sans-serif,sy
 .hero-offer strong{display:inline-block;font-size:clamp(15px,1.6vw,21px);letter-spacing:-.02em;line-height:1.2;color:var(--soft-gold);font-weight:900}
 .hero-offer span{font-size:clamp(12px,1.2vw,15px);font-weight:750;color:#fff;line-height:1.45}
 @media(max-width:520px){.hero-offers{margin:20px 0 16px;gap:9px}.hero-offer{padding:12px}.hero-offer strong{font-size:17px}.hero-offer span{font-size:13px}}
+
+
+/* 2026-11-11: official wide company logo and live anonymous issue feed */
+.brand-lockup img{width:clamp(185px,21vw,275px)!important;height:auto!important;max-height:92px;object-fit:contain}
+.brand-words{display:none!important}
+.pass-top img{width:210px!important;height:auto!important;max-height:70px;object-fit:contain}
+.pass-top{gap:13px}
+.footer-brand img{width:170px!important;height:auto!important;max-height:54px;object-fit:contain}
+.activity-section{margin-top:32px;display:grid;grid-template-columns:minmax(220px,.82fr) minmax(0,1.6fr);align-items:stretch;gap:24px;padding:26px;border-radius:27px;border:1px solid rgba(255,255,255,.58);background:linear-gradient(135deg,#fff,#f1f6ff);box-shadow:0 24px 42px rgba(0,14,56,.24);color:var(--navy)}
+.activity-copy{align-self:center;padding:10px 12px}.activity-copy h2{font:700 clamp(26px,2.5vw,36px)/1.15 Georgia,serif;letter-spacing:-.04em;margin:12px 0 14px}.activity-copy>p:not(.section-kicker){font-size:13px;line-height:1.72;color:#536898;max-width:430px}
+.activity-panel{min-width:0;padding:20px 22px;border:1px solid rgba(30,70,154,.2);border-radius:20px;background:linear-gradient(155deg,#f8fbff,#fff);box-shadow:0 8px 23px rgba(3,38,98,.09)}
+.activity-overview{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:0 0 15px;border-bottom:1px solid #dce5f4}.activity-overview>div{display:flex;flex-direction:column;gap:5px}.activity-caption{text-transform:uppercase;letter-spacing:.13em;font-size:10px;font-weight:850;color:#596f9d}.activity-overview strong{color:#0B2463;font-size:36px;line-height:1.1}.activity-refresh{border:1px solid #bfd0ef;color:#0B2463;background:white;padding:10px 13px;border-radius:10px;font-weight:800;font-size:11px}.activity-refresh:hover{background:#eaf2ff}.activity-feed{display:grid;gap:7px;margin-top:13px}.activity-entry{display:flex;align-items:center;gap:12px;min-width:0;padding:11px 13px;border:1px solid #e5ecfa;background:#fff;border-radius:11px}.activity-icon{flex:0 0 auto;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;color:#0B2463;background:linear-gradient(120deg,#F5E77E,#C89116);font-weight:900}.activity-entry-label{font-size:12px;font-weight:800;color:#0B2463;flex:1}.activity-entry time{font-size:11px;color:#61739c;white-space:nowrap}.activity-placeholder{font-size:12px;line-height:1.6;color:#61739c}.activity-disclaimer{font-size:10px;color:#6b7d9e;line-height:1.5;margin:15px 0 0}
+@media(max-width:880px){.activity-section{grid-template-columns:1fr}.activity-copy{padding:4px 0}.activity-panel{padding:17px}}
+@media(max-width:520px){.brand-lockup img{width:165px!important;max-height:64px}.header-cta{font-size:10px!important;padding:10px!important}.activity-section{padding:17px;margin-top:22px}.activity-entry{padding:10px 8px;gap:9px}.activity-entry time{font-size:10px}}
