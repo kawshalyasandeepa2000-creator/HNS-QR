@@ -31,97 +31,106 @@ function apiUrl(path) {
   return `${cfg.apiBaseUrl.replace(/\/$/, "")}${path}`;
 }
 
-// Prepare the image *after* a referral is issued so tapping Download / Share is instant.
-// Keep all personal data in this browser tab; do not expose public activity records.
-let preparedPass = null;
-let submitting = false;
-const isAppleMobile = /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-function setBusy(busy) {
-  claimButton.disabled = busy;
-  claimButton.textContent = busy ? "Creating your code…" : "Get my referral code →";
-}
-
 async function submitReferral(event) {
   event.preventDefault();
-  if (submitting || !referralForm.reportValidity()) return;
+  if (!referralForm.reportValidity()) return;
 
   const fullName = document.querySelector("#full-name").value.trim();
   const mobileNumber = document.querySelector("#mobile-number").value.trim();
-  const emailInput = document.querySelector("#email-address");
-  const email = emailInput.value.trim();
+  const email = document.querySelector("#email-address").value.trim();
   const consent = document.querySelector("#contact-consent").checked;
-  if (!email || !emailInput.checkValidity()) {
+  if (!email || !document.querySelector("#email-address").checkValidity()) {
     statusElement.textContent = "Please enter a valid email address to receive your referral code.";
-    emailInput.focus();
+    document.querySelector("#email-address").focus();
     return;
   }
   if (!consent) return;
 
-  submitting = true;
-  setBusy(true);
-  statusElement.textContent = "Connecting securely to the referral system…";
-  // Keep the request single: double-tapping would otherwise create unnecessary calls.
-  const controller = new AbortController();
-  const slowNotice = setTimeout(() => {
-    if (submitting) statusElement.textContent = "The network is taking longer than usual. Please keep this page open — do not submit twice.";
-  }, 6000);
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  statusElement.textContent = "Saving your details and creating your referral pass...";
+  claimButton.disabled = true;
+  downloadButton.disabled = true;
+  copyButton.disabled = true;
 
   try {
-    // The same stable visitor ID allows an interrupted request to recover its code.
     const response = await fetch(apiUrl("/api/referrals"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         campaign: cfg.campaign,
         visitorId: getVisitorId(cfg.campaign),
-        fullName, mobileNumber, email, consent
-      }),
-      cache: "no-store",
-      signal: controller.signal
+        fullName,
+        mobileNumber,
+        email,
+        consent
+      })
     });
+
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not issue your code.");
-    if (!data.code) throw new Error("The server did not return a referral code.");
 
     referral = data;
     codeElement.textContent = data.code;
     issuedTo.textContent = `Issued to: ${data.fullName || fullName}`;
     codeElement.classList.remove("loading");
-    const date = new Date(data.createdAt);
-    createdAtElement.textContent = `Issued: ${Number.isNaN(date.getTime()) ? "Today" : date.toLocaleString()}`;
-    // Show the code instantly; PNG generation is a separate background UI task.
+    statusElement.textContent = data.reused ? "Welcome back! Here is your saved code." : "Success! Your referral pass is ready.";
+    createdAtElement.textContent = `Issued: ${new Date(data.createdAt).toLocaleString()}`;
     passDetails.classList.remove("hidden");
     referralActions.classList.remove("hidden");
     referralForm.classList.add("hidden");
     downloadButton.disabled = false;
     copyButton.disabled = false;
-    downloadButton.textContent = isAppleMobile ? "Share / Save PNG on iPhone" : "↓ Download PNG pass";
-    statusElement.textContent = `Your referral code is ready: ${data.code}. You can now save your PNG pass.`;
-
-    // Pre-render a single PNG while the visitor reads the code. This avoids
-    // blocking the iPhone Share button while its tap permission is active.
-    setTimeout(() => {
-      if (referral?.code !== data.code) return;
-      try { preparePassImage(); }
-      catch (error) { console.warn("PNG preparation delayed:", error); }
-    }, 0);
+    // Refresh anonymous campaign activity after a successful registration.
+    if (typeof loadActivity === "function") loadActivity();
   } catch (error) {
-    statusElement.textContent = error?.name === "AbortError"
-      ? "Connection timed out. Please try again using the same browser; if the code was already issued, it will be returned to you."
-      : (error.message || "Could not connect. Check your connection and try again.");
+    referral = null;
+    statusElement.textContent = error.message || "Could not connect. Please check your details and try again.";
   } finally {
-    clearTimeout(slowNotice);
-    clearTimeout(timeout);
-    submitting = false;
-    setBusy(false);
+    claimButton.disabled = false;
   }
 }
 
-function createPassCanvas() {
-  if (!referral?.code) throw new Error("Please generate a referral code first.");
+function showSaveImageFallback(imageData, fileName) {
+  let help = document.querySelector("#hns-save-image-help");
+  if (!help) {
+    help = document.createElement("section");
+    help.id = "hns-save-image-help";
+    help.setAttribute("aria-label", "Save your referral pass image");
+    help.style.cssText = "margin-top:18px;padding:16px;border:1px solid #C89116;border-radius:14px;background:#fff;color:#0B2463;text-align:center;max-width:100%;";
+
+    const description = document.createElement("p");
+    description.style.cssText = "margin:0 0 12px;font-size:14px;line-height:1.55;";
+    description.textContent = "If the image did not download automatically, tap Save PNG below. On an iPhone, you can also touch and hold the image to save it to Photos.";
+
+    const saveLink = document.createElement("a");
+    saveLink.id = "hns-manual-png-link";
+    saveLink.textContent = "⬇ Save referral image (PNG)";
+    saveLink.style.cssText = "display:inline-block;padding:12px 16px;background:linear-gradient(135deg,#0B2463,#0D286A);color:#F5E77E;border-radius:9px;font-weight:700;text-decoration:none;margin-bottom:12px;";
+
+    const preview = document.createElement("img");
+    preview.id = "hns-pass-image-preview";
+    preview.alt = "Your Helen and Sons referral pass: touch and hold to save the image";
+    preview.style.cssText = "display:block;width:100%;max-width:460px;height:auto;margin:0 auto;border-radius:10px;border:1px solid #C89116;";
+
+    help.append(description, saveLink, preview);
+    (referralActions || passDetails || document.body).insertAdjacentElement("afterend", help);
+  }
+  const saveLink = help.querySelector("#hns-manual-png-link");
+  const preview = help.querySelector("#hns-pass-image-preview");
+  saveLink.href = imageData;
+  saveLink.download = fileName;
+  preview.src = imageData;
+  help.hidden = false;
+}
+
+// Keep this function synchronous: iPhone/Safari can block downloads triggered
+// after awaiting toBlob(), because they are no longer within the original tap.
+function downloadCard(event) {
+  if (event) event.preventDefault();
+  if (!referral || !referral.code) {
+    statusElement.textContent = "Please create your referral code before downloading the pass.";
+    return;
+  }
+  try {
     const canvas = document.createElement("canvas");
     canvas.width = 1200;
     canvas.height = 630;
@@ -157,7 +166,8 @@ function createPassCanvas() {
     ctx.fillStyle = SOFT_GOLD;
     ctx.fillRect(81, 233, 1038, 5);
 
-    // Draw the same official uploaded logo, already present in the page.
+    // The official image is already displayed on the page; no async fetch
+    // is needed here, preserving the click-triggered mobile PNG download.
     const logo = document.querySelector("#hns-official-logo");
     if (logo && logo.complete && logo.naturalWidth) {
       const logoW = 450;
@@ -166,149 +176,53 @@ function createPassCanvas() {
     }
     ctx.textAlign = "left";
     ctx.fillStyle = WHITE;
-    ctx.font = "bold 36px Arial, sans-serif";
+    ctx.font = "700 36px Poppins, Arial, sans-serif";
     ctx.fillText("OFFICIAL REFERRAL PASS", 595, 162, 492);
     ctx.fillStyle = "#F5E77E";
-    ctx.font = "bold 20px Arial, sans-serif";
+    ctx.font = "700 20px Poppins, Arial, sans-serif";
     ctx.fillText("VISA CONSULTANCY", 595, 198);
 
     ctx.fillStyle = NAVY;
-    ctx.font = "bold 20px Arial, sans-serif";
+    ctx.font = "700 20px Poppins, Arial, sans-serif";
     ctx.fillText("YOUR UNIQUE REFERRAL CODE", 117, 306);
     ctx.fillStyle = "rgba(245,231,126,.32)";
     roundRect(ctx, 113, 325, 971, 87, 12, true, false);
     ctx.fillStyle = NAVY;
-    ctx.font = "bold 55px Consolas, Arial, sans-serif";
+    ctx.font = "700 55px Poppins, Arial, sans-serif";
     ctx.fillText(String(referral.code).slice(0, 30), 137, 384, 923);
 
     ctx.fillStyle = NAVY;
-    ctx.font = "bold 23px Arial, sans-serif";
+    ctx.font = "700 23px Poppins, Arial, sans-serif";
     ctx.fillText(`Issued to: ${String(referral.fullName || "").slice(0, 65)}`, 120, 455, 960);
-    ctx.font = "20px Arial, sans-serif";
+    ctx.font = "400 20px Poppins, Arial, sans-serif";
     ctx.fillText(`Mobile: ${String(referral.mobileNumber || "").slice(0, 30)}`, 120, 490);
     const issuedDate = new Date(referral.createdAt);
     const issuedDateText = Number.isNaN(issuedDate.getTime()) ? "Not available" : issuedDate.toLocaleString();
     ctx.fillText(`Issued: ${issuedDateText}`, 120, 526);
     ctx.fillStyle = "#4C6697";
-    ctx.font = "17px Arial, sans-serif";
+    ctx.font = "400 17px Poppins, Arial, sans-serif";
     ctx.fillText("Keep your code ready when referring someone. Contact details are not shared publicly.", 120, 556, 960);
 
+    // Synchronous PNG generation preserves the browser's original user action.
+    const imageData = canvas.toDataURL("image/png");
+    if (!imageData.startsWith("data:image/png;base64,")) throw new Error("Unable to create the PNG image.");
+    const safeCode = String(referral.code).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 64);
+    const fileName = `Helen-and-Sons-Referral-${safeCode}.png`;
 
-    return canvas;
-}
+    const link = document.createElement("a");
+    link.href = imageData;
+    link.download = fileName;
+    link.style.display = "none";
+    document.body.append(link);
+    link.click();
+    link.remove();
 
-function preparePassImage() {
-  if (!referral?.code) throw new Error("Create a referral code first.");
-  if (preparedPass?.code === referral.code) return preparedPass;
-  const canvas = createPassCanvas();
-  const imageData = canvas.toDataURL("image/png");
-  if (!imageData.startsWith("data:image/png;base64,")) throw new Error("Cannot prepare the PNG in this browser.");
-  const safeCode = String(referral.code).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 64);
-  const fileName = `Helen-and-Sons-Referral-${safeCode}.png`;
-  // Convert the PNG into a real File. iOS Safari handles file-sharing more
-  // reliably than a synthetic <a download> pointing to a data: URI.
-  const binary = atob(imageData.substring(imageData.indexOf(",") + 1));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  const file = new File([bytes], fileName, { type: "image/png" });
-  if (preparedPass?.url) URL.revokeObjectURL(preparedPass.url);
-  preparedPass = { code: referral.code, url: URL.createObjectURL(file), file, fileName };
-  return preparedPass;
-}
-
-function showSaveImageFallback(pass) {
-  let help = document.querySelector("#hns-save-image-help");
-  if (!help) {
-    help = document.createElement("section");
-    help.id = "hns-save-image-help";
-    help.setAttribute("aria-label", "Save your personal referral pass image");
-    help.className = "pass-save-help";
-    const description = document.createElement("p");
-    description.className = "pass-save-instructions";
-    description.textContent = isAppleMobile
-      ? "On iPhone, tap Share / Save PNG and choose Save Image in the share sheet. Or tap Open full-size PNG, then touch and hold the image and choose Save to Photos."
-      : "Your PNG is ready. If the download is blocked, tap Open full-size PNG to save the image manually.";
-    const links = document.createElement("div");
-    links.className = "pass-save-links";
-    const saveLink = document.createElement("a");
-    saveLink.id = "hns-manual-png-link";
-    saveLink.className = "button button-gold";
-    saveLink.textContent = "↓ Download PNG";
-    const openLink = document.createElement("a");
-    openLink.id = "hns-open-png-link";
-    openLink.className = "button button-white";
-    openLink.textContent = "Open full-size PNG ↗";
-    openLink.target = "_blank";
-    openLink.rel = "noopener noreferrer";
-    const preview = document.createElement("img");
-    preview.id = "hns-pass-image-preview";
-    preview.alt = "Your personal Helen and Sons referral PNG. On iPhone, touch and hold to save to Photos.";
-    preview.loading = "eager";
-    links.append(saveLink, openLink);
-    help.append(description, links, preview);
-    (referralActions || passDetails || document.body).insertAdjacentElement("afterend", help);
-  }
-  const saveLink = help.querySelector("#hns-manual-png-link");
-  const openLink = help.querySelector("#hns-open-png-link");
-  const preview = help.querySelector("#hns-pass-image-preview");
-  saveLink.href = pass.url;
-  saveLink.download = pass.fileName;
-  openLink.href = pass.url;
-  preview.src = pass.url;
-  help.hidden = false;
-  if (isAppleMobile) saveLink.textContent = "↓ Save to Files";
-}
-
-// The Share call MUST occur directly inside the button-tap callback. Avoid
-// await or toBlob() before navigator.share(), which can lose user activation.
-function downloadCard(event) {
-  if (event) event.preventDefault();
-  if (!referral?.code) {
-    statusElement.textContent = "Generate your referral code first.";
-    return;
-  }
-  try {
-    const pass = preparePassImage();
-    let canShareFile = false;
-    if (isAppleMobile && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
-      try { canShareFile = navigator.canShare({ files: [pass.file] }); }
-      catch { canShareFile = false; }
-    }
-    if (canShareFile) {
-      // Native iOS share sheet allows Save Image, AirDrop, WhatsApp and Files.
-      // An unexpected Safari exception must not hide the manual-save fallback.
-      try {
-        const shareAttempt = navigator.share({ files: [pass.file], title: "Helen & Sons referral pass" });
-        Promise.resolve(shareAttempt).then(() => {
-          statusElement.textContent = `Your code ${referral.code} is ready. The image was shared; choose Save Image to keep it in Photos.`;
-        }).catch(error => {
-          if (error?.name !== "AbortError") {
-            statusElement.textContent = "Share was not available. Use Open full-size PNG below, then touch and hold the image to save it.";
-          }
-        });
-        showSaveImageFallback(pass);
-        return;
-      } catch (error) {
-        console.warn("Share unavailable; manual image save enabled.", error);
-      }
-    }
-
-    if (!isAppleMobile) {
-      const link = document.createElement("a");
-      link.href = pass.url;
-      link.download = pass.fileName;
-      link.style.display = "none";
-      document.body.append(link);
-      link.click();
-      link.remove();
-      statusElement.textContent = `PNG download started. Your referral code: ${referral.code}`;
-    } else {
-      statusElement.textContent = `Your code is ${referral.code}. Tap Open full-size PNG below, then touch and hold it and select Save to Photos.`;
-    }
-    showSaveImageFallback(pass);
+    // Always offer an alternative for iPhones and browser download restrictions.
+    showSaveImageFallback(imageData, fileName);
+    statusElement.textContent = "Your PNG is ready. If it didn't download, use Save referral image below or touch and hold the preview.";
   } catch (error) {
-    statusElement.textContent = `Image could not be prepared: ${error.message || "Please try again."} Your referral code is still shown above.`;
-    console.error("Referral PNG error:", error);
+    statusElement.textContent = `Image download could not start: ${error.message || "Please try another browser."} You can still copy your referral code.`;
+    console.error("Helen & Sons referral image error:", error);
   }
 }
 
@@ -345,3 +259,62 @@ async function copyCode() {
 downloadButton.addEventListener("click", downloadCard);
 copyButton.addEventListener("click", copyCode);
 referralForm.addEventListener("submit", submitReferral);
+
+// Public activity displays only issue dates and aggregated totals.
+// Never display names, phone numbers, emails or unmasked referral codes.
+const activityFeed = document.querySelector("#activity-feed");
+const activityTotal = document.querySelector("#activity-total");
+let activityRequest = null;
+async function loadActivity() {
+  if (!activityFeed || !activityTotal) return;
+  if (activityRequest) return activityRequest;
+  activityRequest = (async () => {
+    try {
+      const response = await fetch(apiUrl("/api/public/activity"), { cache: "no-store" });
+      if (!response.ok) throw new Error("Activity unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data.recent) || !Number.isSafeInteger(data.total) || data.total < 0) throw new Error("Invalid activity data");
+      activityTotal.textContent = data.total.toLocaleString();
+      activityFeed.replaceChildren();
+      if (!data.recent.length) {
+        const empty = document.createElement("p");
+        empty.className = "activity-placeholder";
+        empty.textContent = "No referral passes have been issued yet. Be the first!";
+        activityFeed.append(empty);
+        return;
+      }
+      for (const item of data.recent.slice(0, 6)) {
+        const dt = new Date(item.issuedAt);
+        if (Number.isNaN(dt.getTime())) continue;
+        const row = document.createElement("article");
+        row.className = "activity-entry";
+        const symbol = document.createElement("span");
+        symbol.className = "activity-icon";
+        symbol.textContent = "✓";
+        symbol.setAttribute("aria-hidden", "true");
+        const label = document.createElement("span");
+        label.className = "activity-entry-label";
+        label.textContent = "Referral pass issued";
+        const when = document.createElement("time");
+        when.dateTime = dt.toISOString();
+        when.textContent = dt.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
+        row.append(symbol, label, when);
+        activityFeed.append(row);
+      }
+    } catch {
+      activityFeed.replaceChildren();
+      const notice = document.createElement("p");
+      notice.className = "activity-placeholder";
+      notice.textContent = "Live activity is not available yet. The Cloudflare Worker activity update may still need to be deployed.";
+      activityFeed.append(notice);
+      activityTotal.textContent = "—";
+    }
+  })();
+  try { await activityRequest; } finally { activityRequest = null; }
+}
+if (activityFeed) {
+  loadActivity();
+  document.querySelector("#activity-refresh")?.addEventListener("click", loadActivity);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadActivity(); });
+  setInterval(() => { if (!document.hidden) loadActivity(); }, 60000);
+}

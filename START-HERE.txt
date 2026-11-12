@@ -1,74 +1,45 @@
-HELEN AND SONS VISA CONSULTANCY — WEBSITE + ADMIN UPDATE
-11 November 2026 — OFFICIAL LOGO + CONSULTATION PHOTO
-=========================================================
+HELEN & SONS | OFFICIAL LOGO + REQUIRED EMAIL + RECENT ACTIVITY
 
-This package updates BOTH your customer website and admin dashboard.
-The old passport/globe hero picture is REPLACED by the same uploaded
-business-consultation photo on BOTH pages.
+WHAT CHANGED
+- Removed the "Three simple steps" section. Replaced it with real, anonymous recent referral pass issue activity.
+- Email is now required in the form AND in the updated Cloudflare Worker API.
+- Replaced old logo art throughout with the exact logo you supplied (cropped transparent margins only).
+- Original logo appears in page headers, footer, admin, downloadable referral pass, QR flyer and browser favicon.
+- Kept existing blue/gold/white design, referral PNG, admin login, CSV export, QR creation and D1 data.
 
-Your actual official Helen and Sons logo is used in:
-- Customer site header, referral pass preview and footer
-- Downloaded customer referral-pass PNG
-- Admin dashboard sidebar AND top header
-- Admin QR flyer and downloaded QR flyer PNG
-- Privacy page header
-- Browser tab icon on all three pages
+IMPORTANT: A pass issued is NOT proof of redeeming an actual discount. Current D1 tracks code issuance, not verified redemption. This activity feed shows only pass-issue dates and totals, never names, phones, emails or codes.
 
-Official UI palette: navy #00005C, gold #F5C400, white #FFFFFF.
+STEP 1: GITHUB (upload website files ONLY)
+1. Extract ZIP.
+2. Open the docs/ folder in the ZIP.
+3. Go to https://github.com/kawshalyasandeepa2000-creator/HNS-QR/tree/main/docs
+4. Upload ALL FILES INSIDE ZIP docs/ into your EXISTING repo docs/ folder; commit to main.
+5. DO NOT delete or overwrite existing docs/config.js — this ZIP does not include it.
+6. Cloudflare Pages auto deployment: https://hns-qr.pages.dev/docs/ and /docs/admin.html
 
-HOW TO UPLOAD TO GITHUB
------------------------
-1. Download and right-click the ZIP file -> Extract All.
-2. Open the extracted folder -> docs (do not upload the whole outer folder).
-3. Go to your EXISTING GitHub folder:
-   https://github.com/kawshalyasandeepa2000-creator/HNS-QR/tree/main/docs
-4. Choose Add file -> Upload files.
-5. Upload ALL 10 files from this ZIP's docs folder into GitHub's EXISTING docs folder.
-6. Click Commit changes (main branch).
-7. Open GitHub Actions and wait for the Pages deployment green check.
-8. Press Ctrl + Shift + R on your customer site and dashboard.
+STEP 2: CLOUDFLARE WORKER (needed for both email enforcement and live activity)
+1. Back up your currently working Worker code first.
+2. Cloudflare dashboard -> Workers & Pages -> qr-referral-api -> Edit code.
+3. Open ZIP cloudflare-worker/worker.js, copy entire file into editor and DEPLOY.
+4. This code preserves GitHub + hns-qr.pages.dev CORS origins, existing DB binding and existing admin auth.
+5. DO NOT re-create or reset your D1 DB; DO NOT change your ADMIN_TOKEN, VISITOR_SECRET, CAMPAIGN_SLUG, SITE_ORIGIN or binding DB.
 
-Files inside docs:
-  index.html                         UPDATED customer UI and image
-  admin.html                         UPDATED admin UI and image
-  privacy.html                       UPDATED privacy branding
-  app.js                             Existing customer registration / PNG logic
-  admin.js                           Existing admin stats / export / QR logic
-  motion.js                          Existing gentle 3D motion
-  hns-official-ui.css                UPDATED customer styling
-  hns-admin-official.css             UPDATED admin styling
-  helen-sons-logo.png                EXACT original official logo
-  helen-sons-consultation-2026.jpg   Supplied business meeting photo, cropped
+IMPORTANT: Both deployments are required. With only GitHub updates, the form may appear mandatory but the API won't enforce it or provide live activity. Existing records with blank email remain unchanged. NEW signups must enter email. If a returning browser has an existing record without email, it can update email by registering with the same name and mobile.
 
-IMPORTANT — DO NOT DELETE OR CHANGE
------------------------------------
-- docs/config.js (the LIVE API settings on GitHub)
-- Your Cloudflare Worker, D1 database, bindings, secrets, or customer data
-- Other files in docs; old 3d-travel-hero.jpg can remain but is NO LONGER USED.
-- Your GitHub Pages settings
+FINAL TESTS
+- Check customer form requires email and provides a code.
+- Verify Recent Referral Activity total and latest issue date update after registration.
+- Download a referral PNG and inspect the logo.
+- Admin login -> CSV -> QR flyer PNG and print -> scan QR.
+- Existing campaign records stay in D1.
+- WARNING: promotion terms must reflect the company's current offer eligibility.
 
-EXISTING FEATURES PRESERVED
----------------------------
-- Required full name and mobile, optional email, privacy consent.
-- Existing /api/referrals connection and referral code creation.
-- Customer PNG pass download + backup save option on phones.
-- Admin login, latest 100 customer records, search, stats, CSV export.
-- Printable QR flyer and downloadable branded QR PNG.
 
-LINKS
------
-Customer: https://kawshalyasandeepa2000-creator.github.io/HNS-QR/
-Admin: https://kawshalyasandeepa2000-creator.github.io/HNS-QR/admin.html
-Cloudflare health: https://qr-referral-api.kawshalyasandeepa2000.workers.dev/api/health
-
-TEST BEFORE PUBLIC LAUNCH
--------------------------
-- Ensure latest site / dashboard show the consultation photo.
-- Register using your own controlled test number, email can be blank.
-- Download referral PNG and confirm official logo.
-- In the dashboard check test row and download CSV.
-- Download and scan QR from a phone.
-
-Design tests can be run with simulated API responses. Your live Cloudflare
-and database availability must be checked on the deployed site separately.
-Do not send/share your ADMIN_TOKEN or actual customer records.
+LATEST INCLUDED UPDATES (12 Nov 2026)
+- White top header with Helen and Sons + RISE 17 logos
+- Hero title changed to YOUR UAE BUSINESS JOURNEY STARTS HERE!
+- Mobile gold text refined to #C89116
+- Poppins font styling across customer site + dashboard
+- Simplified footer to © 2026 only
+- Required email kept enabled
+- Personal referral code flow + iPhone PNG save support retained

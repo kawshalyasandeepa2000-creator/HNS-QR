@@ -198,3 +198,29 @@ body.hns-official .hns-pass-logo-preload {
 
 /* Align white privacy header flush to the viewport edge as on the referral page. */
 body.hns-official{margin:0}
+
+
+/* 12 Nov 2026 — final requested customer-page refinements */
+.customer-footer.customer-footer-simple{justify-content:center;text-align:center;padding-top:18px;font-weight:700;letter-spacing:.04em}
+.customer-footer.customer-footer-simple .footer-brand,.customer-footer.customer-footer-simple a{display:none!important}
+.customer-footer.customer-footer-simple>span{display:block;width:100%}
+/* Remove the previous two-column footer layout spacing when simplified */
+.customer-footer.customer-footer-simple>div{display:none!important}
+/* Updated campaign headline */
+.hero-copy h1{text-transform:uppercase}
+.hero-copy h1 em{font-style:normal}
+/* Mobile gold text refinement: use dark gold only for already-gold text */
+@media (max-width:650px){
+  .hero-copy .eyebrow,
+  .hero-copy .eyebrow .eyebrow-mobile,
+  .hero-copy h1 em,
+  .hero-offer strong,
+  .hero-bottom span:last-child,
+  .floating-glass .sparkle,
+  .floating-two b,
+  .trust-band,
+  .registration-card .required,
+  .privacy-kicker,
+  .customer-footer a{color:#C89116!important}
+  .gold-rule,.mini-gold-dot{background:#C89116!important;box-shadow:none!important}
+}
