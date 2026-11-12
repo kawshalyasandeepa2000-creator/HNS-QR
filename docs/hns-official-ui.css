@@ -94,3 +94,107 @@ body.hns-official .privacy-shell h1 {
  .hero-copy .eyebrow .eyebrow-mobile{display:inline;font-family:Poppins,Arial,sans-serif;font-size:16px;font-weight:800;line-height:1.2;letter-spacing:.08em;color:var(--soft-gold)}
  .hero-copy .eyebrow .gold-rule{width:20px;height:2px;flex-shrink:0}
 }
+
+
+/* Official company + RISE Seventeen UAE logos: white header only.
+   Original referral PNG logo source stays in the document, visually hidden. */
+body.hns-official .site-header.hns-partner-header {
+  width: 100%; max-width: none; min-height: 100px;
+  padding: 11px clamp(16px, 4vw, 64px);
+  margin: 0 auto 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: clamp(10px, 2.3vw, 32px);
+  background: #ffffff; color: #0B2463;
+  border-bottom: 1px solid #e3e9f2;
+  box-shadow: 0 7px 24px rgba(6, 27, 76, .15);
+  position: relative; z-index: 5;
+}
+body.hns-official .header-brand-pair {
+  min-width: 0; display: flex; flex: 0 1 auto;
+  align-items: center; gap: clamp(12px, 1.5vw, 24px);
+}
+body.hns-official .hns-partner-header .brand-lockup {
+  flex: 0 1 auto; min-width: 0; display: flex;
+  align-items: center; gap: 0;
+}
+body.hns-official .hns-partner-header .hns-header-mark {
+  display: block; width: clamp(180px, 20vw, 292px) !important;
+  height: auto !important; max-height: 79px !important;
+  max-width: 100%; object-fit: contain;
+}
+body.hns-official .header-logo-divider {
+  width: 1px; height: 55px; flex: none; background: #ccd3de;
+}
+body.hns-official .rise-header-mark {
+  flex: none; display: flex; align-items: center; justify-content: center;
+}
+body.hns-official .rise-header-mark img {
+  display: block; width: clamp(68px, 7.8vw, 101px);
+  height: auto; max-height: 78px; object-fit: contain;
+}
+body.hns-official .hns-partner-header .header-links {
+  flex: none; display: flex; align-items: center;
+  gap: clamp(12px, 2.1vw, 28px);
+}
+body.hns-official .hns-partner-header .header-links > a:not(.header-cta) {
+  display: inline-block; color: #0B2463; font-weight: 700;
+}
+body.hns-official .hns-partner-header .header-links > a:hover,
+body.hns-official .hns-partner-header .header-links > a:focus-visible { color: #163B89; }
+body.hns-official .hns-partner-header .header-cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 5px; border-radius: 14px;
+  color: #0B2463 !important;
+  background: linear-gradient(155deg, #fff2a4, #f5d249 50%, #eabf29 100%);
+  font-family: Poppins, system-ui, sans-serif;
+  font-size: 12px; font-weight: 800;
+  padding: 12px 17px;
+  box-shadow: 0 4px 0 #b48a17, 0 8px 18px rgba(11,36,99,.15);
+  text-align: center; line-height: 1.25; white-space: nowrap;
+}
+body.hns-official .hns-partner-header .header-cta:hover { transform: translateY(-1px); }
+body.hns-official .hns-pass-logo-preload {
+  position: absolute !important; width: 1px !important;
+  height: 1px !important; opacity: 0 !important;
+  top: 0; left: 0; pointer-events: none;
+}
+@media (max-width: 720px) {
+  body.hns-official .site-header.hns-partner-header {
+    min-height: 78px; padding: 9px 12px; gap: 9px;
+  }
+  body.hns-official .header-brand-pair { gap: 9px; }
+  body.hns-official .hns-partner-header .hns-header-mark {
+    width: clamp(110px, 35vw, 166px) !important; max-height: 58px !important;
+  }
+  body.hns-official .header-logo-divider { height: 38px; }
+  body.hns-official .rise-header-mark img {
+    width: clamp(44px, 13vw, 64px); max-height: 55px;
+  }
+  body.hns-official .hns-partner-header .header-links > a:not(.header-cta) { display: none; }
+  body.hns-official .hns-partner-header .header-cta {
+    font-size: 10px !important; padding: 10px 11px !important;
+    border-radius: 11px; min-height: 37px;
+  }
+}
+@media (max-width: 390px) {
+  body.hns-official .site-header.hns-partner-header { padding: 8px 9px; gap: 5px; }
+  body.hns-official .header-brand-pair { gap: 6px; }
+  body.hns-official .hns-partner-header .hns-header-mark {
+    width: clamp(98px, 32vw, 125px) !important;
+  }
+  body.hns-official .header-logo-divider { height: 33px; }
+  body.hns-official .rise-header-mark img { width: clamp(42px, 12vw, 51px); }
+  body.hns-official .hns-partner-header .header-cta {
+    font-size: 9px !important; padding: 9px 7px !important;
+  }
+}
+@media (max-width: 340px) {
+  body.hns-official .site-header.hns-partner-header { padding: 8px 6px; }
+  body.hns-official .hns-partner-header .hns-header-mark { width: 94px !important; }
+  body.hns-official .rise-header-mark img { width: 39px; }
+  body.hns-official .header-brand-pair { gap: 4px; }
+  body.hns-official .hns-partner-header .header-cta { font-size: 8px !important; }
+}
+
+/* Align white privacy header flush to the viewport edge as on the referral page. */
+body.hns-official{margin:0}

@@ -8,7 +8,7 @@
   <title>Helen and Sons | Referral Programme</title>
   <!-- Independent CSS: avoids old styling conflicts and cached broken 3D layouts. -->
   <style>html{box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}body{margin:0}.hns-main{width:min(1400px,calc(100% - 48px));margin:auto}.hero-layout{display:grid;grid-template-columns:minmax(0,1.13fr) minmax(370px,.87fr);gap:28px;align-items:start}.brand-art{position:relative;max-width:100%;overflow:hidden}.brand-art img{display:block;width:100%;max-height:440px;object-fit:contain}@media(max-width:880px){.hero-layout{grid-template-columns:1fr}.hns-main{width:min(100% - 28px,700px)}} </style>
-  <link rel="stylesheet" href="./hns-official-ui.css?v=20261112-rise17">
+  <link rel="stylesheet" href="./hns-official-ui.css?v=20261112-partner-white-v3">
   <link rel="preconnect" href="https://qr-referral-api.kawshalyasandeepa2000.workers.dev" crossorigin>
   <link rel="dns-prefetch" href="//qr-referral-api.kawshalyasandeepa2000.workers.dev">
   <script defer src="./config.js"></script>
@@ -22,16 +22,23 @@
 <body class="hns-official hns-cinematic hns-customer">
   <div class="ambient ambient-left" aria-hidden="true"></div>
   <div class="ambient ambient-right" aria-hidden="true"></div>
-  <header class="site-header">
-    <a class="brand-lockup" href="./" aria-label="Helen and Sons Visa Consultancy — referral homepage">
-      <img id="hns-official-logo" src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official logo — since 2007" width="1500" height="454">
-      
+<header class="site-header hns-partner-header">
+  <div class="header-brand-pair">
+    <a class="brand-lockup" href="./" aria-label="Helen and Sons referral homepage">
+      <img class="hns-header-mark" src="./hns-header-official.png?v=20261112-whitepartner" alt="Helen and Sons · Since 2007" width="1100" height="301">
     </a>
-    <nav class="header-links" aria-label="Navigation">
-      <a href="./privacy.html">Privacy</a>
-      <a class="header-cta" href="#get-code">Get referral code <span aria-hidden="true">↗</span></a>
-    </nav>
-  </header>
+    <span class="header-logo-divider" aria-hidden="true"></span>
+    <div class="rise-header-mark" aria-label="RISE Seventeen UAE · Unite and Excel">
+      <img src="./rise17-uae-official.png?v=20261112-whitepartner" alt="The RISE Seventeen UAE — Unite and Excel" width="700" height="526">
+    </div>
+  </div>
+  <nav class="header-links" aria-label="Navigation">
+    <a href="./privacy.html">Privacy</a>
+    <a class="header-cta" href="#get-code">Get referral code <span aria-hidden="true">↗</span></a>
+  </nav>
+  <!-- Existing PNG pass generation uses the dark-background logo. Keep it preloaded but visually hidden. -->
+  <img id="hns-official-logo" class="hns-pass-logo-preload" src="./helen-sons-logo.png?v=20261111-wide-2" alt="" aria-hidden="true" width="1" height="1">
+</header>
   <main class="hns-main">
     <div class="trust-band"><span class="mini-gold-dot"></span> OFFICIAL REFERRAL PROGRAMME <span class="trust-line"></span> HELEN AND SONS VISA CONSULTANCY</div>
     <div class="hero-layout">
