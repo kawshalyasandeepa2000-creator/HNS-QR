@@ -34,3 +34,55 @@ html{scroll-behavior:smooth}body.hns-official{font-family:Inter,ui-sans-serif,sy
 @media(max-width:520px){.pass-save-help{padding:12px}.pass-save-links{flex-direction:column}.pass-save-links .button{width:100%}}
 
 #hns-save-image-help .button-white{background:#fff!important;color:#0B2463!important;border:1px solid #bdd0eb!important}
+
+
+/* 12 Nov 2026 — Poppins typography across the entire referral website. */
+body.hns-official, body.hns-official button, body.hns-official input,
+body.hns-official textarea, body.hns-official select {
+  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+body.hns-official h1, body.hns-official h2, body.hns-official h3,
+body.hns-official h4, body.hns-official h5, body.hns-official h6,
+body.hns-official .hero-copy h1, body.hns-official .steps-intro h2,
+body.hns-official .privacy-shell h1 {
+  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: -0.045em;
+}
+/* Do not alter the official logo artwork or customer pass functionality. */
+@media (max-width: 650px) {
+  .hero-story .brand-art .floating-glass.floating-one {
+    left: 2%; bottom: 10px; top: auto; right: auto;
+    max-width: 124px; padding: 7px 9px; gap: 6px;
+    border-radius: 11px;
+  }
+  .hero-story .brand-art .floating-glass.floating-one .sparkle {
+    font-size: 17px; line-height: 1;
+  }
+  .hero-story .brand-art .floating-glass.floating-one > span:last-child {
+    font-size: 7px; letter-spacing: .025em; line-height: 1.3;
+  }
+  .hero-story .brand-art .floating-glass.floating-one b {
+    font-size: 7.5px;
+  }
+  .hero-story .brand-art .floating-glass.floating-two {
+    right: 1%; left: auto; top: 10px; bottom: auto;
+    width: 101px; max-width: 31%;
+    padding: 7px 7px; gap: 2px; border-radius: 11px;
+    text-align: center;
+  }
+  .hero-story .brand-art .floating-glass.floating-two b {
+    font-size: 16px; line-height: 1.1;
+  }
+  .hero-story .brand-art .floating-glass.floating-two > span {
+    font-size: 6.5px; line-height: 1.25; letter-spacing: .012em;
+  }
+}
+@media (max-width: 520px) {
+  .hero-copy h1 {font-size: clamp(28px, 8vw, 36px); line-height: 1.14;}
+  .hero-story .brand-art .floating-glass.floating-one { max-width: 112px; }
+  .hero-story .brand-art .floating-glass.floating-two { max-width: 98px; }
+}
+@media (max-width: 350px) {
+  .hero-story .brand-art .floating-glass.floating-one { left: 0; max-width: 101px; padding: 6px; }
+  .hero-story .brand-art .floating-glass.floating-two { right: 0; max-width: 91px; padding: 6px; }
+}
