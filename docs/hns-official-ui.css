@@ -86,3 +86,11 @@ body.hns-official .privacy-shell h1 {
   .hero-story .brand-art .floating-glass.floating-one { left: 0; max-width: 101px; padding: 6px; }
   .hero-story .brand-art .floating-glass.floating-two { right: 0; max-width: 91px; padding: 6px; }
 }
+
+/* Mobile-only RISE 17 campaign eyebrow. Desktop wording is unchanged. */
+.eyebrow-mobile{display:none}
+@media (max-width:650px){
+ .hero-copy .eyebrow .eyebrow-desktop{display:none}
+ .hero-copy .eyebrow .eyebrow-mobile{display:inline;font-family:Poppins,Arial,sans-serif;font-size:16px;font-weight:800;line-height:1.2;letter-spacing:.08em;color:var(--soft-gold)}
+ .hero-copy .eyebrow .gold-rule{width:20px;height:2px;flex-shrink:0}
+}
