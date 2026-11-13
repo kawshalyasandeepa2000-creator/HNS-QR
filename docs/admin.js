@@ -84,7 +84,10 @@ function renderRecords() {
 function paintStats(data) {
   const list = Array.isArray(data?.recent) ? data.recent : [];
   recentRecords = list;
-  $("#campaign-name").textContent = data.campaign || config?.campaign || "—";
+  // The customer-facing campaign label is a dashboard alias only.
+  // Keep data.campaign / config.campaign unchanged for D1 and Worker operations.
+  $("#campaign-name").textContent = "RISE 17 - 2026";
+  $("#campaign-name").title = `Database campaign: ${data.campaign || config?.campaign || "outdoor-2026"}`;
   $("#total-count").textContent = Number(data.total || 0).toLocaleString();
   $("#recent-count").textContent = list.length.toLocaleString();
   $("#email-count").textContent = list.filter(item => typeof item.email === "string" && item.email.trim()).length.toLocaleString();
@@ -135,6 +138,27 @@ function renderDailyChart(list) {
   }
 }
 
+// Optional dashboard QR panel: hidden by default until the admin asks for it.
+// Show/hide never deletes QR data, customer records, or the campaign.
+const qrFlyer = $("#qr-flyer");
+const qrToggle = $("#qr-visibility-toggle");
+function setQRVisible(visible) {
+  qrFlyer.classList.toggle("hidden", !visible);
+  qrToggle.setAttribute("aria-expanded", String(visible));
+  qrToggle.querySelector(".qr-toggle-label").textContent = visible ? "Hide QR flyer" : "Show QR flyer";
+  if (visible) {
+    buildQR();
+    qrFlyer.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+qrToggle.addEventListener("click", () => {
+  if (dom.dashboard.classList.contains("hidden")) {
+    dom.loginPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  setQRVisible(qrFlyer.classList.contains("hidden"));
+});
+
 function buildQR() {
   $("#qr-url").textContent = customerUrl;
   if (qrBuilt) return;
@@ -159,7 +183,7 @@ async function fetchDashboard() {
   dom.adminError.textContent = "";
   const data = await (await api("/api/admin/stats")).json();
   paintStats(data);
-  buildQR();
+  if (!qrFlyer.classList.contains("hidden")) buildQR();
   return data;
 }
 
@@ -207,6 +231,7 @@ $("#logout-button").addEventListener("click", () => {
   recentRecords = [];
   dom.records.replaceChildren();
   dom.dashboard.classList.add("hidden");
+  setQRVisible(false);
   dom.loginPanel.classList.remove("hidden");
   dom.status.textContent = "Secure admin access";
   dom.status.classList.remove("connected");

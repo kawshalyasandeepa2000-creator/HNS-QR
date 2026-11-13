@@ -29,3 +29,12 @@
 
 /* 12 Nov 2026 — Poppins admin typography */
 body.hns-admin,body.hns-admin button,body.hns-admin input,body.hns-admin textarea,body.hns-admin select{font-family:"Poppins",system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+
+
+/* 13 Nov 2026 — optional QR section; dashboard default is collapsed. */
+.qr-nav-toggle{background:transparent;cursor:pointer;text-align:left;width:100%;font-family:inherit;justify-content:flex-start}
+.qr-nav-toggle:focus-visible{outline:2px solid #F5E216;outline-offset:2px}
+.qr-nav-toggle[aria-expanded="true"]{border-color:rgba(245,226,22,.5);background:rgba(255,255,255,.12)}
+.qr-toggle-label{white-space:nowrap}
+#qr-flyer.hidden{display:none!important}
+@media print{.qr-nav-toggle{display:none!important}}
