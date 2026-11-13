@@ -209,7 +209,7 @@ body.hns-official{margin:0}
 /* Updated campaign headline */
 .hero-copy h1{text-transform:uppercase}
 .hero-copy h1 em{font-style:normal}
-/* Mobile gold text refinement: use dark gold only for already-gold text */
+/* Mobile gold text refinement: use bright gold for all gold text on mobile */
 @media (max-width:650px){
   .hero-copy .eyebrow,
   .hero-copy .eyebrow .eyebrow-mobile,
@@ -221,6 +221,6 @@ body.hns-official{margin:0}
   .trust-band,
   .registration-card .required,
   .privacy-kicker,
-  .customer-footer a{color:#C89116!important}
-  .gold-rule,.mini-gold-dot{background:#C89116!important;box-shadow:none!important}
+  .customer-footer a{color:#F5E216!important}
+  .gold-rule,.mini-gold-dot{background:#F5E216!important;box-shadow:none!important}
 }
