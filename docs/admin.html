@@ -6,10 +6,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./hns-admin-official.css?v=20261114-leads-scan-v1">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261114-mobile-ocr-v3">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261114-leads-scan-v1"></script>
+  <script defer src="./admin.js?v=20261114-mobile-ocr-v3"></script>
 </head>
 <body class="hns-admin">
 <div class="dashboard-shell">
@@ -44,20 +44,28 @@
             <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh contacts</button>
           </div>
           <div class="leads-toolbar">
-            <label class="btn btn-gold leads-file-button" for="lead-camera-input">📷 Scan with phone camera</label>
+            <label class="btn btn-gold leads-file-button" for="lead-camera-input">📷 Take clear card photo</label>
             <input type="file" id="lead-camera-input" accept="image/*" capture="environment" class="leads-file-input" aria-label="Take a business card photo">
             <label class="btn btn-outline leads-file-button" for="lead-file-input">▣ Upload card image</label>
             <input type="file" id="lead-file-input" accept="image/*" class="leads-file-input" aria-label="Upload a business card image">
             <button type="button" class="btn btn-soft" id="lead-open-webcam">Live camera</button>
           </div>
-          <p class="leads-privacy-note">🔒 Scan runs on your phone/computer. The business card photo is not uploaded; only details you confirm are saved in private Cloudflare D1. No automatic marketing emails.</p>
+          <p class="leads-privacy-note">🔒 Photos stay on your phone/computer. Only reviewed contact fields are saved in private Cloudflare D1. No automatic marketing emails. 📸 MOBILE: place ONE business card on a plain surface, fill most of the camera frame, hold steady until the text is sharp, and avoid reflections. Tap Select card area → Crop & scan if the card is small in the photo.</p>
+          <div class="leads-api-status" id="lead-api-status" role="status" aria-live="polite">Sign in and open Business Card Leads to check database connection.</div>
           <div class="leads-webcam hidden" id="leads-webcam" aria-label="Live business card camera">
             <video id="lead-video" autoplay playsinline muted aria-label="Business card camera preview"></video>
             <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Capture card</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
           </div>
           <div class="leads-workspace">
             <div class="lead-picture-column">
-              <div class="lead-picture-box"><div id="lead-photo-placeholder">📷<br>Business card preview</div><img id="lead-photo" alt="Preview of photographed business card" class="hidden"></div>
+              <div class="lead-picture-box" id="lead-crop-box"><div id="lead-photo-placeholder">📷<br>Business card preview</div><div id="lead-image-wrap" class="lead-image-wrap"><img id="lead-photo" alt="Preview of photographed business card" class="hidden"><div id="lead-crop-rect" class="lead-crop-rect hidden" aria-hidden="true"></div></div></div>
+              <div class="leads-image-tools">
+                <button class="btn btn-outline" id="lead-crop-mode" type="button" disabled>✂ Select card area</button>
+                <button class="btn btn-gold" id="lead-crop-apply" type="button" disabled>Crop &amp; scan</button>
+                <button class="btn btn-outline" id="lead-rotate" type="button" disabled>⟳ Rotate 90°</button>
+                <button class="btn btn-soft" id="lead-deep-scan" type="button" disabled>🔎 Deep scan</button>
+              </div>
+              <p class="lead-mobile-scan-tip">📱 For best results: use the phone’s rear camera, keep the entire card flat and close, then crop tightly around it. If phone/email are blank, tap <b>Deep scan</b>. Always check details before saving.</p>
               <p id="lead-scan-status" class="lead-scan-status" role="status" aria-live="polite">Take a clear photo with good lighting to scan the details.</p>
               <button class="btn btn-outline" type="button" id="lead-rescan" disabled>↻ Read text again</button>
               <details class="lead-ocr-details"><summary>View detected text</summary><textarea id="lead-raw-text" readonly rows="7" aria-label="Text detected from business card"></textarea></details>
@@ -74,7 +82,7 @@
                 <label>Event<input id="lead-event" name="eventName" maxlength="120" value="RISE 17 - 2026" autocomplete="off"></label>
                 <label>Notes<input id="lead-notes" name="notes" maxlength="500" placeholder="Meeting notes (optional)" autocomplete="off"></label>
               </div>
-              <p class="lead-required-note">Person name or company name is required. All OCR results can be corrected. Only save contacts you are authorized to retain.</p>
+              <p class="lead-required-note">Person name or company name is required. Mobile OCR can misread decorative fonts, emails and digits. Blank fields are intentional when reading is uncertain. Confirm every field against the physical card before saving. Only save contacts you are authorized to retain.</p>
               <div class="leads-form-actions"><button class="btn btn-gold" type="submit" id="lead-save">✓ Save business contact</button><button class="btn btn-soft" type="button" id="lead-clear">Clear form</button></div>
               <p id="lead-save-status" class="lead-scan-status" role="status" aria-live="polite"></p>
             </form>
