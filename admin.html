@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B2463"><link rel="icon" type="image/png" href="./helen-sons-logo-icon.png?v=20261111-claim-v1">
+  <meta name="description" content="Helen and Sons Visa Consultancy private referral campaign admin dashboard.">
+  <title>Helen and Sons | Referral Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261114-leads-scan-v1">
+  <script defer src="./config.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script defer src="./admin.js?v=20261114-leads-scan-v1"></script>
+</head>
+<body class="hns-admin">
+<div class="dashboard-shell">
+  <aside class="sidebar" aria-label="Dashboard navigation">
+    <a class="admin-brand" href="./admin.html" aria-label="Helen and Sons admin dashboard"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official logo since 2007" width="1500" height="454"></a>
+    <p class="menu-label">REFERRAL CONTROL CENTRE</p>
+    <nav class="side-nav"><a class="nav-link active" href="#overview"><span>◫</span> Overview</a><a class="nav-link" href="#customers"><span>≡</span> Customer records</a><a class="nav-link" href="#business-cards" id="business-cards-nav"><span aria-hidden="true">▣</span> Business card leads</a><button type="button" class="nav-link qr-nav-toggle" id="qr-visibility-toggle" aria-controls="qr-flyer" aria-expanded="false"><span aria-hidden="true">▦</span><span class="qr-toggle-label">Show QR flyer</span></button><a class="nav-link" href="./" target="_blank" rel="noopener noreferrer"><span>↗</span> Customer website</a></nav>
+    <div class="sidebar-card"><span class="sidebar-card-star">✦</span><h3>One campaign.<br>Every connection.</h3><p>Campaign data remains in your existing Cloudflare D1 database.</p></div>
+    <p class="sidebar-footer">HELEN AND SONS · SINCE 2007</p>
+  </aside>
+  <div class="admin-content">
+    <header class="topbar"><div class="topbar-brand"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official company logo" width="1500" height="454"><div><p class="topbar-kicker">OFFICIAL CAMPAIGN PORTAL</p><div class="topbar-heading">Referral dashboard</div></div></div><div class="topbar-right"><span id="connection-status" class="connection-status" role="status" aria-live="polite">Secure admin access</span><a href="./" target="_blank" rel="noopener noreferrer" class="live-link">View live website ↗</a></div></header>
+    <main id="overview">
+      <section class="admin-hero" id="hero-card"><div class="hero-words"><p class="hero-kicker">✦ HELEN AND SONS · REFERRAL PROGRAMME</p><h1>Manage every connection.<br><em>Grow new opportunities.</em></h1><p>Securely manage referral codes, customer registrations and your outdoor campaign QR — all in one place.</p>
+        <div class="admin-offers" aria-label="Current consultancy offers">
+          <div class="admin-offer"><strong>UP TO 70% OFF</strong><span>– Consultancy Fees</span></div>
+          <div class="admin-offer"><strong>20% OFF</strong><span>– Company Setup Service Fees</span></div>
+        </div><div class="hero-tags"><span>Cloudflare D1</span><span>QR Campaign</span><span>Customer Records</span></div></div><div class="hero-graphic"><div class="hero-ring" aria-hidden="true"></div><img src="./helen-sons-consultation-2026.jpg" alt="Helen and Sons visa consultation with a client" width="1700" height="1096" loading="eager"><div class="hero-photo-tag" aria-hidden="true">✦ &nbsp; PERSONAL CONSULTATION</div></div></section>
+      <section id="login-panel" class="login-wrap" aria-labelledby="login-title"><div class="login-card"><div class="section-kicker">🔒 RESTRICTED ACCESS</div><h2 id="login-title">Welcome back.</h2><p>Enter your existing Cloudflare <strong>ADMIN_TOKEN</strong>. Your token stays in this browser tab's memory and is not stored in a file.</p><form id="login-form"><label for="token-input">Administrator token</label><div class="token-row"><input id="token-input" type="password" placeholder="Paste your private admin token" autocomplete="off" required><button type="button" id="toggle-token" aria-label="Show token" aria-pressed="false">Show</button></div><button class="btn btn-gold btn-full" type="submit" id="sign-in-button">Access dashboard →</button></form><p class="error-message" id="login-error" role="alert"></p></div></section>
+      <div id="dashboard" class="dashboard hidden">
+        <section class="overview-section" aria-labelledby="overview-title"><div class="section-row"><div><p class="section-kicker">LIVE PERFORMANCE</p><h2 id="overview-title">Campaign at a glance</h2></div><div class="section-actions"><button id="refresh-button" class="btn btn-outline" type="button">↻ Refresh data</button><button id="logout-button" class="btn btn-soft" type="button">Sign out</button></div></div>
+          <div class="metric-grid"><article class="metric metric-major"><div class="metric-label">Total referral codes <span>✦</span></div><strong id="total-count">—</strong><p>Issued in this campaign</p></article><article class="metric"><div class="metric-label">Recent registrations <span>≡</span></div><strong id="recent-count">—</strong><p>Latest 100 records</p></article><article class="metric"><div class="metric-label">Emails recorded <span>✉</span></div><strong id="email-count">—</strong><p>Among recent records · older entries may lack email</p></article><article class="metric"><div class="metric-label">Active campaign <span>◇</span></div><strong id="campaign-name" class="metric-campaign">RISE 17 - 2026</strong><p>Cloudflare D1</p></article></div>
+          <div class="insights-row"><div class="insight-card"><div class="insight-header"><div><p class="section-kicker">RECENT ACTIVITY</p><h3>Registrations by day</h3></div><span>Latest 7 calendar days · from recent 100</span></div><div id="daily-chart" class="daily-chart" aria-label="Recent registrations by day"></div></div><div class="insight-card insights-small"><p class="section-kicker">DATA YOU CAN TRUST</p><h3>Real campaign records</h3><p>The figures shown here come from your existing Cloudflare API. The recent-record charts are based on the latest 100 registrations, not estimated or invented data.</p><div class="insight-chip"><span>●</span> Live API connected</div></div></div>
+        </section>
+        <section id="customers" class="records-section" aria-labelledby="customers-title"><div class="section-row"><div><p class="section-kicker">CUSTOMER DIRECTORY</p><h2 id="customers-title">Recent customer records</h2><p class="section-description">Search the latest 100 registrations. The CSV export includes your complete campaign.</p></div><button id="csv-button" class="btn btn-gold" type="button">↓ Export all CSV</button></div><div class="table-toolbar"><label class="search-box"><span>⌕</span><input type="search" id="record-search" placeholder="Search name, mobile, email or code…" aria-label="Search recent records" autocomplete="off"></label><span id="display-count">— records shown</span></div><div class="table-scroll"><table><thead><tr><th>Customer name</th><th>Mobile number</th><th>Email address</th><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="5">Sign in to load records.</td></tr></tbody></table></div><p id="admin-error" class="error-message" role="alert"></p><p class="records-footnote">Customer contact details are visible only after administrator authentication. Do not share admin screenshots containing personal information.</p></section>
+
+        <!-- Private event business-card contacts. Only visible after admin authentication. -->
+        <section id="business-cards" class="leads-section" aria-labelledby="leads-title">
+          <div class="section-row">
+            <div><p class="section-kicker">RISE 17 - 2026 · EVENT CONTACTS</p><h2 id="leads-title">Business card scanner</h2>
+              <p class="section-description">Photograph a business card, review the detected details, and save them separately from referral registrations.</p></div>
+            <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh contacts</button>
+          </div>
+          <div class="leads-toolbar">
+            <label class="btn btn-gold leads-file-button" for="lead-camera-input">📷 Scan with phone camera</label>
+            <input type="file" id="lead-camera-input" accept="image/*" capture="environment" class="leads-file-input" aria-label="Take a business card photo">
+            <label class="btn btn-outline leads-file-button" for="lead-file-input">▣ Upload card image</label>
+            <input type="file" id="lead-file-input" accept="image/*" class="leads-file-input" aria-label="Upload a business card image">
+            <button type="button" class="btn btn-soft" id="lead-open-webcam">Live camera</button>
+          </div>
+          <p class="leads-privacy-note">🔒 Scan runs on your phone/computer. The business card photo is not uploaded; only details you confirm are saved in private Cloudflare D1. No automatic marketing emails.</p>
+          <div class="leads-webcam hidden" id="leads-webcam" aria-label="Live business card camera">
+            <video id="lead-video" autoplay playsinline muted aria-label="Business card camera preview"></video>
+            <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Capture card</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
+          </div>
+          <div class="leads-workspace">
+            <div class="lead-picture-column">
+              <div class="lead-picture-box"><div id="lead-photo-placeholder">📷<br>Business card preview</div><img id="lead-photo" alt="Preview of photographed business card" class="hidden"></div>
+              <p id="lead-scan-status" class="lead-scan-status" role="status" aria-live="polite">Take a clear photo with good lighting to scan the details.</p>
+              <button class="btn btn-outline" type="button" id="lead-rescan" disabled>↻ Read text again</button>
+              <details class="lead-ocr-details"><summary>View detected text</summary><textarea id="lead-raw-text" readonly rows="7" aria-label="Text detected from business card"></textarea></details>
+            </div>
+            <form id="lead-form" class="lead-form">
+              <div class="lead-form-heading"><div><p class="section-kicker">REVIEW BEFORE SAVING</p><h3 id="lead-form-title">Contact details</h3></div><span class="lead-manual-label">Manual entry also works</span></div>
+              <div class="lead-form-grid">
+                <label>Person name<input id="lead-person" name="personName" maxlength="120" placeholder="Full name" autocomplete="off"></label>
+                <label>Company name<input id="lead-company" name="companyName" maxlength="160" placeholder="Company / organization" autocomplete="off"></label>
+                <label>Email address<input id="lead-email" name="email" type="email" maxlength="254" placeholder="name@company.com" autocomplete="off"></label>
+                <label>Phone / WhatsApp<input id="lead-phone" name="phone" type="tel" maxlength="40" placeholder="+971 50 123 4567" autocomplete="off"></label>
+                <label>Job title<input id="lead-title" name="jobTitle" maxlength="120" placeholder="Managing Director" autocomplete="off"></label>
+                <label>Website<input id="lead-website" name="website" maxlength="200" placeholder="example.com" autocomplete="off"></label>
+                <label>Event<input id="lead-event" name="eventName" maxlength="120" value="RISE 17 - 2026" autocomplete="off"></label>
+                <label>Notes<input id="lead-notes" name="notes" maxlength="500" placeholder="Meeting notes (optional)" autocomplete="off"></label>
+              </div>
+              <p class="lead-required-note">Person name or company name is required. All OCR results can be corrected. Only save contacts you are authorized to retain.</p>
+              <div class="leads-form-actions"><button class="btn btn-gold" type="submit" id="lead-save">✓ Save business contact</button><button class="btn btn-soft" type="button" id="lead-clear">Clear form</button></div>
+              <p id="lead-save-status" class="lead-scan-status" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+          <div class="leads-directory">
+            <div class="section-row"><div><p class="section-kicker">PRIVATE BUSINESS CONTACTS</p><h3>Saved event contacts</h3><p class="section-description" id="lead-total-label">Open this section to load your contacts.</p></div>
+              <button class="btn btn-outline" type="button" id="leads-export">↓ Export leads CSV</button></div>
+            <div class="table-toolbar"><label class="search-box"><span>⌕</span><input id="lead-search" type="search" autocomplete="off" placeholder="Search person, company, email or phone..." aria-label="Search business card contacts"></label><span id="lead-display-count">—</span></div>
+            <div class="table-scroll leads-table-scroll"><table class="leads-table"><thead><tr><th>Person</th><th>Company</th><th>Email</th><th>Phone</th><th>Job title</th><th>Added (UTC)</th><th>Actions</th></tr></thead><tbody id="lead-rows"><tr><td colspan="7">Open the scanner section after login to load contacts.</td></tr></tbody></table></div>
+          </div>
+        </section>
+        <section id="qr-flyer" class="qr-section hidden" aria-labelledby="qr-title"><div class="qr-details"><p class="section-kicker">PRINT &amp; SHARE</p><h2 id="qr-title">Your campaign.<br><em>One powerful QR.</em></h2><p>Download a branded QR image or print an A4 campaign flyer. Each visitor can register and receive their own unique code.</p><div class="qr-actions"><button id="qr-download" class="btn btn-gold" type="button">↓ Download branded QR PNG</button><button id="print-button" class="btn btn-outline" type="button">Print A4 flyer</button></div><p id="qr-notice" role="status" aria-live="polite" class="qr-notice"></p><div class="qr-tip">Test the printed QR with a phone before mass distribution.</div></div><div class="flyer-frame"><div class="poster" id="poster"><div class="poster-logo"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official logo since 2007" width="1500" height="454"></div><div class="poster-kicker">OFFICIAL REFERRAL PROGRAMME</div><h3>SCAN &amp; GET YOUR<br><span>REFERRAL CODE</span></h3><p>Enter your name, mobile number and email address.</p><div class="qr-outer"><div id="qr-container" class="qr-container" aria-label="QR code for the Helen and Sons referral website"></div></div><div id="qr-url" class="qr-url"></div><div class="poster-bottom">HELEN AND SONS VISA CONSULTANCY · SINCE 2007</div></div></div></section>
+      </div>
+    </main>
+    <footer class="admin-footer"><span>Helen and Sons Visa Consultancy · Official Referral Programme</span><span>Do not share your ADMIN_TOKEN</span></footer>
+  </div>
+</div>
+</body></html>
