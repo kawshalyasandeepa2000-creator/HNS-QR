@@ -372,7 +372,10 @@ const leadEls = {
   preview: $('#lead-photo'), placeholder: $('#lead-photo-placeholder'), status: $('#lead-scan-status'),
   raw: $('#lead-raw-text'), form: $('#lead-form'), save: $('#lead-save'),
   saveStatus: $('#lead-save-status'), video: $('#lead-video'), webcam: $('#leads-webcam'),
-  search: $('#lead-search'), rows: $('#lead-rows')
+  search: $('#lead-search'), rows: $('#lead-rows'),
+  cropBox: $('#lead-crop-box'), imageWrap: $('#lead-image-wrap'), cropRect: $('#lead-crop-rect'),
+  rotate: $('#lead-rotate'), crop: $('#lead-crop-mode'), cropApply: $('#lead-crop-apply'),
+  deepScan: $('#lead-deep-scan'), apiStatus: $('#lead-api-status')
 };
 const leadFields = {
   personName: $('#lead-person'), companyName: $('#lead-company'), email: $('#lead-email'),
@@ -387,21 +390,60 @@ let leadWorkerLoading = null;
 let leadsBusy = false;
 let leadsCameraStream = null;
 let leadsLoaded = false;
+let leadCropMode = false;
+let leadCropSelection = null;
+let leadPointerStart = null;
+let leadScanRuns = 0;
+let leadApiReady = null;
+let lastLeadApiError = '';
+
 
 async function leadApi(path, { method = 'GET', data = undefined } = {}) {
-  if (!adminToken || dom.dashboard.classList.contains('hidden')) throw new Error('Please sign in as an administrator first.');
-  if (!apiOrigin?.startsWith('https://')) throw new Error('API URL is missing.');
-  const response = await fetch(`${apiOrigin}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${adminToken}`, ...(data ? { 'Content-Type': 'application/json' } : {}) },
-    ...(data ? { body: JSON.stringify(data) } : {}),
-    cache: 'no-store'
-  });
+  if (!adminToken || dom.dashboard.classList.contains('hidden')) throw new Error('Admin login expired. Sign in again, then save.');
+  if (!apiOrigin?.startsWith('https://')) throw new Error('API URL is missing from docs/config.js.');
+  let response;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      response = await fetch(`${apiOrigin}${path}`, {
+        method,
+        headers: { Authorization: `Bearer ${adminToken}`, ...(data !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+        ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
+        cache: 'no-store', signal: controller.signal
+      });
+    } finally { clearTimeout(timeout); }
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('Connection timed out. Please check your network and try Save again.');
+    throw new Error('Unable to contact Cloudflare Worker. Check internet, API URL and Worker CORS configuration.');
+  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(typeof body.error === 'string' ? body.error : `Request failed (HTTP ${response.status}).`);
+    if (response.status === 404) throw new Error('Business Card API not installed (404). Deploy the business-card Worker update from the ZIP. GitHub files alone cannot save contacts.');
+    if (response.status === 401) throw new Error('Admin token was rejected (401). Sign out and sign in again.');
+    if (response.status === 403) throw new Error('Cloudflare blocked this website origin (403). Check Worker allowed origins.');
+    if (response.status === 500) throw new Error('Database or Worker error (500). Check qr-referral-api Observability logs / D1 binding.');
+    throw new Error(typeof body.error === 'string' ? `${body.error} (HTTP ${response.status})` : `Save request failed (HTTP ${response.status}).`);
   }
   return response;
+}
+
+async function checkLeadsApi(showMessage = true) {
+  if (!adminToken || dom.dashboard.classList.contains('hidden')) return;
+  if (showMessage) leadEls.apiStatus.textContent = 'Checking secure business-card database connection...';
+  try {
+    // The original GET endpoint also creates the new table if required.
+    const data = await (await leadApi('/api/admin/business-cards')).json();
+    if (!Array.isArray(data.items)) throw new Error('Unexpected business-card API response. Deploy the updated Worker.');
+    leadApiReady = true;
+    if (showMessage) leadEls.apiStatus.textContent = '✓ Business card database connected. Saving is available.';
+    return data;
+  } catch (error) {
+    leadApiReady = false;
+    lastLeadApiError = error.message || 'Backend unavailable.';
+    leadEls.apiStatus.textContent = `⚠ Save connection not ready: ${lastLeadApiError}`;
+    return null;
+  }
 }
 
 function setLeadStatus(message, isError = false) {
@@ -453,41 +495,191 @@ async function getLeadOcrWorker() {
 }
 
 function tidyOcrLine(raw) {
-  return raw.replace(/[|•●]/g, ' ').replace(/\s+/g, ' ').trim();
+  return String(raw || '').replace(/[|•●]/g, ' ').replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Privacy-first English business-card parser: NEVER make up missing values.
+// Multiple OCR variants are combined, but high-risk fields require recognizable syntax.
+function normaliseCardText(value) {
+  return String(value || '')
+    .replace(/[\u200b-\u200f\ufeff]/g, '')
+    .replace(/[＠]/g, '@').replace(/[。．]/g, '.')
+    .replace(/([A-Za-z0-9._%+\-])\s*[©®]\s*(?=[A-Za-z0-9])/g, '$1@')
+    .replace(/\b\[at\]\b|\(at\)/gi, '@')
+    .replace(/([A-Za-z0-9])\s+@\s+([A-Za-z0-9])/g, '$1@$2')
+    .replace(/([A-Za-z0-9])\s+\.\s+([A-Za-z0-9])/g, '$1.$2');
+}
+function businessCardEmailCandidates(raw) {
+  const text=normaliseCardText(raw);
+  const lines=text.split(/\r?\n/).map(tidyOcrLine).filter(Boolean);
+  const candidates=[];
+  const inputs=[...lines, lines.join(' ')];
+  for(let i=0;i<inputs.length;i++) {
+    const line=inputs[i];
+    const reduced=line.replace(/\s*@\s*/g,'@').replace(/\s*\.\s*/g,'.');
+    for(const m of reduced.matchAll(/\b([A-Z0-9._%+\-]{1,64})@([A-Z0-9\-]+(?:\.[A-Z0-9\-]+)+)\b/gi)) {
+      const e=m[0].replace(/[.,;:]$/,'').toLowerCase();
+      const domain=e.split('@')[1] || '';
+      if(!/^[^\s@]+@[^\s@]+\.[A-Z]{2,15}$/i.test(e) || /\.\.|--/.test(e) || /^(?:example|test)\./.test(domain))continue;
+      candidates.push({value:e,score:(/\b(?:e-?mail|mail)\b\s*[:\-]?/i.test(line)?5:0)+(i<lines.length?2:0)});
+    }
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  return [...new Set(candidates.map(x=>x.value))];
+}
+function businessCardPhoneCandidates(raw) {
+  const lines=normaliseCardText(raw).split(/\r?\n/).map(tidyOcrLine);
+  const found=[];
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    if(/\b(?:fax|f\s*[:.]|p\.?o\.?\s*box|postal|zip|license|licence|trn|tax|registration\s*(?:no|number))\b/i.test(line))continue;
+    // Tesseract occasionally substitutes O/I for a zero/one INSIDE a phone number.
+    const numeric=line.replace(/(?<=\d)[Oo](?=\d|[\s-])/g,'0').replace(/(?<=\d)[Il|](?=\d)/g,'1').replace(/(?<=\+)[Oo](?=\d)/g,'0');
+    const pattern=/(?:\+\s*)?\d(?:[\d\s().\-/]{5,}\d)/g;
+    for(const m of numeric.matchAll(pattern)){
+      const rawValue=m[0].trim().replace(/[\s.,;\-/]+$/g,'');
+      const digits=rawValue.replace(/\D/g,'');
+      if(digits.length<8||digits.length>15||/^(\d)\1{7,}$/.test(digits)||/^(?:19|20)\d{2}[-/.]\d{1,2}[-/.]\d{1,2}$/.test(rawValue))continue;
+      const score=(/\b(?:mobile|mob|cell|whats\s*app|wa\s*[:.]|m\s*:)/i.test(line)?12:0)
+        + (/\b(?:telephone|phone|tel|contact|call|t\s*:)/i.test(line)?5:0)
+        + (/^(?:\+\s*971|00971|971|05)/.test(rawValue)?5:0)
+        + (rawValue.startsWith('+')?2:0)
+        - (/\b(?:office|landline)\b/i.test(line)?3:0);
+      const clean=rawValue.replace(/\+\s+/,'+').replace(/\s+/g,' ').trim();
+      found.push({value:clean,score});
+    }
+  }
+  found.sort((a,b)=>b.score-a.score);
+  return [...new Set(found.map(x=>x.value))];
+}
 function parseBusinessCardText(raw) {
-  const lines = raw.split(/\r?\n/).map(tidyOcrLine).filter(Boolean);
-  const allText = lines.join('\n');
-  const email = (allText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [])[0] || '';
-  const phoneMatches = allText.match(/(?:\+?\d[\d\s()./\-]{6,}\d)/g) || [];
-  let phone = '';
-  for (const candidate of phoneMatches) {
-    const cleaned = candidate.trim().replace(/^[^\d+]+|[^\d]+$/g, '');
-    const digitCount = cleaned.replace(/\D/g, '').length;
-    if (digitCount >= 8 && digitCount <= 15 && !/\b20(?:2[5-9]|3\d)\b/.test(cleaned)) {phone = cleaned; break;}
+  const lines=normaliseCardText(raw).split(/\r?\n/).map(tidyOcrLine).filter(line=>line.length>=2);
+  const email=businessCardEmailCandidates(raw)[0]||'';
+  const phone=businessCardPhoneCandidates(raw)[0]||'';
+  const roleRe=/\b(?:chief executive|chief operating|managing director|general manager|project manager|account manager|manager|director|founder|co-founder|ceo|cfo|coo|president|consultant|executive|engineer|sales|marketing|business development|chairman|partner|officer|coordinator|specialist|head of|accountant|administrator|proprietor|owner|advisor|designer|architect|developer|supervisor|agent|representative|relationship manager)\b/i;
+  const companyRe=/\b(?:l\.?l\.?c|fze|fzc|fz-llc|limited|ltd|inc|corp|corporation|company|group|trading|enterprises|industries|technologies|solutions|consultancy|services|international|business setup|real estate|general trading|holding|holdings|establishment|consulting|global|ventures|pvt)\b/i;
+  const nonNameRe=/\b(?:address|road|street|building|office|floor|suite|tower|block|area|po box|dubai|sharjah|abu dhabi|united arab emirates|uae|www|http|email|e-mail|fax|mobile|phone|tel|whatsapp|contact|instagram|facebook|linkedin|follow|visit|website|connect|quality|since|best|your|professional|welcome|reach|out|call|web|location|branch|opportunities)\b/i;
+  const contactLine=line=>/@|https?:|www\.|\.(?:com|ae|net|org|co|io|biz|in)\b/i.test(line) || nonNameRe.test(line) || (line.match(/\d/g)||[]).length>=3;
+  const plausibleName=line=>{
+    const text=line.replace(/^(?:name\s*[:\-]|mr\.?\s+|mrs\.?\s+|ms\.?\s+|dr\.?\s+)/i,'').trim();
+    if(contactLine(text)||companyRe.test(text)||roleRe.test(text)||text.length>65)return false;
+    const words=text.split(/\s+/).filter(Boolean);
+    if(words.length<2||words.length>4||words.some(w=>!/^\p{L}[\p{L}.'-]*$/u.test(w)))return false;
+    if(words.filter(w=>w.replace(/[^\p{L}]/gu,'').length<=2).length>1)return false;
+    const alpha=text.replace(/[^\p{L}]/gu,'');
+    if(alpha.length<6)return false;
+    const vowelCount=(text.match(/[aeiouy]/gi)||[]).length;
+    if(vowelCount/Math.max(1,alpha.length)<.16)return false;
+    const nonInitial=words.filter(w=>w.length>=3);
+    if(nonInitial.some(w=>!/[aeiouy]/i.test(w)))return false;
+    return true;
+  };
+  const entries=lines.map((line,i)=>({line,i}));
+  const roles=entries.filter(x=>roleRe.test(x.line)&&!contactLine(x.line)&&x.line.length<=70);
+  const role=roles[0];
+  const nameCandidates=entries.filter(x=>plausibleName(x.line)).map(x=>{
+    const words=x.line.split(/\s+/);
+    let score=5+(x.i<Math.ceil(lines.length/2)?2:0)+(words.length===2?2:0)
+      +(words.every(w=>/^[A-Z][a-z]/.test(w))?5:0)
+      +(/^(?:name\s*[:\-])/i.test(x.line)?15:0);
+    if(role){const distance=role.i-x.i;if(distance>0&&distance<=3)score+=9-distance*2;}
+    if(x.line===x.line.toUpperCase())score-=2;
+    if(words.some(w=>w.length>17))score-=4;
+    return {...x,score};
+  }).sort((a,b)=>b.score-a.score||a.i-b.i);
+  let personName=nameCandidates[0]?.line.replace(/^name\s*[:\-]\s*/i,'')||'';
+  // Avoid guessing from OCR gibberish; if low score, leave editable field empty.
+  if((nameCandidates[0]?.score||0)<7)personName='';
+  const companyCandidates=entries.filter(x=>x.line!==personName&&!contactLine(x.line)&&!roleRe.test(x.line)&&x.line.length<=90).map(x=>{
+    const text=x.line.replace(/^(?:company|organization|organisation)\s*[:\-]\s*/i,'').trim();
+    const words=text.split(/\s+/);
+    const alpha=text.replace(/[^A-Za-z]/g,'');
+    const vowels=(alpha.match(/[aeiouy]/gi)||[]).length;
+    const strong=companyRe.test(text)||/^(?:company|organization|organisation)\s*[:\-]/i.test(x.line);
+    const plausible=alpha.length>=5 && vowels/Math.max(1,alpha.length)>=.16 && words.length<=7 && words.filter(w=>w.length<=2).length<=2;
+    if(!plausible&&!strong)return {line:'',score:-100};
+    let score=(strong?13:0)+((text===text.toUpperCase()&&words.length>=2)?4:0)+(x.i<4?3:0);
+    if(plausibleName(text))score-=10;
+    if(text===personName||text===role?.line)score-=30;
+    if(/\b(?:name|greetings|thank you|contact us|we are|we offer)\b/i.test(text))score-=10;
+    return {line:text,score};
+  }).filter(x=>x.score>3).sort((a,b)=>b.score-a.score);
+  const companyName=companyCandidates[0]?.line||'';
+  const urls=(normaliseCardText(raw).match(/(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+(?:com|ae|net|org|co|io|biz|in|uk|info|me|edu)\b(?:\/[^\s]*)?/gi)||[])
+    .map(x=>x.replace(/[.,;:]$/,''));
+  const website=urls.find(x=>!x.includes('@')&&x.toLowerCase()!==(email.split('@')[1]||'')&&!email.includes(x.toLowerCase()))||'';
+  return {personName,companyName,email,phone,jobTitle:role?.line||'',website,eventName:'RISE 17 - 2026',notes:''};
+}
+function lineLooksLikeEmail(text){return String(text).includes('@');}
+
+function leadOcrQuality(data) {
+  const raw=String(data?.text||'').trim();
+  const parsed=parseBusinessCardText(raw);
+  const validWords=(raw.match(/\b[A-Za-z]{3,}\b/g)||[]).length;
+  const conf=Number.isFinite(data?.confidence)?data.confidence:0;
+  return Math.min(100, Math.max(0,conf)*.42 + Math.min(25, validWords*2) +
+    (parsed.email?12:0)+(parsed.phone?9:0)+(parsed.personName?6:0)+(parsed.companyName?6:0));
+}
+
+// Two photo variants preserve BOTH original colored printing and high-contrast text.
+// Aggressive whitening on v2 destroyed thin email / phone characters on mobile.
+function makeLeadOcrCanvas(source, mode='natural') {
+  const side=Math.max(source.width,source.height);
+  // Native camera resolution is kept up to 2600px to limit mobile RAM usage.
+  const scale=Math.min(2600/side,Math.max(1,1900/side));
+  const output=document.createElement('canvas');
+  output.width=Math.max(1,Math.round(source.width*scale));
+  output.height=Math.max(1,Math.round(source.height*scale));
+  const ctx=output.getContext('2d',{willReadFrequently:mode!=='natural'});
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality='high';
+  ctx.drawImage(source,0,0,output.width,output.height);
+  if(mode==='natural')return output;
+  const img=ctx.getImageData(0,0,output.width,output.height),pixels=img.data;
+  const histogram=new Uint32Array(256);
+  for(let i=0;i<pixels.length;i+=4){const y=Math.round(.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2]);histogram[y]++;}
+  const total=output.width*output.height;
+  let low=0,high=255,acc=0;
+  for(let i=0;i<256;i++){acc+=histogram[i];if(acc>=total*.04){low=i;break;}}
+  acc=0;for(let i=255;i>=0;i--){acc+=histogram[i];if(acc>=total*.04){high=i;break;}}
+  // Moderate contrast stretch: preserve fine colored text and diacritics.
+  const span=Math.max(95,high-low);
+  for(let i=0;i<pixels.length;i+=4){
+    const y=.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2];
+    let v=(y-low)*255/span;
+    if(mode==='binary')v=v>145?255:0;
+    else v=18+v*.89;
+    v=Math.min(255,Math.max(0,v));
+    pixels[i]=pixels[i+1]=pixels[i+2]=v;
   }
-  const urlMatches = allText.match(/(?:https?:\/\/)?(?:www\.)?[a-z0-9][a-z0-9.-]+\.(?:com|ae|net|org|co|io|biz|in|uk|info)(?:\/[\w./?&=%-]*)?/ig) || [];
-  const website = urlMatches.find(link => !link.includes('@') && !email.includes(link.replace(/^www\./,''))) || '';
-  const roleRe = /\b(?:manager|director|founder|ceo|cfo|coo|president|consultant|executive|engineer|sales|marketing|business development|chairman|partner|officer|coordinator|specialist|head of|accountant|administrator|proprietor|owner|advisor|designer)\b/i;
-  const companyRe = /\b(?:l\.?l\.?c|fze|fzc|fzc-llc|fz-llc|limited|ltd|inc|corp|corporation|company|group|trading|enterprises|industries|technologies|solutions|consultancy|services|international|business setup|real estate|general trading)\b/i;
-  const skipRe = /(@|https?:|www\.|\.com\b|\.ae\b|\b(?:mobile|phone|tel|fax|email|e-mail|website|address|office|street|road|building|p\.?o\.? box|dubai|united arab emirates|uae)\b|\d{3,})/i;
-  const companyLine = lines.find(line => companyRe.test(line) && !skipRe.test(line) && line.length <= 160) || '';
-  const jobTitle = lines.find(line => roleRe.test(line) && !skipRe.test(line) && !companyRe.test(line) && line.length <= 120) || '';
-  const personCandidates = lines.filter(line => {
-    if (skipRe.test(line) || roleRe.test(line) || companyRe.test(line)) return false;
-    const words = line.split(/\s+/).filter(Boolean);
-    return words.length >= 2 && words.length <= 4 && line.length <= 70 && /^[\p{L} .'-]+$/u.test(line) && !/^THE\s/i.test(line);
-  });
-  const personName = personCandidates.find(line => line !== companyLine) || '';
-  let companyName = companyLine;
-  // If the company name has no legal suffix, a prominent single uppercase line may be it.
-  if (!companyName) {
-    companyName = lines.find(line => line !== personName && line !== jobTitle &&
-      line.length > 4 && line.length < 70 && !skipRe.test(line) &&
-      /^[\p{L} \d.&'-]+$/u.test(line) && (line === line.toUpperCase() || /\b(?:business|global|academy|digital|visa|hospitality)\b/i.test(line))) || '';
+  ctx.putImageData(img,0,0);
+  return output;
+}
+function enhanceLeadCanvas(source){return makeLeadOcrCanvas(source,'contrast');}
+
+function mergeCardOcrResults(readings) {
+  const ranked=[...readings].sort((a,b)=>leadOcrQuality(b)-leadOcrQuality(a));
+  const best=ranked[0]||{text:''};
+  const chosen=parseBusinessCardText(best.text||'');
+  // Combine ONLY recognized field candidates; never compose names from unrelated text.
+  // Phones with 'Mobile / WhatsApp' labels rank above fax/office numbers.
+  const allLines=readings.map(r=>String(r.text||'')).join('\n');
+  const emails=businessCardEmailCandidates(allLines);
+  const phones=businessCardPhoneCandidates(allLines);
+  if(emails.length)chosen.email=emails[0];
+  if(phones.length)chosen.phone=phones[0];
+  for(const field of ['personName','companyName','jobTitle','website']){
+    if(chosen[field])continue;
+    for(const r of ranked.slice(1)){
+      const candidate=parseBusinessCardText(r.text||'')[field];
+      if(candidate){chosen[field]=candidate;break;}
+    }
   }
-  return { personName, companyName, email, phone, jobTitle, website, eventName: 'RISE 17 - 2026', notes: '' };
+  return {fields:chosen,text:best.text||'',allText:allLines,quality:Math.round(leadOcrQuality(best))};
+}
+function rotateLeadCanvas(source) {
+  const out=document.createElement('canvas');out.width=source.height;out.height=source.width;
+  const ctx=out.getContext('2d');ctx.translate(out.width,0);ctx.rotate(Math.PI/2);ctx.drawImage(source,0,0);return out;
 }
 
 function fillLeadFields(values) {
@@ -498,51 +690,145 @@ function fillLeadFields(values) {
 
 async function decodeLeadFile(file) {
   if (!file || !file.type.startsWith('image/')) throw new Error('Choose a business card photo (JPG, PNG, or supported image format).');
-  if (file.size > 15 * 1024 * 1024) throw new Error('This image is too large. Please select a photo under 15 MB.');
-  const url = URL.createObjectURL(file);
+  if (file.size > 20 * 1024 * 1024) throw new Error('This photo is too large. Please choose an image under 20 MB.');
+  const url=URL.createObjectURL(file);
   try {
-    const img = new Image();
-    await new Promise((resolve, reject) => {
-      img.onload = resolve;
-      img.onerror = () => reject(new Error('Could not read this image. Please try JPG or PNG.'));
-      img.src = url;
-    });
-    if (!img.naturalWidth || !img.naturalHeight) throw new Error('Image has no visible pixels.');
-    const scale = Math.min(1, 2400 / Math.max(img.naturalWidth, img.naturalHeight));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-    canvas.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0, canvas.width, canvas.height);
+    const img=new Image();
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Could not read photo. Please try JPG/PNG.'));img.src=url;});
+    const max=Math.max(img.naturalWidth,img.naturalHeight);
+    if(!max)throw new Error('Empty photo.');
+    const scale=Math.min(1,3200/max);
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+    canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+    const ctx=canvas.getContext('2d');ctx.imageSmoothingQuality='high';ctx.drawImage(img,0,0,canvas.width,canvas.height);
     return canvas;
   } finally {URL.revokeObjectURL(url);}
 }
 
-async function scanLeadCanvas(canvas) {
-  if (leadsBusy) return;
-  leadsBusy = true;
-  leadImageCanvas = canvas;
-  leadEls.preview.src = canvas.toDataURL('image/jpeg', .86);
+function displayLeadCanvas(canvas) {
+  leadImageCanvas=canvas;
+  leadEls.preview.src=canvas.toDataURL('image/jpeg',.92);
   leadEls.preview.classList.remove('hidden');
   leadEls.placeholder.classList.add('hidden');
-  $('#lead-rescan').disabled = true;
-  resetLeadForm();
-  setLeadStatus('Preparing the image for OCR...');
-  try {
-    const worker = await getLeadOcrWorker();
-    const {data} = await worker.recognize(canvas);
-    const raw = String(data?.text || '').trim();
-    leadEls.raw.value = raw;
-    const extracted = parseBusinessCardText(raw);
-    fillLeadFields(extracted);
-    if (!raw) setLeadStatus('No text detected. Try better lighting or enter the details manually.', true);
-    else setLeadStatus('Text scanned. Check person/company/email before saving — OCR can make mistakes.');
-  } catch (error) {
-    setLeadStatus(`OCR failed: ${error.message || 'Unknown issue'}. You can enter details manually.`, true);
-  } finally {
-    leadsBusy = false;
-    $('#lead-rescan').disabled = false;
-  }
+  leadEls.deepScan.disabled=false;leadEls.rotate.disabled=false;leadEls.crop.disabled=false;
 }
+
+async function scanLeadCanvas(canvas, deep=false) {
+  if(leadsBusy)return;
+  leadsBusy=true;
+  leadScanRuns++;
+  displayLeadCanvas(canvas);
+  disableLeadCropMode();
+  $('#lead-rescan').disabled=true;
+  leadEls.deepScan.disabled=true;
+  leadEls.save.disabled=true;
+  resetLeadForm();
+  setLeadStatus('Mobile card scan: reading original high-resolution photo...');
+  const worker=await getLeadOcrWorker().catch(error=>{setLeadStatus(error.message||'OCR model failed to load.',true);return null;});
+  if(!worker){leadsBusy=false;$('#lead-rescan').disabled=false;leadEls.deepScan.disabled=false;leadEls.save.disabled=false;return;}
+  try {
+    const readings=[];
+    const original=makeLeadOcrCanvas(canvas,'natural');
+    await worker.setParameters({tessedit_pageseg_mode:window.Tesseract.PSM.SPARSE_TEXT,
+      tessedit_char_whitelist:'',preserve_interword_spaces:'1',user_defined_dpi:'300'});
+    setLeadStatus('Reading printed names, emails and phone numbers (1/3)...');
+    readings.push((await worker.recognize(original)).data);
+    let first=parseBusinessCardText(readings[0].text||'');
+    // Run a second pass if anything important is missing, and always for Deep scan.
+    const missing=!first.personName||!first.email||!first.phone||!first.companyName;
+    if(deep || missing || leadOcrQuality(readings[0])<75){
+      setLeadStatus('Checking small print and card layout (2/3)...');
+      const contrasted=makeLeadOcrCanvas(canvas,'contrast');
+      await worker.setParameters({tessedit_pageseg_mode:window.Tesseract.PSM.AUTO,
+        tessedit_char_whitelist:'',preserve_interword_spaces:'1'});
+      readings.push((await worker.recognize(contrasted)).data);
+    }
+    let merged=mergeCardOcrResults(readings);
+    // Dedicated numeric/email pass helps phones on busy printed cards.
+    if(deep || !merged.fields.phone || !merged.fields.email){
+      setLeadStatus('Double-checking mobile numbers and email characters (3/3)...');
+      await worker.setParameters({tessedit_pageseg_mode:window.Tesseract.PSM.SPARSE_TEXT,
+        tessedit_char_whitelist:'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@.+_-/(): ',
+        preserve_interword_spaces:'1'});
+      // Use original colors again; binary filters often lose thin @ and digits.
+      readings.push((await worker.recognize(original)).data);
+      await worker.setParameters({tessedit_char_whitelist:''});
+    }
+    merged=mergeCardOcrResults(readings);
+    fillLeadFields(merged.fields);
+    leadEls.raw.value=readings.map((r,i)=>`PASS ${i+1}\n${String(r.text||'').trim()}`).join('\n\n──────────\n\n');
+    const missingFields=['personName','email','phone'].filter(f=>!merged.fields[f]);
+    if(!merged.allText.trim())setLeadStatus('No readable text found. Take a NEW photo closer to the card, or use Select card area → Crop & scan.',true);
+    else if(missingFields.length)setLeadStatus('Scan done. Some fields are unclear ('+missingFields.map(f=>({personName:'name',email:'email',phone:'mobile number'})[f]).join(', ')+'). Crop closely and try Deep scan. Please verify every field.',true);
+    else setLeadStatus('Scan done: name, email and phone candidates found. VERIFY them against the card before saving. OCR may misread letters.');
+  } catch(error){setLeadStatus(`OCR error: ${error.message||'Unknown error'}. You can fill details manually.`,true);}
+  finally {leadsBusy=false;$('#lead-rescan').disabled=false;leadEls.deepScan.disabled=false;leadEls.save.disabled=false;}
+}
+
+function disableLeadCropMode(){
+  leadCropMode=false;leadEls.imageWrap.classList.remove('cropping');
+  leadEls.crop.textContent='✂ Select card area';leadEls.cropApply.disabled=true;
+  leadEls.cropRect.classList.add('hidden');leadPointerStart=null;
+}
+function setLeadCropRect(sel){
+  const box=leadEls.cropRect;
+  box.style.left=`${sel.x*100}%`;box.style.top=`${sel.y*100}%`;
+  box.style.width=`${sel.w*100}%`;box.style.height=`${sel.h*100}%`;
+  box.classList.remove('hidden');
+}
+function cropLeadPoint(event){
+  const r=leadEls.preview.getBoundingClientRect();
+  return {x:Math.min(1,Math.max(0,(event.clientX-r.left)/r.width)),
+    y:Math.min(1,Math.max(0,(event.clientY-r.top)/r.height))};
+}
+leadEls.crop.addEventListener('click',()=>{
+  if(!leadImageCanvas||leadsBusy)return;
+  if(leadCropMode){disableLeadCropMode();return;}
+  leadCropMode=true;leadCropSelection=null;
+  leadEls.crop.textContent='Cancel crop';leadEls.imageWrap.classList.add('cropping');
+  leadEls.cropRect.classList.add('hidden');leadEls.cropApply.disabled=true;
+  setLeadStatus('Drag your finger across the card photo: top-left to bottom-right. Then tap Crop & scan.');
+});
+leadEls.preview.addEventListener('pointerdown',event=>{
+  if(!leadCropMode)return;
+  event.preventDefault();leadPointerStart=cropLeadPoint(event);
+  leadEls.preview.setPointerCapture?.(event.pointerId);
+});
+leadEls.preview.addEventListener('pointermove',event=>{
+  if(!leadCropMode||!leadPointerStart)return;
+  const e=cropLeadPoint(event),x=Math.min(leadPointerStart.x,e.x),y=Math.min(leadPointerStart.y,e.y);
+  const w=Math.abs(e.x-leadPointerStart.x),h=Math.abs(e.y-leadPointerStart.y);
+  leadCropSelection={x,y,w,h};setLeadCropRect(leadCropSelection);
+  leadEls.cropApply.disabled=(w<.1||h<.1);
+});
+leadEls.preview.addEventListener('pointerup',event=>{
+  if(!leadCropMode||!leadPointerStart)return;
+  leadPointerStart=null;
+  if(leadCropSelection?.w<.1||leadCropSelection?.h<.1){
+    setLeadStatus('Choose a larger card area; drag across at least part of the picture.',true);
+    leadEls.cropApply.disabled=true;
+  }
+});
+leadEls.cropApply.addEventListener('click',async()=>{
+  const s=leadCropSelection,canvas=leadImageCanvas;
+  if(!s||!canvas||leadsBusy||s.w<.1||s.h<.1)return;
+  const x=Math.round(s.x*canvas.width),y=Math.round(s.y*canvas.height);
+  const w=Math.min(canvas.width-x,Math.round(s.w*canvas.width)),h=Math.min(canvas.height-y,Math.round(s.h*canvas.height));
+  if(w<100||h<60){setLeadStatus('Crop too small. Select the complete card.',true);return;}
+  const cropped=document.createElement('canvas');cropped.width=w;cropped.height=h;
+  cropped.getContext('2d').drawImage(canvas,x,y,w,h,0,0,w,h);
+  await scanLeadCanvas(cropped,true);
+});
+leadEls.rotate.addEventListener('click',async()=>{
+  if(leadImageCanvas&&!leadsBusy)await scanLeadCanvas(rotateLeadCanvas(leadImageCanvas),true);
+});
+leadEls.deepScan.addEventListener('click',async()=>{
+  if(leadImageCanvas&&!leadsBusy)await scanLeadCanvas(leadImageCanvas,true);
+});
+$('#lead-rescan').addEventListener('click',()=>{
+  if(leadImageCanvas&&!leadsBusy)scanLeadCanvas(leadImageCanvas,false);
+});
 
 async function scanLeadFile(file) {
   if (!file || leadsBusy) return;
@@ -551,7 +837,6 @@ async function scanLeadFile(file) {
 }
 leadEls.camera.addEventListener('change', async () => { const file=leadEls.camera.files?.[0];leadEls.camera.value='';await scanLeadFile(file); });
 leadEls.upload.addEventListener('change', async () => { const file=leadEls.upload.files?.[0];leadEls.upload.value='';await scanLeadFile(file); });
-$('#lead-rescan').addEventListener('click', () => {if (leadImageCanvas) scanLeadCanvas(leadImageCanvas);});
 
 function closeLeadCamera() {
   for (const track of leadsCameraStream?.getTracks() || []) track.stop();
@@ -589,6 +874,7 @@ leadEls.form.addEventListener('submit', async event => {
   event.preventDefault();
   const payload = leadFormPayload();
   if (!payload.personName && !payload.companyName) {setLeadSaveStatus('Enter a person name or company name before saving.', true);return;}
+  if (!leadEls.form.reportValidity()) {setLeadSaveStatus('Please correct the highlighted fields.',true);return;}
   leadEls.save.disabled=true;
   setLeadSaveStatus('Saving contact to private database...');
   try {
@@ -596,9 +882,10 @@ leadEls.form.addEventListener('submit', async event => {
     const path = editing ? `/api/admin/business-cards/${encodeURIComponent(leadEditingId)}` : '/api/admin/business-cards';
     await leadApi(path, {method: editing ? 'PATCH' : 'POST', data:payload});
     resetLeadForm();
-    setLeadSaveStatus(editing ? 'Business contact updated successfully.' : 'Business contact saved successfully.');
+    setLeadSaveStatus(editing ? '✓ Business contact updated and saved.' : '✓ Business contact saved to Cloudflare D1.');
+    leadApiReady=true;
     await loadBusinessCardLeads();
-  } catch (error) {setLeadSaveStatus(error.message || 'Could not save contact.', true);}
+  } catch (error) {setLeadSaveStatus(`NOT SAVED: ${error.message || 'Unknown error'}`, true);leadEls.apiStatus.textContent=`⚠ Save issue: ${error.message||'Unknown error'}`;}
   finally {leadEls.save.disabled=false;}
 });
 
@@ -642,10 +929,11 @@ async function loadBusinessCardLeads() {
     const data = await (await leadApi('/api/admin/business-cards')).json();
     leadsList = Array.isArray(data.items) ? data.items : [];
     const total=Number(data.total??0);
-    leadsLoaded=true;
+    leadsLoaded=true;leadApiReady=true;
+    leadEls.apiStatus.textContent='✓ Business card database connected. Saving is available.';
     $('#lead-total-label').textContent=`${total} total business contacts. Showing latest ${leadsList.length}; export CSV for all contacts.`;
     renderBusinessCardLeads();
-  } catch (error) {$('#lead-total-label').textContent=`Could not load business contacts: ${error.message}`;}
+  } catch (error) {leadApiReady=false;leadEls.apiStatus.textContent=`⚠ Scanner database unavailable: ${error.message}`;$('#lead-total-label').textContent=`Could not load business contacts: ${error.message}`;}
 }
 $('#leads-refresh').addEventListener('click',loadBusinessCardLeads);
 $('#business-cards-nav').addEventListener('click', () => {

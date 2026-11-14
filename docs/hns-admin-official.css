@@ -87,3 +87,29 @@ body.hns-admin,body.hns-admin button,body.hns-admin input,body.hns-admin textare
 @media(max-width:980px){.leads-workspace{grid-template-columns:1fr}}
 @media(max-width:650px){.leads-section{padding:14px;margin:20px 0;border-radius:18px}.lead-form{padding:14px}.lead-form-grid{grid-template-columns:1fr}.leads-toolbar .btn,.leads-file-button{flex:1 1 140px;min-height:43px}.leads-section .section-row{align-items:flex-start;flex-wrap:wrap}.lead-form-heading{align-items:flex-start;flex-wrap:wrap}.leads-form-actions .btn{flex:1}}
 @media print{.leads-section{display:none!important}}
+
+/* Business card scanner v2: mobile image crop and explicit backend save status. */
+.leads-api-status{padding:12px 14px;margin:0 0 15px;border:1px solid #c6d6ee;background:#f5f8ff;border-radius:12px;color:#244b82;font-size:12px;line-height:1.6;font-weight:650;overflow-wrap:anywhere}
+.lead-picture-box{max-height:unset;min-height:165px;overflow:visible;padding:10px}
+.lead-image-wrap{position:relative;display:inline-flex;justify-content:center;align-items:center;max-width:100%;min-width:0}
+.lead-image-wrap img{display:block;width:auto;max-width:100%;height:auto;max-height:340px;object-fit:contain;-webkit-user-select:none;user-select:none}
+.lead-image-wrap.cropping #lead-photo{touch-action:none;cursor:crosshair}
+.lead-crop-rect{position:absolute;pointer-events:none;border:2px solid #f5e216;background:rgba(245,226,22,.15);box-shadow:0 0 0 999px rgba(0,18,65,.20);border-radius:3px}
+.leads-image-tools{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+.leads-image-tools .btn{font-size:11px;min-height:39px;flex:1 1 120px;padding:10px 9px}
+.leads-image-tools .btn:disabled{opacity:.5;cursor:not-allowed}
+#lead-save-status{font-size:13px;font-weight:650;min-height:22px;overflow-wrap:anywhere}
+#lead-scan-status{font-size:12px;overflow-wrap:anywhere}
+@media(max-width:650px){.leads-image-tools .btn{min-width:0;flex:1 1 44%}.lead-image-wrap img{max-height:280px}}
+
+/* Mobile-first OCR v3: readable capture guidance, reliable crop and review */
+.lead-mobile-scan-tip{background:#fff6ce;border-left:3px solid #C89116;border-radius:9px;padding:11px 12px;color:#243b67;font-size:12px;line-height:1.6;margin:12px 0;font-weight:550}
+@media(max-width:650px){
+  .leads-toolbar .leads-file-button[for="lead-camera-input"]{order:-2;flex:1 1 100%;font-size:14px;min-height:54px}
+  .leads-toolbar .leads-file-button[for="lead-file-input"]{order:-1}
+  .lead-image-wrap img{max-height:390px}
+  .lead-picture-column{padding:10px}
+  #lead-scan-status,#lead-save-status{font-size:13px;line-height:1.65}
+  .leads-image-tools .btn{min-height:44px}
+  .lead-form-grid input{font-size:16px;min-height:44px}
+}
