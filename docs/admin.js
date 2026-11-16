@@ -1254,22 +1254,31 @@ $('#leads-export').addEventListener('click',async()=>{
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){alert(`Could not export business cards: ${error.message}`);}finally{button.disabled=false;}
 });
-$('#leads-export-pdf').addEventListener('click',async()=>{
-  const button=$('#leads-export-pdf');button.disabled=true;
-  try{
-    const csv=await(await leadApi('/api/admin/business-cards/export.csv')).text();
-    const {headers,rows}=parseExportCsv(csv);
+async function exportScanCardPdf(button) {
+  if (button) button.disabled = true;
+  try {
+    const csv = await (await leadApi('/api/admin/business-cards/export.csv')).text();
+    const { headers, rows } = parseExportCsv(csv);
     exportTablePdf({
-      title:'Scan Card contacts',
-      subtitle:`${selectedEventName} · saved scanner contacts · Save as PDF in print dialog`,
-      headers:headers.length?headers:['Person','Company','Email','Phone','Job title','Added (UTC)'],
+      title: 'Scan Card contacts',
+      subtitle: `${selectedEventName} · saved scanner contacts · Save as PDF in print dialog`,
+      headers: headers.length ? headers : ['Person', 'Company', 'Email', 'Phone', 'Job title', 'Added (UTC)'],
       rows
     });
-  }catch(error){alert(`Could not export PDF: ${error.message}`);}finally{button.disabled=false;}
-});
-$('#leads-import-open-toolbar').addEventListener('click',()=>$('#leads-import-open').click());
-$('#leads-export-toolbar-csv').addEventListener('click',()=>$('#leads-export').click());
-$('#leads-export-toolbar-pdf').addEventListener('click',()=>$('#leads-export-pdf').click());
+  } catch (error) {
+    alert(`Could not export PDF: ${error.message}`);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+function bindClick(id, handler) {
+  const el = $(id);
+  if (el) el.addEventListener('click', handler);
+}
+bindClick('#leads-import-open-toolbar', () => $('#leads-import-open')?.click());
+bindClick('#leads-export-toolbar-csv', () => $('#leads-export')?.click());
+bindClick('#leads-export-toolbar-pdf', event => exportScanCardPdf(event.currentTarget));
+bindClick('#leads-export-pdf', event => exportScanCardPdf(event.currentTarget));
 
 // Keep contact data out of the UI after logout; the original login mechanism
 // and in-memory admin token remain unchanged.
