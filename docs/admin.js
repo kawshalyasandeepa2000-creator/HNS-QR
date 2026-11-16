@@ -22,6 +22,52 @@ let currentView = "overview";
 let eventLoadSerial = 0;
 let qrBuilt = false;
 
+function parseExportCsv(text) {
+  const lines = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter(line => line.trim());
+  if (!lines.length) return { headers: [], rows: [] };
+  const splitLine = line => {
+    const cells = [];
+    let cell = "";
+    let quoted = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (quoted) {
+        if (ch === '"' && line[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else cell += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === ",") { cells.push(cell); cell = ""; }
+      else cell += ch;
+    }
+    cells.push(cell);
+    return cells;
+  };
+  return { headers: splitLine(lines[0]), rows: lines.slice(1).map(splitLine) };
+}
+
+function exportTablePdf({ title, subtitle, headers, rows }) {
+  const esc = value => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const head = headers.map(h => `<th>${esc(h)}</th>`).join("");
+  const body = rows.length
+    ? rows.map(row => `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join("")}</tr>`).join("")
+    : `<tr><td colspan="${headers.length}">No records</td></tr>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>body{font-family:Arial,sans-serif;margin:24px;color:#0b2463}h1{font-size:20px;margin:0 0 6px}
+p{margin:0 0 16px;color:#536b9a;font-size:12px}table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{border:1px solid #d4dff0;padding:6px 8px;text-align:left;vertical-align:top;word-break:break-word}
+th{background:#0b2463;color:#fff}tr:nth-child(even){background:#f6f9ff}@page{margin:14mm}</style></head><body>
+<h1>${esc(title)}</h1><p>${esc(subtitle || "")}</p>
+<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+<script>addEventListener("load",()=>{print();setTimeout(()=>close(),400)})<\/script></body></html>`;
+  const popup = window.open("", "_blank", "noopener");
+  if (!popup) throw new Error("Allow pop-ups to export PDF, then try again.");
+  popup.document.open();
+  popup.document.write(html);
+  popup.document.close();
+}
+
+window.hnsDataExport = { parseExportCsv, exportTablePdf };
+
 async function api(path) {
   if (!apiOrigin?.startsWith("https://") || apiOrigin.includes("YOUR-")) {
     throw new Error("Cloudflare API is not configured in docs/config.js.");
@@ -374,6 +420,23 @@ $("#csv-button").addEventListener("click", async () => {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (error) { showError(dom.adminError, error); }
+  finally { button.disabled = false; }
+});
+
+$("#qr-export-pdf").addEventListener("click", async () => {
+  const button = $("#qr-export-pdf");
+  button.disabled = true;
+  dom.adminError.textContent = "";
+  try {
+    const csv = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}`)).text();
+    const { headers, rows } = parseExportCsv(csv);
+    exportTablePdf({
+      title: "QR Referral Scan",
+      subtitle: `${selectedEventName} (${selectedEventSlug}) · Choose Save as PDF in the print dialog`,
+      headers: headers.length ? headers : ["Customer name", "Mobile number", "Email address", "Referral code", "Created (UTC)"],
+      rows
+    });
   } catch (error) { showError(dom.adminError, error); }
   finally { button.disabled = false; }
 });
@@ -1187,10 +1250,26 @@ $('#leads-export').addEventListener('click',async()=>{
   try {
     const blob=await(await leadApi('/api/admin/business-cards/export.csv')).blob();
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
-    a.download='RISE17-2026-Business-Card-Leads.csv';document.body.append(a);a.click();a.remove();
+    a.download=`Helen-and-Sons-Scan-Card-${selectedEventSlug}.csv`;document.body.append(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){alert(`Could not export business cards: ${error.message}`);}finally{button.disabled=false;}
 });
+$('#leads-export-pdf').addEventListener('click',async()=>{
+  const button=$('#leads-export-pdf');button.disabled=true;
+  try{
+    const csv=await(await leadApi('/api/admin/business-cards/export.csv')).text();
+    const {headers,rows}=parseExportCsv(csv);
+    exportTablePdf({
+      title:'Scan Card contacts',
+      subtitle:`${selectedEventName} · saved scanner contacts · Save as PDF in print dialog`,
+      headers:headers.length?headers:['Person','Company','Email','Phone','Job title','Added (UTC)'],
+      rows
+    });
+  }catch(error){alert(`Could not export PDF: ${error.message}`);}finally{button.disabled=false;}
+});
+$('#leads-import-open-toolbar').addEventListener('click',()=>$('#leads-import-open').click());
+$('#leads-export-toolbar-csv').addEventListener('click',()=>$('#leads-export').click());
+$('#leads-export-toolbar-pdf').addEventListener('click',()=>$('#leads-export-pdf').click());
 
 // Keep contact data out of the UI after logout; the original login mechanism
 // and in-memory admin token remain unchanged.
