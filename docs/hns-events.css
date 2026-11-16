@@ -49,6 +49,8 @@ body.is-signed-in #hero-card{display:none!important}
 .overview-tile-details .overview-tile-icon{background:#e8f0ff;color:#163b89}
 .overview-tile-qr .overview-tile-icon{background:#e7f7ee;color:#14663c}
 .overview-status{margin:6px 0 0;font-size:12px;color:#536b9a}
+.section-io-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.section-io-actions .btn{white-space:nowrap}
 @media(max-width:900px){.overview-hub{grid-template-columns:1fr}}
 .lead-voice-panel{margin-top:14px;padding:12px;border:1px solid #d4dff0;border-radius:14px;background:#fff}
 .lead-voice-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
