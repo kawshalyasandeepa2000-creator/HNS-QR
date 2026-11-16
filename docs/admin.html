@@ -6,10 +6,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-overview-hub">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-io-export">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261116-overview-hub"></script>
+  <script defer src="./admin.js?v=20261116-io-export"></script>
   <script defer src="./hns-leads-import.js?v=20261116-events-v2"></script>
   <script defer src="./hns-references.js?v=20261116-events-v2"></script>
 </head>
@@ -36,14 +36,14 @@
         <section class="overview-section" id="overview-panel" aria-labelledby="overview-title"><div class="section-row"><div><p class="section-kicker">SELECTED EVENT</p><h2 id="overview-title">Dashboard</h2><p class="section-description">Choose what you want to do. Only one section opens at a time.</p></div><div class="section-actions"><button id="refresh-button" class="btn btn-outline" type="button">↻ Refresh data</button><button id="logout-button" class="btn btn-soft" type="button">Sign out</button></div></div>
           <p class="overview-event-line">Active event: <strong id="overview-event-name">RISE 17 - 2026</strong></p>
           <div class="overview-hub" role="navigation" aria-label="Dashboard shortcuts">
-            <button type="button" class="overview-tile overview-tile-scan" data-admin-view="#business-cards"><span class="overview-tile-icon" aria-hidden="true">▤</span><strong>Scan Card</strong><span>Camera, photo, mic and save business contacts</span></button>
-            <button type="button" class="overview-tile overview-tile-details" data-admin-view="#csv-references"><span class="overview-tile-icon" aria-hidden="true">▣</span><strong>Card Details</strong><span>Imported references and CSV contacts for this event</span></button>
-            <button type="button" class="overview-tile overview-tile-qr" data-admin-view="#customers"><span class="overview-tile-icon" aria-hidden="true">◫</span><strong>QR Referral Scan</strong><span>Customers who registered from your event QR link</span></button>
+            <button type="button" class="overview-tile overview-tile-scan" data-admin-view="#business-cards"><span class="overview-tile-icon" aria-hidden="true">▤</span><strong>Scan Card</strong><span>Scan, import CSV/Excel, export CSV or PDF</span></button>
+            <button type="button" class="overview-tile overview-tile-details" data-admin-view="#csv-references"><span class="overview-tile-icon" aria-hidden="true">▣</span><strong>Card Details</strong><span>Reference contacts · import CSV, export CSV or PDF</span></button>
+            <button type="button" class="overview-tile overview-tile-qr" data-admin-view="#customers"><span class="overview-tile-icon" aria-hidden="true">◫</span><strong>QR Referral Scan</strong><span>QR registrations only · export CSV or PDF</span></button>
           </div>
           <p class="overview-status" id="overview-connection" role="status">Sign in to use the dashboard.</p>
           <span id="total-count" hidden aria-hidden="true"></span><span id="recent-count" hidden aria-hidden="true"></span><span id="email-count" hidden aria-hidden="true"></span><strong id="campaign-name" class="hidden" hidden aria-hidden="true">RISE 17 - 2026</strong><div id="daily-chart" class="hidden" hidden aria-hidden="true"></div>
         </section>
-        <section id="customers" class="records-section hidden" aria-labelledby="customers-title"><div class="section-row"><div><p class="section-kicker">CUSTOMER DIRECTORY</p><h2 id="customers-title">QR Referral Scan</h2><p class="section-description">Shows registrations from event QR links only. Historic and direct-link registrations are preserved separately below; a registration is not proof of a physical QR scan.</p></div><div class="refs-head-actions"><button id="csv-button" class="btn btn-gold" type="button">↓ Export registrations CSV</button></div></div><div class="table-toolbar"><label class="search-box"><span>⌕</span><input type="search" id="record-search" placeholder="Search name, mobile, email or code…" aria-label="Search recent records" autocomplete="off"></label><span id="display-count">— records shown</span></div><p id="qr-data-status" class="refs-helper" role="status"></p><div class="table-scroll"><table><thead><tr><th>Customer name</th><th>Mobile number</th><th>Email address</th><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="5">Sign in to load records.</td></tr></tbody></table></div><p id="admin-error" class="error-message" role="alert"></p><details class="legacy-details"><summary>Other registrations (legacy source unknown / direct links)</summary><p class="section-description">Historical registrations without a recorded source and new direct-link registrations appear here, not in QR-only results.</p><div class="table-scroll"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Email</th><th>Code</th><th>Created (UTC)</th></tr></thead><tbody id="legacy-referral-rows"><tr><td colspan="5">Sign in to view registrations.</td></tr></tbody></table></div></details><p class="records-footnote">Customer contact details are visible only after administrator authentication. Do not share admin screenshots containing personal information.</p></section>
+        <section id="customers" class="records-section hidden" aria-labelledby="customers-title"><div class="section-row"><div><p class="section-kicker">CUSTOMER DIRECTORY</p><h2 id="customers-title">QR Referral Scan</h2><p class="section-description">Shows registrations from event QR links only. Historic and direct-link registrations are preserved separately below; a registration is not proof of a physical QR scan.</p></div><div class="refs-head-actions section-io-actions"><button id="csv-button" class="btn btn-gold" type="button">↓ Export CSV</button><button id="qr-export-pdf" class="btn btn-outline" type="button">↓ Export PDF</button></div></div><div class="table-toolbar"><label class="search-box"><span>⌕</span><input type="search" id="record-search" placeholder="Search name, mobile, email or code…" aria-label="Search recent records" autocomplete="off"></label><span id="display-count">— records shown</span></div><p id="qr-data-status" class="refs-helper" role="status"></p><div class="table-scroll"><table><thead><tr><th>Customer name</th><th>Mobile number</th><th>Email address</th><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="5">Sign in to load records.</td></tr></tbody></table></div><p id="admin-error" class="error-message" role="alert"></p><details class="legacy-details"><summary>Other registrations (legacy source unknown / direct links)</summary><p class="section-description">Historical registrations without a recorded source and new direct-link registrations appear here, not in QR-only results.</p><div class="table-scroll"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Email</th><th>Code</th><th>Created (UTC)</th></tr></thead><tbody id="legacy-referral-rows"><tr><td colspan="5">Sign in to view registrations.</td></tr></tbody></table></div></details><p class="records-footnote">Customer contact details are visible only after administrator authentication. Do not share admin screenshots containing personal information.</p></section>
         <section id="csv-references" class="refs-section hidden" aria-labelledby="ref-title">
           <div class="section-row">
             <div>
@@ -52,8 +52,8 @@
               <p class="section-description">Your existing references are kept as business-card details in a separate contact list. QR registrations and scanner contacts are not mixed.</p>
             </div>
             <div class="refs-head-actions">
-              <button id="ref-open" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="ref-import-panel">↑ Import contacts CSV</button><button id="ref-refresh" class="btn btn-outline" type="button">↻ Refresh details</button>
-              <button id="ref-export" class="btn btn-gold" type="button">↓ Export references CSV</button>
+              <button id="ref-open" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="ref-import-panel">↑ Import CSV</button><button id="ref-refresh" class="btn btn-outline" type="button">↻ Refresh</button>
+              <button id="ref-export" class="btn btn-gold" type="button">↓ Export CSV</button><button id="ref-export-pdf" class="btn btn-outline" type="button">↓ Export PDF</button>
             </div>
           </div>
           <p id="ref-count" class="refs-helper" role="status" aria-live="polite">Sign in to view imported reference contacts.</p>
@@ -85,7 +85,12 @@
           <div class="section-row">
             <div><p class="section-kicker">SELECTED EVENT · EVENT CONTACTS</p><h2 id="leads-title">Scan Card</h2>
               <p class="section-description">Open the camera, fit the card in the frame, and scan. Name, mobile and email fill in automatically. Check them, edit anything wrong, then save.</p></div>
-            <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh contacts</button>
+            <div class="refs-head-actions section-io-actions">
+              <button class="btn btn-outline" type="button" id="leads-import-open-toolbar">↑ Import CSV / Excel</button>
+              <button class="btn btn-gold" type="button" id="leads-export-toolbar-csv">↓ Export CSV</button>
+              <button class="btn btn-outline" type="button" id="leads-export-toolbar-pdf">↓ Export PDF</button>
+              <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh</button>
+            </div>
           </div>
           <div class="leads-toolbar">
             <button type="button" class="btn btn-gold" id="lead-open-webcam">Open camera &amp; scan</button>
