@@ -32,6 +32,12 @@
   .leads-toolbar #lead-open-webcam{flex:1 1 100%;min-height:54px;font-size:15px}
   .lead-card-guide span{font-size:11px;white-space:normal;text-align:center;width:max-content;max-width:90%}
 }
+
+/* One dashboard section at a time after sign-in. */
+body.is-signed-in #dashboard > section.hidden{display:none!important}
+body.is-signed-in:not(.admin-view-overview) #hero-card{display:none!important}
+body.is-signed-in .side-nav .qr-nav-toggle.active{background:linear-gradient(135deg,#f5e77e,#c89116);color:#0b2463}
+body.is-signed-in #event-switcher:not(.hidden){display:flex!important}
 .lead-voice-panel{margin-top:14px;padding:12px;border:1px solid #d4dff0;border-radius:14px;background:#fff}
 .lead-voice-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .lead-voice-head p,.lead-voice-hint{margin:0;font-size:12px;line-height:1.45;color:#34547c}
