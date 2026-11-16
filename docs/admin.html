@@ -6,10 +6,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-events-v2">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-voice-send">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261116-events-v2"></script>
+  <script defer src="./admin.js?v=20261116-voice-send"></script>
   <script defer src="./hns-leads-import.js?v=20261116-events-v2"></script>
   <script defer src="./hns-references.js?v=20261116-events-v2"></script>
 </head>
@@ -78,21 +78,24 @@
         <section id="business-cards" class="leads-section hidden" aria-labelledby="leads-title">
           <div class="section-row">
             <div><p class="section-kicker">SELECTED EVENT · EVENT CONTACTS</p><h2 id="leads-title">Business card scanner</h2>
-              <p class="section-description">Photograph a business card, review the detected details, and save them separately from referral registrations.</p></div>
+              <p class="section-description">Open the camera, fit the card in the frame, and scan. Name, mobile and email fill in automatically. Check them, edit anything wrong, then save.</p></div>
             <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh contacts</button>
           </div>
           <div class="leads-toolbar">
-            <label class="btn btn-gold leads-file-button" for="lead-camera-input">📷 Take clear card photo</label>
+            <button type="button" class="btn btn-gold" id="lead-open-webcam">Open camera &amp; scan</button>
+            <label class="btn btn-outline leads-file-button" for="lead-camera-input">📷 Take a photo</label>
             <input type="file" id="lead-camera-input" accept="image/*" capture="environment" class="leads-file-input" aria-label="Take a business card photo">
             <label class="btn btn-outline leads-file-button" for="lead-file-input">▣ Upload card image</label>
             <input type="file" id="lead-file-input" accept="image/*" class="leads-file-input" aria-label="Upload a business card image">
-            <button type="button" class="btn btn-soft" id="lead-open-webcam">Live camera</button>
           </div>
           <p class="leads-privacy-note">🔒 Photos stay on your phone/computer. Only reviewed contact fields are saved in private Cloudflare D1. No automatic marketing emails. 📸 MOBILE: place ONE business card on a plain surface, fill most of the camera frame, hold steady until the text is sharp, and avoid reflections. Tap Select card area → Crop & scan if the card is small in the photo.</p>
           <div class="leads-api-status" id="lead-api-status" role="status" aria-live="polite">Sign in and open Business Card Leads to check database connection.</div>
           <div class="leads-webcam hidden" id="leads-webcam" aria-label="Live business card camera">
-            <video id="lead-video" autoplay playsinline muted aria-label="Business card camera preview"></video>
-            <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Capture card</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
+            <div class="lead-camera-stage">
+              <video id="lead-video" autoplay playsinline muted aria-label="Business card camera preview"></video>
+              <div class="lead-card-guide" aria-hidden="true"><span>Fit the whole card inside the frame</span></div>
+            </div>
+            <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Scan this card</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
           </div>
           <div class="leads-workspace">
             <div class="lead-picture-column">
@@ -106,15 +109,35 @@
               <p class="lead-mobile-scan-tip">📱 For best results: use the phone’s rear camera, keep the entire card flat and close, then crop tightly around it. If phone/email are blank, tap <b>Deep scan</b>. Always check details before saving.</p>
               <p id="lead-scan-status" class="lead-scan-status" role="status" aria-live="polite">Take a clear photo with good lighting to scan the details.</p>
               <button class="btn btn-outline" type="button" id="lead-rescan" disabled>↻ Read text again</button>
+              <div class="lead-voice-panel">
+                <div class="lead-voice-head">
+                  <button type="button" class="btn btn-gold" id="lead-mic" aria-pressed="false">🎤 Mic</button>
+                  <p>Speak. The words appear in the box below.</p>
+                </div>
+                <label class="lead-voice-label" for="lead-voice-note">Voice note
+                  <textarea id="lead-voice-note" rows="4" maxlength="2000" placeholder="Tap Mic and speak, or type the note here"></textarea>
+                </label>
+                <p class="lead-voice-hint">If the card details were not read correctly, WhatsApp and email also include the card photo.</p>
+                <div class="lead-send-actions">
+                  <button type="button" class="btn btn-gold" id="lead-send-whatsapp">Send on WhatsApp</button>
+                  <button type="button" class="btn btn-outline" id="lead-send-email">Send by email</button>
+                </div>
+                <p id="lead-share-status" class="lead-scan-status" role="status" aria-live="polite"></p>
+              </div>
               <details class="lead-ocr-details"><summary>View detected text</summary><textarea id="lead-raw-text" readonly rows="7" aria-label="Text detected from business card"></textarea></details>
             </div>
             <form id="lead-form" class="lead-form">
-              <div class="lead-form-heading"><div><p class="section-kicker">REVIEW BEFORE SAVING</p><h3 id="lead-form-title">Contact details</h3></div><span class="lead-manual-label">Manual entry also works</span></div>
+              <div class="lead-form-heading"><div><p class="section-kicker">REVIEW BEFORE SAVING</p><h3 id="lead-form-title">Contact details</h3></div><span class="lead-manual-label">Edit anything, then save</span></div>
+              <div id="lead-readout" class="lead-readout" hidden>
+                <span data-field="personName">Name</span>
+                <span data-field="phone">Mobile</span>
+                <span data-field="email">Email</span>
+              </div>
               <div class="lead-form-grid">
                 <label>Person name<input id="lead-person" name="personName" maxlength="120" placeholder="Full name" autocomplete="off"></label>
-                <label>Company name<input id="lead-company" name="companyName" maxlength="160" placeholder="Company / organization" autocomplete="off"></label>
-                <label>Email address<input id="lead-email" name="email" type="email" maxlength="254" placeholder="name@company.com" autocomplete="off"></label>
                 <label>Phone / WhatsApp<input id="lead-phone" name="phone" type="tel" maxlength="40" placeholder="+971 50 123 4567" autocomplete="off"></label>
+                <label>Email address<input id="lead-email" name="email" type="email" maxlength="254" placeholder="name@company.com" autocomplete="off"></label>
+                <label>Company name<input id="lead-company" name="companyName" maxlength="160" placeholder="Company / organization" autocomplete="off"></label>
                 <label>Job title<input id="lead-title" name="jobTitle" maxlength="120" placeholder="Managing Director" autocomplete="off"></label>
                 <label>Website<input id="lead-website" name="website" maxlength="200" placeholder="example.com" autocomplete="off"></label>
                 <label>Event<input id="lead-event" name="eventName" maxlength="120" value="RISE 17 - 2026" autocomplete="off" readonly></label>
