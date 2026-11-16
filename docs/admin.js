@@ -162,6 +162,7 @@ function paintStats(data) {
   dom.status.classList.add("connected");
   renderRecords();
   renderDailyChart(list);
+  queueMicrotask(() => refreshOverviewHubCounts(data));
 }
 
 // Chart uses only actual timestamps returned by the existing Cloudflare API.
@@ -491,6 +492,65 @@ let leadScanRuns = 0;
 let leadApiReady = null;
 let lastLeadApiError = '';
 
+
+function setOverviewHubCount(selector, value, options = {}) {
+  const el = $(selector);
+  if (!el) return;
+  if (options.loading) {
+    el.textContent = '…';
+    el.dataset.loading = 'true';
+    delete el.dataset.empty;
+    return;
+  }
+  el.dataset.loading = 'false';
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    el.textContent = '—';
+    delete el.dataset.empty;
+    return;
+  }
+  el.textContent = n.toLocaleString();
+  el.dataset.empty = n === 0 ? 'true' : 'false';
+}
+
+async function refreshOverviewHubCounts(statsData) {
+  if (!adminToken || dom.dashboard.classList.contains('hidden')) return;
+  const isNewApi = statsData && Array.isArray(statsData.recentQr);
+  if (statsData) {
+    const qrTotal = isNewApi ? Number(statsData.totalQr || 0) : Number(statsData.total || 0);
+    setOverviewHubCount('#overview-count-qr', qrTotal);
+  } else {
+    setOverviewHubCount('#overview-count-qr', recentRecords.length);
+  }
+  setOverviewHubCount('#overview-count-details', null, { loading: true });
+  setOverviewHubCount('#overview-count-scan', null, { loading: true });
+  const event = encodeURIComponent(selectedEventSlug);
+  await Promise.allSettled([
+    (async () => {
+      try {
+        const data = await (await api(`/api/admin/references?event=${event}`)).json();
+        setOverviewHubCount('#overview-count-details', Number(data.total || data.items?.length || 0));
+      } catch {
+        setOverviewHubCount('#overview-count-details', '—');
+      }
+    })(),
+    (async () => {
+      try {
+        const data = await (await leadApi('/api/admin/business-cards')).json();
+        setOverviewHubCount('#overview-count-scan', Number(data.total || data.items?.length || 0));
+      } catch {
+        setOverviewHubCount('#overview-count-scan', '—');
+      }
+    })()
+  ]);
+}
+
+window.addEventListener('hns:refs-total', event => {
+  setOverviewHubCount('#overview-count-details', event.detail?.total);
+});
+window.addEventListener('hns:scan-card-total', event => {
+  setOverviewHubCount('#overview-count-scan', event.detail?.total);
+});
 
 async function leadApi(path, { method = 'GET', data = undefined } = {}) {
   if (!adminToken || dom.dashboard.classList.contains('hidden')) throw new Error('Admin login expired. Sign in again, then save.');
@@ -1218,6 +1278,7 @@ async function loadBusinessCardLeads() {
     leadsLoaded=true;leadApiReady=true;
     leadEls.apiStatus.textContent='✓ Business card database connected. Saving is available.';
     $('#lead-total-label').textContent=`${total} total business contacts. Showing latest ${leadsList.length}; export CSV for all contacts.`;
+    window.dispatchEvent(new CustomEvent('hns:scan-card-total', { detail: { total } }));
     renderBusinessCardLeads();
   } catch (error) {leadApiReady=false;leadEls.apiStatus.textContent=`⚠ Scanner database unavailable: ${error.message}`;$('#lead-total-label').textContent=`Could not load business contacts: ${error.message}`;}
 }
@@ -1327,7 +1388,10 @@ function showAdminView(target) {
   if(!dom.dashboard.classList.contains("hidden")) {
     if(next==="business-cards" && typeof loadBusinessCardLeads==="function") loadBusinessCardLeads();
     if(next==="csv-references") window.dispatchEvent(new Event("hns:event-references-view"));
-    if(next==="overview") fetchDashboard().catch(error=>showError(dom.adminError,error));
+    if(next==="overview") {
+      fetchDashboard().catch(error=>showError(dom.adminError,error));
+      refreshOverviewHubCounts();
+    }
   }
 }
 for (const anchor of document.querySelectorAll('.side-nav a[href^="#"]')) anchor.addEventListener('click',event=>{
