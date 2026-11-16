@@ -15,3 +15,28 @@
 @media(max-width:1100px){.topbar{height:auto;flex-wrap:wrap}.topbar-right{flex-wrap:wrap}}
 @media(max-width:560px){.event-switcher{width:100%;flex-wrap:wrap}.event-switcher select{max-width:none;flex:1;min-width:130px}.event-switcher .btn{flex:1}}
 @media print{.event-switcher,.event-create-panel,.legacy-details{display:none!important}}
+
+/* Business-card camera: frame the card, then show what was read. */
+.leads-toolbar #lead-open-webcam{order:-3}
+.lead-camera-stage{position:relative}
+.leads-webcam video{max-height:420px}
+.lead-card-guide{position:absolute;inset:10% 12%;border:3px solid #F5E77E;border-radius:14px;box-shadow:0 0 0 999px rgba(7,27,72,.42);pointer-events:none}
+.lead-card-guide span{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);color:#F5E77E;font-size:12px;font-weight:700;white-space:nowrap;background:rgba(11,36,99,.78);padding:5px 10px;border-radius:999px}
+.lead-readout{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.lead-readout span{font-size:12px;font-weight:700;border-radius:999px;padding:6px 10px}
+.lead-readout .is-found{background:#e7f7ee;color:#14663c}
+.lead-readout .is-missing{background:#fff4df;color:#8a5a00}
+.lead-form-grid input.lead-filled{border-color:#1f7a4d;background:#f3fff7}
+.lead-form-grid input.lead-empty{border-color:#c89116;background:#fffaf0}
+@media(max-width:650px){
+  .leads-toolbar #lead-open-webcam{flex:1 1 100%;min-height:54px;font-size:15px}
+  .lead-card-guide span{font-size:11px;white-space:normal;text-align:center;width:max-content;max-width:90%}
+}
+.lead-voice-panel{margin-top:14px;padding:12px;border:1px solid #d4dff0;border-radius:14px;background:#fff}
+.lead-voice-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.lead-voice-head p,.lead-voice-hint{margin:0;font-size:12px;line-height:1.45;color:#34547c}
+.lead-voice-hint{margin:8px 0}
+.lead-voice-label{display:grid;gap:6px;font-size:12px;font-weight:750;color:#0B2463}
+.lead-voice-label textarea{width:100%;min-height:96px;border:1px solid #c7d7ef;border-radius:10px;padding:10px 12px;font:inherit;color:#0B2463;resize:vertical;background:#fff}
+#lead-mic.is-listening{background:#9b2835;color:#fff;border-color:#9b2835}
+.lead-send-actions{display:flex;flex-wrap:wrap;gap:8px}
