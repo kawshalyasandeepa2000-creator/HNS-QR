@@ -54,11 +54,15 @@
   async function referenceApi(path,{method='GET',data}={}) {
     if(!isSignedIn()) throw new Error('Admin login required. Sign in and try again.');
     if(!apiOrigin?.startsWith('https://')) throw new Error('Cloudflare API URL is not configured.');
+    // The server also scopes DELETE/PATCH using the event parameter.
+    const url=new URL(`${apiOrigin}${path}`);
+    url.searchParams.set('event',selectedEventSlug);
+    if(data!==undefined)data={...data,eventSlug:selectedEventSlug};
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),20000);
     let response;
     try{
-      response=await fetch(`${apiOrigin}${path}`,{
+      response=await fetch(url.toString(),{
         method,headers:{Authorization:`Bearer ${adminToken}`,...(data!==undefined?{'Content-Type':'application/json'}:{})},
         ...(data!==undefined?{body:JSON.stringify(data)}:{}),
         cache:'no-store',signal:controller.signal
@@ -202,9 +206,11 @@
 
   async function loadReferences(){
     if(!isSignedIn())return;
+    const expectedEvent=selectedEventSlug;
     status(els.total,'Loading private reference contacts...');
     try{
       const data=await(await referenceApi('/api/admin/references')).json();
+      if(expectedEvent!==selectedEventSlug)return;
       loaded=Array.isArray(data.items)?data.items:[];total=Number(data.total||0);allFetched=true;
       status(els.total,`${total} reference contacts stored separately in Cloudflare D1. Showing latest ${loaded.length}. Export CSV includes all.`);
       renderTable();
@@ -246,7 +252,7 @@
   els.file.addEventListener('change',()=>processFile(els.file.files?.[0]));
   els.prefix.addEventListener('input',()=>{if(rows.length)renderPreview();});
   els.start.addEventListener('input',()=>{if(rows.length)renderPreview();});
-  els.template.addEventListener('click',()=>downloadCsv('\uFEFFReference Number,Person Name,Company Name,Email,Phone,Job Title,Website,Notes\r\n','RISE17-References-Template.csv'));
+  els.template.addEventListener('click',()=>downloadCsv('\uFEFFReference Number,Person Name,Company Name,Email,Phone,Job Title,Website,Notes\r\n',`${selectedEventSlug}-References-Template.csv`));
   els.stop.addEventListener('click',()=>{if(importing){stopRequested=true;els.stop.disabled=true;status(els.importStatus,'Stopping after current contact...');}});
   els.confirm.addEventListener('click',async()=>{
     if(importing||!isSignedIn())return;
@@ -276,13 +282,14 @@
     }finally{importing=false;els.file.disabled=false;els.stop.disabled=true;els.confirm.disabled=!rows.length;}
   });
   els.refresh.addEventListener('click',loadReferences);
-  els.nav.addEventListener('click',()=>{if(isSignedIn())loadReferences();});
+  window.addEventListener('hns:event-references-view',()=>{if(isSignedIn())loadReferences();});
+  window.addEventListener('hns:event-changed',()=>{loaded=[];total=0;allFetched=false;stopRequested=true;els.prefix.value=selectedEventSlug.toUpperCase();els.table.replaceChildren();status(els.total,'Loading selected event references…');});
   els.search.addEventListener('input',renderTable);
   els.export.addEventListener('click',async()=>{
     els.export.disabled=true;
     try{
       const csv=await(await referenceApi('/api/admin/references/export.csv')).text();
-      downloadCsv(csv,'RISE17-2026-References.csv');
+      downloadCsv(csv,`${selectedEventSlug}-Business-Card-Details.csv`);
       status(els.feedback,'✓ Separate references CSV exported.');
     }catch(error){status(els.feedback,`Export failed: ${error.message}`,true);}
     finally{els.export.disabled=false;}
@@ -302,8 +309,5 @@
     els.open.setAttribute('aria-expanded','false');els.table.replaceChildren();els.search.value='';
     status(els.total,'Sign in to view references.');status(els.importStatus,'');status(els.feedback,'');
     els.shown.textContent='—';
-  });
-  $('#login-form').addEventListener('submit',()=>{
-    setTimeout(()=>{if(isSignedIn())loadReferences();},650);
   });
 })();

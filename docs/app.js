@@ -1,5 +1,12 @@
 "use strict";
 const cfg = window.CAMPAIGN_CONFIG;
+const eventParams = new URLSearchParams(location.search);
+const selectedPublicEvent = eventParams.get('event');
+// A mistyped or malicious event parameter must NEVER silently route someone
+// into the old RIZE 17 campaign. Missing event still means the legacy event.
+const invalidEventLink = eventParams.has('event') && (!selectedPublicEvent || selectedPublicEvent.length > 80 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(selectedPublicEvent));
+const campaignSlug = invalidEventLink ? '__invalid_event__' : (selectedPublicEvent || cfg.campaign);
+const registrationSource = eventParams.get('source') === 'qr' ? 'qr' : 'direct';
 const codeElement = document.querySelector("#referral-code");
 const statusElement = document.querySelector("#status");
 const createdAtElement = document.querySelector("#created-at");
@@ -33,6 +40,10 @@ function apiUrl(path) {
 
 async function submitReferral(event) {
   event.preventDefault();
+  if (invalidEventLink) {
+    statusElement.textContent = 'Invalid event link. Please ask the organizer for the correct QR code.';
+    return;
+  }
   if (!referralForm.reportValidity()) return;
 
   const fullName = document.querySelector("#full-name").value.trim();
@@ -56,8 +67,9 @@ async function submitReferral(event) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        campaign: cfg.campaign,
-        visitorId: getVisitorId(cfg.campaign),
+        campaign: campaignSlug,
+        source: registrationSource,
+        visitorId: getVisitorId(campaignSlug),
         fullName,
         mobileNumber,
         email,
@@ -270,7 +282,7 @@ async function loadActivity() {
   if (activityRequest) return activityRequest;
   activityRequest = (async () => {
     try {
-      const response = await fetch(apiUrl("/api/public/activity"), { cache: "no-store" });
+      const response = await fetch(apiUrl(`/api/public/activity?event=${encodeURIComponent(campaignSlug)}`), { cache: "no-store" });
       if (!response.ok) throw new Error("Activity unavailable");
       const data = await response.json();
       if (!Array.isArray(data.recent) || !Number.isSafeInteger(data.total) || data.total < 0) throw new Error("Invalid activity data");
@@ -317,4 +329,31 @@ if (activityFeed) {
   document.querySelector("#activity-refresh")?.addEventListener("click", loadActivity);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) loadActivity(); });
   setInterval(() => { if (!document.hidden) loadActivity(); }, 60000);
+}
+
+// Public event label never changes the original RIZE 17 legacy campaign URL.
+if (campaignSlug !== cfg.campaign) {
+  const banner=document.querySelector('#public-event-note');
+  if(banner){banner.style.display='block';banner.textContent='Event-specific referral registration';}
+  const riseLogo=document.querySelector('.rise-header-mark');
+  if(riseLogo) riseLogo.style.display='none';
+  const riseMobile=document.querySelector('.eyebrow-mobile');if(riseMobile)riseMobile.style.display='none';
+  fetch(apiUrl(`/api/public/event?event=${encodeURIComponent(campaignSlug)}`))
+    .then(async response=>{if(!response.ok)throw new Error('Invalid event');return response.json();})
+    .then(data=>{if(banner)banner.textContent=`Event: ${data.name}`;})
+    .catch(()=>{if(banner)banner.textContent='Event not found. Please ask the event organizer for the correct QR link.';const form=document.querySelector('#referral-form');if(form)form.querySelector('button[type=submit]').disabled=true;});
+}
+
+// Fail closed on malformed event links; never issue a code for the default event.
+if (invalidEventLink) {
+  const banner = document.querySelector('#public-event-note');
+  if (banner) {
+    banner.style.display = 'block';
+    banner.textContent = 'Invalid event link. Please request a new QR code from the organizer.';
+  }
+  const form = document.querySelector('#referral-form');
+  if (form) {
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit) submit.disabled = true;
+  }
 }

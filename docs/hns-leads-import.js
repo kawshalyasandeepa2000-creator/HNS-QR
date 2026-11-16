@@ -151,7 +151,7 @@
       object[key]=col>=0?cleanText(line[col],key==='notes'?500:key==='email'?254:key==='website'?200:key==='companyName'?160:key==='personName'?120:key==='phone'?40:120):'';
     }
     object.email=canonicalEmail(object.email);
-    object.eventName=object.eventName||'RISE 17 - 2026';
+    object.eventName=selectedEventName;
     return object;
   }
   function validationError(item) {
@@ -204,9 +204,10 @@
   ui.template.addEventListener('click',()=>{
     const text='\uFEFFPerson name,Company name,Email address,Phone / WhatsApp,Job title,Website,Event,Notes\r\n';
     const url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));
-    const a=document.createElement('a');a.href=url;a.download='RISE17-Import-Contacts-Template.csv';
+    const a=document.createElement('a');a.href=url;a.download=`${selectedEventSlug}-Import-Contacts-Template.csv`;
     document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
+  window.addEventListener('hns:event-changed',()=>{if(importRunning){stopRequested=true;setStatus('Event changed: import stopped to prevent mixing event records.');}});
   ui.cancel.addEventListener('click',()=>{
     if(!importRunning)return;
     stopRequested=true;ui.cancel.disabled=true;
@@ -288,8 +289,8 @@
         if (typeof ws[address].v === 'string') {ws[address].t='s';delete ws[address].f;}
       }
       ws['!cols']=[{wch:26},{wch:31},{wch:33},{wch:22},{wch:25},{wch:30},{wch:23},{wch:36},{wch:26},{wch:26}];
-      const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'RISE 17 Contacts');
-      XLSX.writeFile(wb,'RISE17-2026-Business-Card-Leads.xlsx');
+      const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Event Contacts');
+      XLSX.writeFile(wb,`${selectedEventSlug}-Business-Card-Leads.xlsx`);
     }catch(error){alert(`Could not export Excel file: ${error.message||'Please try the CSV export.'}`);}
     finally{ui.exportXlsx.disabled=false;}
   });

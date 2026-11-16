@@ -4,6 +4,7 @@
 const config = window.CAMPAIGN_CONFIG;
 const apiOrigin = config?.apiBaseUrl?.replace(/\/$/, "");
 const customerUrl = new URL("./", document.baseURI).href;
+const customerUrlForEvent = () => { const url = new URL(customerUrl); url.searchParams.set("event",selectedEventSlug);url.searchParams.set("source","qr");return url.href; };
 const $ = selector => document.querySelector(selector);
 const dom = {
   dashboard: $("#dashboard"), loginPanel: $("#login-panel"), loginError: $("#login-error"),
@@ -12,6 +13,13 @@ const dom = {
 };
 let adminToken = "";
 let recentRecords = [];
+let oldRecords = [];
+let selectedEventSlug = "outdoor-2026";
+let selectedEventName = "RISE 17 - 2026";
+let eventList = [];
+let eventsBackendReady = false;
+let currentView = "overview";
+let eventLoadSerial = 0;
 let qrBuilt = false;
 
 async function api(path) {
@@ -78,25 +86,33 @@ function renderRecords() {
       dom.records.append(tr);
     }
   }
-  $("#display-count").textContent = `${filtered.length} of ${recentRecords.length} recent records shown`;
+  $("#display-count").textContent = `${filtered.length} of ${recentRecords.length} QR registrations shown`;
+  const olderBody = $("#legacy-referral-rows");
+  olderBody.replaceChildren();
+  const older = oldRecords.filter(row => [row.fullName,row.mobileNumber,row.email,row.code,row.createdAt]
+    .some(value => String(value||"").toLowerCase().includes(query)));
+  if (!older.length) { const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.textContent="No legacy registrations for this event.";tr.append(td);olderBody.append(tr); }
+  else for (const row of older) { const tr=document.createElement("tr");[row.fullName||"—",row.mobileNumber||"—",row.email||"—",row.code||"—",row.createdAt||"—"].forEach((value,i)=>tr.append(makeCell(value,i)));olderBody.append(tr); }
 }
 
 function paintStats(data) {
   const list = Array.isArray(data?.recent) ? data.recent : [];
-  recentRecords = list;
-  // The customer-facing campaign label is a dashboard alias only.
-  // Keep data.campaign / config.campaign unchanged for D1 and Worker operations.
-  $("#campaign-name").textContent = "RISE 17 - 2026";
-  $("#campaign-name").title = `Database campaign: ${data.campaign || config?.campaign || "outdoor-2026"}`;
+  const isNewApi = Array.isArray(data?.recentQr) && Array.isArray(data?.recentLegacy);
+  recentRecords = isNewApi ? data.recentQr : [];
+  oldRecords = isNewApi ? data.recentLegacy : list;
+  $("#campaign-name").textContent = selectedEventName;
+  $("#campaign-name").title = `Database event: ${selectedEventSlug}`;
   $("#total-count").textContent = Number(data.total || 0).toLocaleString();
   $("#recent-count").textContent = list.length.toLocaleString();
   $("#email-count").textContent = list.filter(item => typeof item.email === "string" && item.email.trim()).length.toLocaleString();
+  $("#qr-data-status").textContent = isNewApi
+    ? `${Number(data.totalQr||0)} QR-tagged registrations in this event · ${Number(data.totalLegacy||0)} other registrations (legacy or direct). Page visits without registration are not counted.`
+    : "QR-source tracking is not active on the current Worker. All existing registrations are preserved below as source unknown; none will be falsely labelled as QR scans.";
   dom.status.textContent = "● Data connected";
   dom.status.classList.add("connected");
   renderRecords();
   renderDailyChart(list);
 }
-
 
 // Chart uses only actual timestamps returned by the existing Cloudflare API.
 // It is deliberately labelled "from the latest 100" rather than claiming a
@@ -156,11 +172,11 @@ qrToggle.addEventListener("click", () => {
     dom.loginPanel.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  setQRVisible(qrFlyer.classList.contains("hidden"));
+  if(qrFlyer.classList.contains("hidden")) showAdminView("#qr-flyer"); else showAdminView("#overview");
 });
 
 function buildQR() {
-  $("#qr-url").textContent = customerUrl;
+  $("#qr-url").textContent = customerUrlForEvent();
   if (qrBuilt) return;
   if (typeof QRCode === "undefined") {
     dom.adminError.textContent = "QR code library could not load. Check your internet connection and try Refresh.";
@@ -169,7 +185,7 @@ function buildQR() {
   const target = $("#qr-container");
   target.replaceChildren();
   new QRCode(target, {
-    text: customerUrl,
+    text: customerUrlForEvent(),
     width: 320,
     height: 320,
     colorDark: "#0B2463",
@@ -181,9 +197,12 @@ function buildQR() {
 
 async function fetchDashboard() {
   dom.adminError.textContent = "";
-  const data = await (await api("/api/admin/stats")).json();
+  const generation = ++eventLoadSerial;
+  const event = selectedEventSlug;
+  const data = await (await api(`/api/admin/stats?event=${encodeURIComponent(event)}`)).json();
+  if (generation !== eventLoadSerial || event !== selectedEventSlug) return data;
   paintStats(data);
-  if (!qrFlyer.classList.contains("hidden")) buildQR();
+  if (currentView === "qr-flyer") buildQR();
   return data;
 }
 
@@ -195,10 +214,13 @@ $("#login-form").addEventListener("submit", async event => {
   dom.loginButton.textContent = "Signing in…";
   try {
     await fetchDashboard();
+    await loadEvents();
     dom.tokenInput.value = "";
     dom.loginPanel.classList.add("hidden");
     dom.dashboard.classList.remove("hidden");
     document.body.classList.add("is-signed-in");
+    $("#event-switcher").classList.remove("hidden");
+    showAdminView(location.hash || "#overview");
   } catch (error) {
     adminToken = "";
     showError(dom.loginError, error);
@@ -229,6 +251,8 @@ dom.search.addEventListener("input", renderRecords);
 $("#logout-button").addEventListener("click", () => {
   adminToken = "";
   recentRecords = [];
+  oldRecords = [];
+  ++eventLoadSerial;
   dom.records.replaceChildren();
   dom.dashboard.classList.add("hidden");
   setQRVisible(false);
@@ -236,6 +260,9 @@ $("#logout-button").addEventListener("click", () => {
   dom.status.textContent = "Secure admin access";
   dom.status.classList.remove("connected");
   document.body.classList.remove("is-signed-in");
+  $("#event-switcher").classList.add("hidden");
+  $("#event-create-form").classList.add("hidden");
+  showAdminView("#overview");
   dom.search.value = "";
   dom.loginError.textContent = "";
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -334,11 +361,11 @@ $("#csv-button").addEventListener("click", async () => {
   const button = $("#csv-button");
   button.disabled = true;
   try {
-    const blob = await (await api("/api/admin/export.csv")).blob();
+    const blob = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}`)).blob();
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = objectUrl;
-    a.download = `Helen-and-Sons-Referrals-${config.campaign}.csv`;
+    a.download = `Helen-and-Sons-Referrals-${selectedEventSlug}.csv`;
     document.body.append(a);
     a.click();
     a.remove();
@@ -401,12 +428,15 @@ let lastLeadApiError = '';
 async function leadApi(path, { method = 'GET', data = undefined } = {}) {
   if (!adminToken || dom.dashboard.classList.contains('hidden')) throw new Error('Admin login expired. Sign in again, then save.');
   if (!apiOrigin?.startsWith('https://')) throw new Error('API URL is missing from docs/config.js.');
+  const scopedUrl=new URL(`${apiOrigin}${path}`);
+  scopedUrl.searchParams.set('event',selectedEventSlug);
+  if(data!==undefined)data={...data,eventSlug:selectedEventSlug,eventName:selectedEventName};
   let response;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
     try {
-      response = await fetch(`${apiOrigin}${path}`, {
+      response = await fetch(scopedUrl.toString(), {
         method,
         headers: { Authorization: `Bearer ${adminToken}`, ...(data !== undefined ? { 'Content-Type': 'application/json' } : {}) },
         ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
@@ -458,7 +488,7 @@ function setLeadSaveStatus(message, isError = false) {
 function resetLeadForm() {
   leadEditingId = null;
   leadEls.form.reset();
-  leadFields.eventName.value = 'RISE 17 - 2026';
+  leadFields.eventName.value = selectedEventName;
   $('#lead-form-title').textContent = 'Contact details';
   leadEls.save.textContent = '✓ Save business contact';
   setLeadSaveStatus('');
@@ -608,7 +638,7 @@ function parseBusinessCardText(raw) {
   const urls=(normaliseCardText(raw).match(/(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9-]+\.)+(?:com|ae|net|org|co|io|biz|in|uk|info|me|edu)\b(?:\/[^\s]*)?/gi)||[])
     .map(x=>x.replace(/[.,;:]$/,''));
   const website=urls.find(x=>!x.includes('@')&&x.toLowerCase()!==(email.split('@')[1]||'')&&!email.includes(x.toLowerCase()))||'';
-  return {personName,companyName,email,phone,jobTitle:role?.line||'',website,eventName:'RISE 17 - 2026',notes:''};
+  return {personName,companyName,email,phone,jobTitle:role?.line||'',website,eventName:selectedEventName,notes:''};
 }
 function lineLooksLikeEmail(text){return String(text).includes('@');}
 
@@ -684,7 +714,7 @@ function rotateLeadCanvas(source) {
 
 function fillLeadFields(values) {
   for (const [key, input] of Object.entries(leadFields)) {
-    input.value = typeof values[key] === 'string' ? values[key] : (key === 'eventName' ? 'RISE 17 - 2026' : '');
+    input.value = typeof values[key] === 'string' ? values[key] : (key === 'eventName' ? selectedEventName : '');
   }
 }
 
@@ -925,8 +955,10 @@ leadEls.search.addEventListener('input',renderBusinessCardLeads);
 async function loadBusinessCardLeads() {
   if (!adminToken || dom.dashboard.classList.contains('hidden')) return;
   $('#lead-total-label').textContent='Loading saved event contacts...';
+  const expectedEvent=selectedEventSlug;
   try {
     const data = await (await leadApi('/api/admin/business-cards')).json();
+    if(expectedEvent!==selectedEventSlug)return;
     leadsList = Array.isArray(data.items) ? data.items : [];
     const total=Number(data.total??0);
     leadsLoaded=true;leadApiReady=true;
@@ -983,4 +1015,100 @@ $('#logout-button').addEventListener('click',()=>{
 // load its records once authentication has succeeded.
 $('#login-form').addEventListener('submit',()=>{
   setTimeout(()=>{if (!dom.dashboard.classList.contains('hidden')&&location.hash==='#business-cards'&&!leadsLoaded)loadBusinessCardLeads();},500);
+});
+
+
+// Each event is a real, server-authorized D1 event; this never saves contact data to localStorage.
+const adminSections = ["overview-panel","customers","csv-references","business-cards","qr-flyer"];
+function showAdminView(target) {
+  const hash = String(target||"#overview").replace(/^#/, "");
+  const map = {overview:"overview-panel",customers:"customers","csv-references":"csv-references","business-cards":"business-cards","qr-flyer":"qr-flyer"};
+  const next = map[hash] ? hash : "overview";
+  currentView = next;
+  for (const id of adminSections) $("#"+id).classList.toggle("hidden", id !== map[next]);
+  if(next==="qr-flyer") {qrBuilt=false;buildQR();}
+  qrToggle.setAttribute("aria-expanded",String(next==="qr-flyer"));
+  qrToggle.querySelector(".qr-toggle-label").textContent=next==="qr-flyer"?"Hide QR flyer":"Show QR flyer";
+  document.querySelectorAll('.side-nav a[href^="#"]').forEach(a=>a.classList.toggle("active", a.getAttribute("href") === "#"+next));
+  if(next==="overview") document.querySelector('.side-nav a[href="#overview"]').classList.add("active");
+  if(!dom.dashboard.classList.contains("hidden")) {
+    if(next==="business-cards" && typeof loadBusinessCardLeads==="function") loadBusinessCardLeads();
+    if(next==="csv-references") window.dispatchEvent(new Event("hns:event-references-view"));
+  }
+}
+for (const anchor of document.querySelectorAll('.side-nav a[href^="#"]')) anchor.addEventListener('click',event=>{
+  event.preventDefault();
+  if(dom.dashboard.classList.contains("hidden")){dom.loginPanel.scrollIntoView({behavior:"smooth"});return;}
+  history.replaceState(null,"",anchor.getAttribute("href"));
+  showAdminView(anchor.getAttribute("href"));
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+window.addEventListener("hashchange",()=>{if(!dom.dashboard.classList.contains("hidden"))showAdminView(location.hash);});
+
+async function loadEvents() {
+  const picker=$("#event-select");
+  try {
+    const data = await (await api("/api/admin/events")).json();
+    if(!Array.isArray(data.items)||!data.items.length) throw new Error("Events API not installed.");
+    eventList=data.items;
+    eventsBackendReady=true;
+    picker.disabled=false;$("#event-new-button").disabled=false;
+  } catch(error) {
+    // IMPORTANT: Never lock admins out of the existing single-event dashboard
+    // when the front-end reaches GitHub before the new Worker/migration is ready.
+    eventsBackendReady=false;
+    eventList=[{slug:"outdoor-2026",name:"RISE 17 - 2026"}];
+    selectedEventSlug="outdoor-2026";
+    picker.disabled=true;$("#event-new-button").disabled=true;
+    dom.status.textContent="Single-event mode · Worker events update pending";
+  }
+  picker.replaceChildren();
+  for (const item of eventList) picker.append(new Option(item.name,item.slug));
+  if(!eventList.some(item=>item.slug===selectedEventSlug))selectedEventSlug="outdoor-2026";
+  picker.value=selectedEventSlug;
+  selectedEventName=eventList.find(item=>item.slug===selectedEventSlug)?.name||"RISE 17 - 2026";
+  updateEventLinks();
+}
+function updateEventLinks(){
+  const url=new URL(customerUrl);url.searchParams.set("event",selectedEventSlug);
+  $("#live-website-link").href=url.href;
+  $("#sidebar-site-link").href=url.href;
+  $("#lead-event").value=selectedEventName;
+  if(qrBuilt){qrBuilt=false;$("#qr-container").replaceChildren();}
+  $("#qr-url").textContent=customerUrlForEvent();
+}
+function switchEvent(slug){
+  const target=eventList.find(item=>item.slug===slug);
+  if(!target||!eventsBackendReady)return;
+  if(leadEditingId)resetLeadForm();
+  selectedEventSlug=target.slug;selectedEventName=target.name;
+  $("#event-select").value=slug;
+  updateEventLinks();
+  recentRecords=[];oldRecords=[];renderRecords();
+  leadsList=[];renderBusinessCardLeads();
+  window.dispatchEvent(new CustomEvent("hns:event-changed",{detail:{slug,name:target.name}}));
+  dom.status.textContent="Loading event…";
+  fetchDashboard().catch(error=>showError(dom.adminError,error));
+  if(currentView==="qr-flyer")buildQR();
+  if(currentView==="business-cards")loadBusinessCardLeads();
+  if(currentView==="csv-references")window.dispatchEvent(new Event("hns:event-references-view"));
+}
+$("#event-select").addEventListener("change",e=>switchEvent(e.target.value));
+$("#event-new-button").addEventListener("click",()=>{$("#event-create-form").classList.remove("hidden");$("#event-new-name").focus();});
+$("#event-create-cancel").addEventListener("click",()=>{$("#event-create-form").classList.add("hidden");$("#event-create-status").textContent="";});
+$("#event-create-form").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const name=$("#event-new-name").value.trim();
+  if(name.length<3)return;
+  const button=$("#event-create-save");button.disabled=true;
+  try {
+    const response=await fetch(`${apiOrigin}/api/admin/events`,{method:"POST",headers:{Authorization:`Bearer ${adminToken}`,"Content-Type":"application/json"},body:JSON.stringify({name})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||`Event creation failed (HTTP ${response.status})`);
+    await loadEvents();switchEvent(data.slug);
+    $("#event-new-name").value="";$("#event-create-status").textContent="";
+    $("#event-create-form").classList.add("hidden");
+    history.replaceState(null,"","#overview");showAdminView("#overview");
+  }catch(error){$("#event-create-status").textContent=error.message;}
+  finally{button.disabled=false;}
 });
