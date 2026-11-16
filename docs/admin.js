@@ -485,15 +485,49 @@ function setLeadSaveStatus(message, isError = false) {
   leadEls.saveStatus.style.color = isError ? '#9b2835' : '#2b6480';
 }
 
-function resetLeadForm() {
+function updateLeadReadout(show) {
+  const readout = $('#lead-readout');
+  if (!readout) return;
+  const items = [
+    ['personName', 'Name', leadFields.personName],
+    ['phone', 'Mobile', leadFields.phone],
+    ['email', 'Email', leadFields.email]
+  ];
+  for (const [key, label, input] of items) {
+    const ok = input.value.trim().length > 0;
+    input.classList.toggle('lead-filled', ok);
+    input.classList.toggle('lead-empty', !ok);
+    const chip = readout.querySelector(`[data-field="${key}"]`);
+    if (!chip) continue;
+    chip.className = ok ? 'is-found' : 'is-missing';
+    chip.textContent = ok ? `${label} read` : `${label} not read`;
+  }
+  readout.hidden = !show;
+}
+function resetLeadForm(options = {}) {
   leadEditingId = null;
   leadEls.form.reset();
   leadFields.eventName.value = selectedEventName;
   $('#lead-form-title').textContent = 'Contact details';
   leadEls.save.textContent = '✓ Save business contact';
   setLeadSaveStatus('');
+  if (options.clearVoice) {
+    const note = $('#lead-voice-note');
+    if (note) note.value = '';
+    setLeadShareStatus('');
+  }
+  for (const input of [leadFields.personName, leadFields.phone, leadFields.email]) {
+    input.classList.remove('lead-filled', 'lead-empty');
+  }
+  const readout = $('#lead-readout');
+  if (readout) readout.hidden = true;
 }
-$('#lead-clear').addEventListener('click', resetLeadForm);
+$('#lead-clear').addEventListener('click', () => resetLeadForm({clearVoice:true}));
+for (const input of [leadFields.personName, leadFields.phone, leadFields.email]) {
+  input.addEventListener('input', () => {
+    if (!$('#lead-readout')?.hidden) updateLeadReadout(true);
+  });
+}
 
 async function loadTesseractOnce() {
   if (window.Tesseract) return;
@@ -573,6 +607,7 @@ function businessCardPhoneCandidates(raw) {
       const score=(/\b(?:mobile|mob|cell|whats\s*app|wa\s*[:.]|m\s*:)/i.test(line)?12:0)
         + (/\b(?:telephone|phone|tel|contact|call|t\s*:)/i.test(line)?5:0)
         + (/^(?:\+\s*971|00971|971|05)/.test(rawValue)?5:0)
+        + (/^(?:\+\s*94|0094|07)/.test(rawValue.replace(/\s/g,''))?4:0)
         + (rawValue.startsWith('+')?2:0)
         - (/\b(?:office|landline)\b/i.test(line)?3:0);
       const clean=rawValue.replace(/\+\s+/,'+').replace(/\s+/g,' ').trim();
@@ -791,8 +826,10 @@ async function scanLeadCanvas(canvas, deep=false) {
     const missingFields=['personName','email','phone'].filter(f=>!merged.fields[f]);
     if(!merged.allText.trim())setLeadStatus('No readable text found. Take a NEW photo closer to the card, or use Select card area → Crop & scan.',true);
     else if(missingFields.length)setLeadStatus('Scan done. Some fields are unclear ('+missingFields.map(f=>({personName:'name',email:'email',phone:'mobile number'})[f]).join(', ')+'). Crop closely and try Deep scan. Please verify every field.',true);
-    else setLeadStatus('Scan done: name, email and phone candidates found. VERIFY them against the card before saving. OCR may misread letters.');
-  } catch(error){setLeadStatus(`OCR error: ${error.message||'Unknown error'}. You can fill details manually.`,true);}
+    else setLeadStatus('Scan done. Name, mobile and email are filled below. Check them against the card, then save.');
+    updateLeadReadout(true);
+    leadEls.form.scrollIntoView({behavior:'smooth',block:'nearest'});
+  } catch(error){setLeadStatus(`OCR error: ${error.message||'Unknown error'}. You can fill details manually.`,true);updateLeadReadout(true);}
   finally {leadsBusy=false;$('#lead-rescan').disabled=false;leadEls.deepScan.disabled=false;leadEls.save.disabled=false;}
 }
 
@@ -875,14 +912,15 @@ function closeLeadCamera() {
   leadEls.webcam.classList.add('hidden');
 }
 $('#lead-open-webcam').addEventListener('click', async () => {
-  if (!navigator.mediaDevices?.getUserMedia) { setLeadStatus('Live camera is not available. Use Scan with phone camera instead.', true); return; }
+  if (!navigator.mediaDevices?.getUserMedia) { setLeadStatus('Live camera is not available in this browser. Use Take a photo instead.', true); return; }
   try {
     closeLeadCamera();
     leadsCameraStream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}});
     leadEls.video.srcObject = leadsCameraStream;
     leadEls.webcam.classList.remove('hidden');
     await leadEls.video.play();
-    setLeadStatus('Point the camera at a business card, then tap Capture card.');
+    leadEls.webcam.scrollIntoView({behavior:'smooth',block:'center'});
+    setLeadStatus('Fit the whole card inside the yellow frame, hold steady, then tap Scan this card.');
   } catch(error) {closeLeadCamera();setLeadStatus('Camera unavailable or permission denied. Use the photo upload button.', true);}
 });
 $('#lead-close-webcam').addEventListener('click', closeLeadCamera);
@@ -897,12 +935,161 @@ $('#lead-take-photo').addEventListener('click', async () => {
   await scanLeadCanvas(canvas);
 });
 
+function setLeadShareStatus(message, isError = false) {
+  const el = $('#lead-share-status');
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? '#9b2835' : '#2b6480';
+}
+
+let leadRecognizer = null;
+let leadListening = false;
+let leadVoiceCommitted = '';
+
+$('#lead-mic').addEventListener('click', () => {
+  const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const button = $('#lead-mic');
+  const note = $('#lead-voice-note');
+  if (!Ctor || !button || !note) {
+    setLeadShareStatus('This browser cannot transcribe the microphone. Type the note, or use Chrome or Edge.', true);
+    return;
+  }
+  if (leadListening) {
+    try { leadRecognizer?.stop(); } catch {}
+    return;
+  }
+  leadVoiceCommitted = note.value.trim();
+  const rec = new Ctor();
+  leadRecognizer = rec;
+  rec.lang = navigator.language || 'en-US';
+  rec.interimResults = true;
+  rec.continuous = true;
+  rec.onstart = () => {
+    leadListening = true;
+    button.classList.add('is-listening');
+    button.setAttribute('aria-pressed', 'true');
+    button.textContent = '⏹ Stop mic';
+    setLeadShareStatus('Listening… speak now. The words will appear in the box.');
+  };
+  rec.onresult = event => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const piece = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        const spoken = piece.trim();
+        if (spoken) leadVoiceCommitted = `${leadVoiceCommitted} ${spoken}`.trim();
+      } else interim += piece;
+    }
+    note.value = `${leadVoiceCommitted}${interim ? ` ${interim}` : ''}`.trim();
+  };
+  rec.onerror = event => {
+    if (event.error === 'aborted' || event.error === 'no-speech') return;
+    const messages = {
+      'not-allowed': 'Microphone permission was blocked. Allow the mic for this site, then tap Mic again.',
+      'audio-capture': 'No microphone was found.',
+      network: 'Voice transcription needs an internet connection. Type the note instead.'
+    };
+    setLeadShareStatus(messages[event.error] || 'Could not transcribe that. You can type the note.', true);
+  };
+  rec.onend = () => {
+    leadListening = false;
+    button.classList.remove('is-listening');
+    button.setAttribute('aria-pressed', 'false');
+    button.textContent = '🎤 Mic';
+    if (note.value.trim()) setLeadShareStatus('Voice note ready. Send it on WhatsApp or email.');
+  };
+  try { rec.start(); }
+  catch { setLeadShareStatus('Microphone is already in use. Stop it, then try again.', true); }
+});
+
+function leadShareText() {
+  const payload = leadFormPayload();
+  const note = ($('#lead-voice-note')?.value || '').trim();
+  const lines = ['Helen and Sons business card'];
+  if (payload.personName) lines.push(`Name: ${payload.personName}`);
+  if (payload.companyName) lines.push(`Company: ${payload.companyName}`);
+  if (payload.phone) lines.push(`Mobile: ${payload.phone}`);
+  if (payload.email) lines.push(`Email: ${payload.email}`);
+  if (payload.jobTitle) lines.push(`Title: ${payload.jobTitle}`);
+  if (payload.website) lines.push(`Website: ${payload.website}`);
+  if (payload.eventName) lines.push(`Event: ${payload.eventName}`);
+  if ((!payload.personName || !payload.phone || !payload.email) && leadImageCanvas) {
+    lines.push('', 'Some card details were not read. The card photo is included.');
+  }
+  if (note) lines.push('', note);
+  return {
+    text: lines.join('\n'),
+    phone: payload.phone.replace(/\D/g, ''),
+    email: payload.email,
+    note
+  };
+}
+
+function downloadLeadFile(file) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+async function leadCardFile() {
+  if (!leadImageCanvas) return null;
+  const blob = await new Promise(resolve => leadImageCanvas.toBlob(resolve, 'image/jpeg', 0.9));
+  if (!blob) return null;
+  const safe = (leadFields.personName.value.trim() || 'business-card').replace(/[^\w.-]+/g, '-').slice(0, 40);
+  return new File([blob], `${safe}.jpg`, { type: 'image/jpeg' });
+}
+
+async function sendLeadCard(channel) {
+  const share = leadShareText();
+  const hasSomething = share.note || share.phone || share.email || leadFields.personName.value.trim() || leadFields.companyName.value.trim() || leadImageCanvas;
+  if (!hasSomething) {
+    setLeadShareStatus('Scan a card or speak a note before sending.', true);
+    return;
+  }
+  const file = await leadCardFile();
+  if (channel === 'whatsapp' && file && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text: share.text, title: 'Business card' });
+      setLeadShareStatus('Shared. Choose WhatsApp to send the card photo and the words.');
+      return;
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+    }
+  }
+  if (channel === 'whatsapp') {
+    const target = share.phone.length >= 8 && share.phone.length <= 15 ? share.phone : '';
+    window.open(`https://wa.me/${target}?text=${encodeURIComponent(share.text)}`, '_blank', 'noopener,noreferrer');
+    if (file) {
+      downloadLeadFile(file);
+      setLeadShareStatus('WhatsApp opened. The card photo downloaded — attach that image in the chat.');
+    } else setLeadShareStatus('WhatsApp opened with the note.');
+    return;
+  }
+  const mail = document.createElement('a');
+  mail.href = `mailto:${share.email}?subject=${encodeURIComponent('Business card')}&body=${encodeURIComponent(share.text)}`;
+  mail.click();
+  if (file) {
+    downloadLeadFile(file);
+    setLeadShareStatus('Email opened. The card photo downloaded — attach that image. Email cannot attach the photo by itself.');
+  } else setLeadShareStatus('Email opened with the note.');
+}
+
+$('#lead-send-whatsapp').addEventListener('click', () => { sendLeadCard('whatsapp'); });
+$('#lead-send-email').addEventListener('click', () => { sendLeadCard('email'); });
+
 function leadFormPayload() {
   return Object.fromEntries(Object.entries(leadFields).map(([key,input]) => [key,input.value.trim()]));
 }
 leadEls.form.addEventListener('submit', async event => {
   event.preventDefault();
   const payload = leadFormPayload();
+  const voice = ($('#lead-voice-note')?.value || '').trim();
+  if (voice && !payload.notes.includes(voice)) payload.notes = [payload.notes, voice].filter(Boolean).join('\n').slice(0, 500);
   if (!payload.personName && !payload.companyName) {setLeadSaveStatus('Enter a person name or company name before saving.', true);return;}
   if (!leadEls.form.reportValidity()) {setLeadSaveStatus('Please correct the highlighted fields.',true);return;}
   leadEls.save.disabled=true;
