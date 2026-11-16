@@ -1207,20 +1207,35 @@ $('#login-form').addEventListener('submit',()=>{
 
 // Each event is a real, server-authorized D1 event; this never saves contact data to localStorage.
 const adminSections = ["overview-panel","customers","csv-references","business-cards","qr-flyer"];
+const adminViewKeys = ["overview","customers","csv-references","business-cards","qr-flyer"];
+function applyAdminShell(next) {
+  const signedIn = !dom.dashboard.classList.contains("hidden");
+  const hero = $("#hero-card");
+  if (hero) hero.classList.toggle("hidden", signedIn && next !== "overview");
+  if (signedIn && next !== "overview") $("#event-create-form")?.classList.add("hidden");
+  for (const key of adminViewKeys) document.body.classList.toggle(`admin-view-${key}`, signedIn && key === next);
+  qrToggle?.classList.toggle("active", next === "qr-flyer");
+}
 function showAdminView(target) {
   const hash = String(target||"#overview").replace(/^#/, "");
   const map = {overview:"overview-panel",customers:"customers","csv-references":"csv-references","business-cards":"business-cards","qr-flyer":"qr-flyer"};
   const next = map[hash] ? hash : "overview";
   currentView = next;
-  for (const id of adminSections) $("#"+id).classList.toggle("hidden", id !== map[next]);
+  const panelId = map[next];
+  for (const id of adminSections) {
+    const section = $("#"+id);
+    if (section) section.classList.toggle("hidden", id !== panelId);
+  }
+  applyAdminShell(next);
   if(next==="qr-flyer") {qrBuilt=false;buildQR();}
   qrToggle.setAttribute("aria-expanded",String(next==="qr-flyer"));
   qrToggle.querySelector(".qr-toggle-label").textContent=next==="qr-flyer"?"Hide QR flyer":"Show QR flyer";
   document.querySelectorAll('.side-nav a[href^="#"]').forEach(a=>a.classList.toggle("active", a.getAttribute("href") === "#"+next));
-  if(next==="overview") document.querySelector('.side-nav a[href="#overview"]').classList.add("active");
+  if(next==="overview") document.querySelector('.side-nav a[href="#overview"]')?.classList.add("active");
   if(!dom.dashboard.classList.contains("hidden")) {
     if(next==="business-cards" && typeof loadBusinessCardLeads==="function") loadBusinessCardLeads();
     if(next==="csv-references") window.dispatchEvent(new Event("hns:event-references-view"));
+    if(next==="overview") fetchDashboard().catch(error=>showError(dom.adminError,error));
   }
 }
 for (const anchor of document.querySelectorAll('.side-nav a[href^="#"]')) anchor.addEventListener('click',event=>{
@@ -1281,7 +1296,18 @@ function switchEvent(slug){
   if(currentView==="csv-references")window.dispatchEvent(new Event("hns:event-references-view"));
 }
 $("#event-select").addEventListener("change",e=>switchEvent(e.target.value));
-$("#event-new-button").addEventListener("click",()=>{$("#event-create-form").classList.remove("hidden");$("#event-new-name").focus();});
+$("#event-new-button").addEventListener("click",()=>{
+  if(!eventsBackendReady){
+    $("#event-create-status").textContent="New Event needs the updated Cloudflare Worker and D1 events table. RISE 17 data stays safe until that deploy is done.";
+    showAdminView("#overview");
+    $("#event-create-form").classList.remove("hidden");
+    $("#event-create-form").scrollIntoView({behavior:"smooth",block:"nearest"});
+    return;
+  }
+  showAdminView("#overview");
+  $("#event-create-form").classList.remove("hidden");
+  $("#event-new-name").focus();
+});
 $("#event-create-cancel").addEventListener("click",()=>{$("#event-create-form").classList.add("hidden");$("#event-create-status").textContent="";});
 $("#event-create-form").addEventListener("submit",async event=>{
   event.preventDefault();
@@ -1299,3 +1325,5 @@ $("#event-create-form").addEventListener("submit",async event=>{
   }catch(error){$("#event-create-status").textContent=error.message;}
   finally{button.disabled=false;}
 });
+
+showAdminView(location.hash || "#overview");
