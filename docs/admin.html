@@ -1,4 +1,4 @@
-
+<!doctype html>
 <html lang="en"><head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B2463"><link rel="icon" type="image/png" href="./helen-sons-logo-icon.png?v=20261111-claim-v1">
   <meta name="description" content="Helen and Sons Visa Consultancy private referral campaign admin dashboard.">
@@ -6,10 +6,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-io-export">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-overview-counts">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261116-io-fix"></script>
+  <script defer src="./admin.js?v=20261116-overview-counts"></script>
   <script defer src="./hns-leads-import.js?v=20261116-events-v2"></script>
   <script defer src="./hns-references.js?v=20261116-events-v2"></script>
 </head>
@@ -36,9 +36,9 @@
         <section class="overview-section" id="overview-panel" aria-labelledby="overview-title"><div class="section-row"><div><p class="section-kicker">SELECTED EVENT</p><h2 id="overview-title">Dashboard</h2><p class="section-description">Choose what you want to do. Only one section opens at a time.</p></div><div class="section-actions"><button id="refresh-button" class="btn btn-outline" type="button">↻ Refresh data</button><button id="logout-button" class="btn btn-soft" type="button">Sign out</button></div></div>
           <p class="overview-event-line">Active event: <strong id="overview-event-name">RISE 17 - 2026</strong></p>
           <div class="overview-hub" role="navigation" aria-label="Dashboard shortcuts">
-            <button type="button" class="overview-tile overview-tile-scan" data-admin-view="#business-cards"><span class="overview-tile-icon" aria-hidden="true">▤</span><strong>Scan Card</strong><span>Scan, import CSV/Excel, export CSV or PDF</span></button>
-            <button type="button" class="overview-tile overview-tile-details" data-admin-view="#csv-references"><span class="overview-tile-icon" aria-hidden="true">▣</span><strong>Card Details</strong><span>Reference contacts · import CSV, export CSV or PDF</span></button>
-            <button type="button" class="overview-tile overview-tile-qr" data-admin-view="#customers"><span class="overview-tile-icon" aria-hidden="true">◫</span><strong>QR Referral Scan</strong><span>QR registrations only · export CSV or PDF</span></button>
+            <button type="button" class="overview-tile overview-tile-scan" data-admin-view="#business-cards"><span class="overview-tile-count" id="overview-count-scan" aria-label="Scan Card total">—</span><span class="overview-tile-icon" aria-hidden="true">▤</span><strong>Scan Card</strong><span>saved contacts · import / export CSV or PDF</span></button>
+            <button type="button" class="overview-tile overview-tile-details" data-admin-view="#csv-references"><span class="overview-tile-count" id="overview-count-details" aria-label="Card Details total">—</span><span class="overview-tile-icon" aria-hidden="true">▣</span><strong>Card Details</strong><span>reference contacts · import / export CSV or PDF</span></button>
+            <button type="button" class="overview-tile overview-tile-qr" data-admin-view="#customers"><span class="overview-tile-count" id="overview-count-qr" aria-label="QR Referral Scan total">—</span><span class="overview-tile-icon" aria-hidden="true">◫</span><strong>QR Referral Scan</strong><span>QR registrations · export CSV or PDF</span></button>
           </div>
           <p class="overview-status" id="overview-connection" role="status">Sign in to use the dashboard.</p>
           <span id="total-count" hidden aria-hidden="true"></span><span id="recent-count" hidden aria-hidden="true"></span><span id="email-count" hidden aria-hidden="true"></span><strong id="campaign-name" class="hidden" hidden aria-hidden="true">RISE 17 - 2026</strong><div id="daily-chart" class="hidden" hidden aria-hidden="true"></div>
