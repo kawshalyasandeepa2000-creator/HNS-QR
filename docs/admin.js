@@ -102,9 +102,13 @@ function paintStats(data) {
   oldRecords = isNewApi ? data.recentLegacy : list;
   $("#campaign-name").textContent = selectedEventName;
   $("#campaign-name").title = `Database event: ${selectedEventSlug}`;
+  const overviewEvent = $("#overview-event-name");
+  if (overviewEvent) overviewEvent.textContent = selectedEventName;
   $("#total-count").textContent = Number(data.total || 0).toLocaleString();
   $("#recent-count").textContent = list.length.toLocaleString();
   $("#email-count").textContent = list.filter(item => typeof item.email === "string" && item.email.trim()).length.toLocaleString();
+  const overviewStatus = $("#overview-connection");
+  if (overviewStatus) overviewStatus.textContent = "● Connected · data refreshed for this event";
   $("#qr-data-status").textContent = isNewApi
     ? `${Number(data.totalQr||0)} QR-tagged registrations in this event · ${Number(data.totalLegacy||0)} other registrations (legacy or direct). Page visits without registration are not counted.`
     : "QR-source tracking is not active on the current Worker. All existing registrations are preserved below as source unknown; none will be falsely labelled as QR scans.";
@@ -1211,7 +1215,7 @@ const adminViewKeys = ["overview","customers","csv-references","business-cards",
 function applyAdminShell(next) {
   const signedIn = !dom.dashboard.classList.contains("hidden");
   const hero = $("#hero-card");
-  if (hero) hero.classList.toggle("hidden", signedIn && next !== "overview");
+  if (hero) hero.classList.add("hidden");
   if (signedIn && next !== "overview") $("#event-create-form")?.classList.add("hidden");
   for (const key of adminViewKeys) document.body.classList.toggle(`admin-view-${key}`, signedIn && key === next);
   qrToggle?.classList.toggle("active", next === "qr-flyer");
@@ -1276,6 +1280,8 @@ function updateEventLinks(){
   $("#live-website-link").href=url.href;
   $("#sidebar-site-link").href=url.href;
   $("#lead-event").value=selectedEventName;
+  const overviewEvent=$("#overview-event-name");
+  if(overviewEvent)overviewEvent.textContent=selectedEventName;
   if(qrBuilt){qrBuilt=false;$("#qr-container").replaceChildren();}
   $("#qr-url").textContent=customerUrlForEvent();
 }
@@ -1327,3 +1333,15 @@ $("#event-create-form").addEventListener("submit",async event=>{
 });
 
 showAdminView(location.hash || "#overview");
+for (const tile of document.querySelectorAll("[data-admin-view]")) {
+  tile.addEventListener("click", () => {
+    if (dom.dashboard.classList.contains("hidden")) {
+      dom.loginPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const target = tile.getAttribute("data-admin-view");
+    history.replaceState(null, "", target);
+    showAdminView(target);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
