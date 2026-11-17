@@ -6,161 +6,23 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-cards-fixed-3">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261114-leads-scan-v1">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261117-voice-share-v1"></script>
-  <script defer src="./hns-leads-import.js?v=20261116-events-v2"></script>
-  <script defer src="./hns-references.js?v=20261116-restored-3"></script>
-  <style id="hns-scanner-refresh-v1">
-    /* HNS-QR admin scanner refresh. Scoped to Scan Card; original IDs, JS and Cloudflare APIs unchanged. */
-    .hns-admin #business-cards.leads-section{background:transparent;border:0;box-shadow:none;padding:0;margin:20px 0 36px;color:#0d2563;overflow:visible}
-    .hns-admin #business-cards>.section-row{background:linear-gradient(112deg,#102d70 0%,#183e86 72%,#1d4b96 100%);color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:clamp(20px,3vw,34px);margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 16px 35px rgba(13,37,99,.12)}
-    .hns-admin #business-cards>.section-row:after{content:"";position:absolute;border:1px solid rgba(255,255,255,.14);height:230px;width:230px;border-radius:50%;top:-130px;right:35px;pointer-events:none}
-    .hns-admin #business-cards>.section-row .section-kicker{color:#f2cb51;font-size:11px;letter-spacing:2px;font-weight:800}
-    .hns-admin #business-cards>.section-row h2{color:#fff;font-size:clamp(25px,2.6vw,34px);line-height:1.15;margin:10px 0}
-    .hns-admin #business-cards .hns-heading-dot{color:#f2cb51}
-    .hns-admin #business-cards>.section-row .section-description{color:#d4e1ff;font-size:13px;line-height:1.75;max-width:690px}
-    .hns-admin #business-cards>.section-row .refs-head-actions{z-index:1}
-    .hns-admin #business-cards>.section-row .btn{border-color:rgba(255,255,255,.36);background:rgba(255,255,255,.10);color:white;box-shadow:none;min-height:40px;border-radius:10px;font-size:11px}
-    .hns-admin #business-cards>.section-row .btn.btn-gold{background:#f2cb51;border-color:#f2cb51;color:#0c2767}
-    .hns-admin #business-cards>.section-row .btn:hover{filter:brightness(1.07)}
-    .hns-admin #business-cards .hns-scan-steps{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:6px 2px 16px;color:#60759a;font-size:12px;font-weight:600}
-    .hns-admin #business-cards .hns-scan-steps span{display:flex;align-items:center;gap:8px}
-    .hns-admin #business-cards .hns-scan-steps b{font-size:11px;color:#0e3272;background:#dfeafa;border-radius:10px;padding:6px 8px}
-    .hns-admin #business-cards .hns-scan-steps i{font-style:normal;font-size:23px;color:#b5c4dd}
-    .hns-admin #business-cards .hns-capture-panel{background:#fff;border:1px solid #dae3f1;border-radius:18px;padding:clamp(15px,2.1vw,24px);margin-bottom:12px;box-shadow:0 8px 22px rgba(13,37,99,.04)}
-    .hns-admin #business-cards .hns-capture-title,.hns-admin #business-cards .hns-workspace-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .hns-admin #business-cards .hns-capture-title>div,.hns-admin #business-cards .hns-workspace-title>div{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .hns-admin #business-cards .hns-capture-title strong,.hns-admin #business-cards .hns-workspace-title strong{font-size:15px;color:#10265f;font-weight:800}
-    .hns-admin #business-cards .hns-capture-title small{width:100%;padding-left:44px;margin-top:-8px;color:#7183a0;font-weight:500;font-size:11px}
-    .hns-admin #business-cards .hns-section-marker{display:inline-flex;justify-content:center;align-items:center;background:#e6edff;border-radius:9px;color:#16418e;font-size:11px;font-weight:800;min-width:34px;height:34px}
-    .hns-admin #business-cards .hns-capture-secure,.hns-admin #business-cards .hns-workspace-tag{font-size:10px;color:#1f7a57;letter-spacing:.3px;background:#e5f8ed;border:1px solid #c6ecd6;border-radius:100px;padding:7px 12px;font-weight:750;white-space:nowrap}
-    .hns-admin #business-cards .hns-workspace-tag{color:#637ba4;background:#edf3ff;border-color:#dde8f8}
-    .hns-admin #business-cards .leads-toolbar{display:grid;grid-template-columns:1.18fr .9fr 1fr;align-items:stretch;gap:12px;margin:0}
-    .hns-admin #business-cards .leads-toolbar .btn,.hns-admin #business-cards .leads-toolbar .leads-file-button{order:initial!important;width:100%;min-height:54px;display:inline-flex;align-items:center;justify-content:center;gap:9px;text-align:center;border-radius:12px;font-size:13px;font-weight:800;padding:12px 14px;cursor:pointer;line-height:1.4;box-sizing:border-box;flex:auto}
-    .hns-admin #business-cards .leads-toolbar .btn.btn-gold{background:linear-gradient(120deg,#f4d665,#e4b52a);color:#14295b;border:1px solid #d4a428;box-shadow:0 4px 0 #b68a1d}
-    .hns-admin #business-cards .leads-toolbar .btn.btn-outline,.hns-admin #business-cards .leads-file-button{background:#f6f9ff;border:1px solid #cbd9ef;box-shadow:none;color:#163970}
-    .hns-admin #business-cards .leads-toolbar .btn span,.hns-admin #business-cards .leads-file-button span{font-size:18px;line-height:1}
-    .hns-admin #business-cards .leads-toolbar .btn:hover,.hns-admin #business-cards .leads-file-button:hover{transform:translateY(-2px);filter:brightness(1.02)}
-    .hns-admin #business-cards .leads-privacy-note{background:#eff6ff;border:1px solid #d5e5fb;border-left:4px solid #3275bc;color:#476187;font-size:11px;line-height:1.65;padding:12px 14px;border-radius:12px;margin:13px 0}
-    .hns-admin #business-cards .leads-api-status{border-radius:12px;margin:12px 0 18px;padding:12px 16px;font-size:11px}
-    .hns-admin #business-cards .leads-workspace{display:grid;grid-template-columns:minmax(300px,.95fr) minmax(400px,1.25fr);gap:18px;align-items:start}
-    .hns-admin #business-cards .lead-picture-column,.hns-admin #business-cards .lead-form{background:#fff;border:1px solid #d8e2f1;border-radius:20px;padding:clamp(16px,2vw,24px);box-shadow:0 10px 28px rgba(17,49,106,.055);min-width:0}
-    .hns-admin #business-cards .lead-picture-box{border:2px dashed #c1d3eb;border-radius:16px;background:radial-gradient(circle at 90% 15%,rgba(242,203,81,.14),transparent 40%),linear-gradient(145deg,#f0f5fd,#e7eefd);min-height:250px;max-height:none;padding:18px;overflow:hidden;position:relative}
-    .hns-admin #business-cards #lead-photo-placeholder{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#647da4;font-size:13px}
-    .hns-admin #business-cards #lead-photo-placeholder.hidden{display:none}
-    .hns-admin #business-cards #lead-photo-placeholder strong{font-size:15px;font-weight:800;color:#233d77}
-    .hns-admin #business-cards #lead-photo-placeholder small{color:#798cae;font-size:11px}
-    .hns-admin #business-cards .hns-photo-symbol{border-radius:18px;display:flex;align-items:center;justify-content:center;width:64px;height:64px;background:#fff;border:1px solid #d8e4f5;color:#164081;font-size:32px;box-shadow:0 9px 18px #d9e4f7}
-    .hns-admin #business-cards .lead-image-wrap{max-width:100%;position:relative}
-    .hns-admin #business-cards #lead-photo{border-radius:8px;max-height:360px;object-fit:contain}
-    .hns-admin #business-cards .leads-image-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0}
-    .hns-admin #business-cards .leads-image-tools .btn{font-size:11px;min-height:40px;flex:auto;width:100%;border-radius:10px;padding:10px 9px;box-shadow:none}
-    .hns-admin #business-cards .lead-mobile-scan-tip{background:#fff8df;border:1px solid #f5e6b2;border-radius:12px;padding:13px 15px;color:#6c5619;line-height:1.75;font-size:11px;margin:13px 0}
-    .hns-admin #business-cards .hns-image-fallback{border:1px solid #d5e3f6;border-radius:14px;background:linear-gradient(140deg,#f6f9ff,#fff);padding:15px;margin:14px 0 18px}
-    .hns-admin #business-cards .hns-image-fallback-head{display:flex;gap:11px;align-items:flex-start;margin-bottom:13px}
-    .hns-admin #business-cards .hns-image-fallback-head strong{font-size:13px;color:#102e68;font-weight:800}
-    .hns-admin #business-cards .hns-image-fallback-head p{font-size:11px;color:#687f9f;line-height:1.65;margin:4px 0 0}
-    .hns-admin #business-cards .hns-fallback-icon{height:36px;min-width:36px;display:flex;align-items:center;justify-content:center;background:#e8f0ff;border-radius:11px;font-size:19px;color:#23559a}
-    .hns-admin #business-cards .hns-image-actions{display:flex;flex-wrap:wrap;gap:8px}
-    .hns-admin #business-cards .hns-image-actions .btn,.hns-admin #business-cards .hns-image-actions .leads-file-button{flex:1 1 100px;min-height:41px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;padding:10px 10px;border-radius:10px;box-sizing:border-box;cursor:pointer;text-align:center}
-    .hns-admin #business-cards .hns-image-actions .btn.btn-gold{background:#f2ca4e;color:#0e2b66;box-shadow:none}
-    .hns-admin #business-cards .hns-image-actions .btn:disabled{cursor:not-allowed;opacity:.55}
-    .hns-admin #business-cards .hns-image-help{margin:10px 0 0;color:#697e9c;font-size:10px;line-height:1.55}
-    .hns-admin #business-cards .lead-scan-status{font-size:12px;line-height:1.6}
-    .hns-admin #business-cards .lead-voice-panel{border:1px solid #d6e1f1;border-radius:16px;background:#f7faff;padding:16px;margin-top:18px}
-    .hns-admin #business-cards .lead-voice-head{gap:10px}
-    .hns-admin #business-cards .lead-voice-head p{font-size:11px;color:#597195;line-height:1.55}
-    .hns-admin #business-cards #lead-voice-note{border-radius:12px;border:1px solid #cfddf1;background:#fff;font-size:12px}
-    .hns-admin #business-cards .lead-send-actions .btn{border-radius:10px;font-size:11px;min-height:42px}
-    .hns-admin #business-cards .lead-ocr-details{margin-top:15px}
-    .hns-admin #business-cards .lead-form-heading{align-items:flex-start;padding-bottom:18px;border-bottom:1px solid #e7edf7;margin-bottom:22px}
-    .hns-admin #business-cards .lead-form-heading h3{font-size:clamp(20px,2vw,25px);color:#0b2866;margin:5px 0}
-    .hns-admin #business-cards .lead-form-heading .section-kicker{color:#b88c0e;font-weight:800;letter-spacing:1.2px;font-size:10px}
-    .hns-admin #business-cards .hns-form-subtitle{font-size:11px;line-height:1.6;color:#6b7e9e;max-width:370px;margin:3px 0 0}
-    .hns-admin #business-cards .lead-manual-label{font-size:10px;font-weight:750;border:1px solid #d4e1f3;border-radius:30px;background:#f3f7ff;padding:9px 12px;color:#54709a;white-space:nowrap}
-    .hns-admin #business-cards .lead-form-grid{gap:17px 14px}
-    .hns-admin #business-cards .lead-form-grid label{color:#19356c;font-size:12px;font-weight:750;line-height:1.75}
-    .hns-admin #business-cards .lead-form-grid input{border:1px solid #cbdaf0;background:#f9fbff;border-radius:12px;min-height:48px;padding:12px 14px;font-weight:500;font-size:12px;box-shadow:none;color:#122f67;transition:border-color .16s,box-shadow .16s,background .16s}
-    .hns-admin #business-cards .lead-form-grid input:focus{border-color:#6e9bdc;box-shadow:0 0 0 4px rgba(62,115,201,.12);background:#fff;outline:none}
-    .hns-admin #business-cards .lead-form-grid input[readonly]{background:#f2f5fa;color:#6279a0}
-    .hns-admin #business-cards .lead-required-note{font-size:11px;color:#6980a4;line-height:1.7;background:#f5f8fd;border-radius:11px;padding:12px 14px;margin:19px 0 18px}
-    .hns-admin #business-cards .leads-form-actions{display:flex;gap:10px;flex-wrap:wrap}
-    .hns-admin #business-cards .leads-form-actions .btn{border-radius:11px;min-height:50px;padding:12px 17px;font-size:12px;font-weight:800}
-    .hns-admin #business-cards .leads-form-actions #lead-save{background:linear-gradient(115deg,#f5d667,#e6b62c);box-shadow:0 5px 0 #b88b1a;color:#0d265e;border:1px solid #dfb125}
-    .hns-admin #business-cards .leads-directory{background:#fff;border:1px solid #d9e3f2;border-radius:20px;padding:24px;margin-top:20px;box-shadow:0 10px 26px rgba(17,49,106,.045)}
-    .hns-admin #business-cards .leads-webcam{background:#fff;border:1px solid #dae5f3;border-radius:17px;padding:16px;margin-bottom:18px}
-    .hns-admin #business-cards .leads-file-input{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;opacity:0!important}
-    @media(max-width:1200px){.hns-admin #business-cards .leads-workspace{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .hns-admin #business-cards>.section-row{flex-direction:column;align-items:stretch}}
-    @media(max-width:900px){.hns-admin #business-cards .leads-workspace{grid-template-columns:minmax(0,1fr)} .hns-admin #business-cards .leads-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.hns-admin #business-cards .leads-toolbar #lead-open-webcam{grid-column:1/-1} }
-    @media(max-width:620px){.hns-admin #business-cards .hns-scan-steps{gap:7px;font-size:10px}.hns-admin #business-cards .hns-scan-steps span{gap:5px}.hns-admin #business-cards .hns-scan-steps b{padding:4px 6px}.hns-admin #business-cards .hns-capture-secure,.hns-admin #business-cards .hns-workspace-tag{display:none}.hns-admin #business-cards .lead-form-heading{flex-direction:column;align-items:start}.hns-admin #business-cards .lead-form-grid{grid-template-columns:minmax(0,1fr)}.hns-admin #business-cards .hns-image-actions .btn,.hns-admin #business-cards .hns-image-actions .leads-file-button{flex:1 1 100%}.hns-admin #business-cards .leads-directory{padding:15px} }
-    @media(prefers-reduced-motion:reduce){.hns-admin #business-cards .leads-toolbar .btn,.hns-admin #business-cards .leads-toolbar .leads-file-button{transition:none}}
-
-    /* Text-only sidebar navigation. Keep original IDs, actions and active state. */
-    .hns-admin .sidebar .side-nav .nav-link {
-      gap:0; justify-content:flex-start; text-align:left;
-      font-size:13px; font-weight:700; line-height:1.45;
-      padding:13px 15px; min-height:45px;
-    }
-    .hns-admin .sidebar .side-nav .qr-nav-toggle {width:100%;}
-    .hns-admin .sidebar .side-nav .qr-nav-toggle > .qr-toggle-label {
-      display:inline!important; font-size:inherit!important;
-      line-height:inherit!important; flex:initial!important;
-      width:auto!important; min-width:0; text-align:left!important;
-      white-space:normal!important;
-    }
-    @media (max-width:820px) {
-      .hns-admin .sidebar .side-nav .nav-link {
-        font-size:12px; min-height:40px; padding:9px 13px;
-        flex:0 0 auto; min-width:max-content;
-      }
-      .hns-admin .sidebar .side-nav .qr-nav-toggle {width:auto; min-width:max-content;}
-    }
-    @media (max-width:560px) {
-      .hns-admin .sidebar .side-nav {gap:7px; justify-content:flex-start; overflow-x:auto;}
-      .hns-admin .sidebar .side-nav .nav-link {font-size:12px!important; flex:0 0 auto;}
-    }
-  </style>
-
-  <style id="hns-voice-share-style-v1">
-    /* Voice notes + verified contact details: preview and manually addressed drafts. */
-    .hns-admin #business-cards .hns-share-destinations{margin:17px 0 12px;padding:15px;background:#fff;border:1px solid #d7e3f3;border-radius:14px}
-    .hns-admin #business-cards .hns-share-label{display:block;font-size:13px;font-weight:800;color:#0d2d6c;margin-bottom:12px}
-    .hns-admin #business-cards .hns-share-recipient-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    .hns-admin #business-cards .hns-share-recipient-grid label{display:block;font-size:11px;font-weight:750;color:#17386f;line-height:1.5}
-    .hns-admin #business-cards .hns-share-recipient-grid small{display:block;font-size:10px;font-weight:500;color:#64799f}
-    .hns-admin #business-cards .hns-share-recipient-grid input{width:100%;margin-top:6px;padding:10px 12px;min-height:44px;border-radius:10px;border:1px solid #cddbf0;background:#fbfdff;color:#112c62;font:500 12px 'Poppins',sans-serif}
-    .hns-admin #business-cards .hns-share-recipient-grid input:focus{outline:2px solid #8fafea;outline-offset:1px}
-    .hns-admin #business-cards .hns-share-helper{margin:10px 0 0;font-size:10px;line-height:1.6;color:#61769b}
-    .hns-admin #business-cards .hns-share-message-preview{margin:10px 0 15px;border:1px solid #d4e0f0;border-radius:13px;background:#fff;overflow:hidden}
-    .hns-admin #business-cards .hns-share-message-preview summary{cursor:pointer;list-style:revert;padding:12px 15px;color:#123370;font-weight:750;font-size:12px;background:#f5f8fe}
-    .hns-admin #business-cards #lead-share-preview{display:block;box-sizing:border-box;width:calc(100% - 26px);margin:13px;resize:vertical;border-radius:9px;border:1px solid #d6e2f2;padding:12px;font:500 11px/1.7 'Poppins',sans-serif;background:#fbfdff;color:#183c77;min-height:125px}
-    .hns-admin #business-cards .lead-send-actions{display:flex;flex-wrap:wrap;gap:9px}
-    .hns-admin #business-cards .lead-send-actions button{white-space:normal;flex:1 1 140px;min-height:45px;font-size:11px}
-    @media(max-width:620px){.hns-admin #business-cards .hns-share-recipient-grid{grid-template-columns:minmax(0,1fr)}.hns-admin #business-cards .lead-send-actions button{flex:1 1 100%}}
-  </style>
+  <script defer src="./admin.js?v=20261114-leads-scan-v1"></script>
 </head>
 <body class="hns-admin">
 <div class="dashboard-shell">
   <aside class="sidebar" aria-label="Dashboard navigation">
     <a class="admin-brand" href="./admin.html" aria-label="Helen and Sons admin dashboard"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official logo since 2007" width="1500" height="454"></a>
     <p class="menu-label">REFERRAL CONTROL CENTRE</p>
-    <nav class="side-nav" aria-label="Main dashboard sections">
-      <a class="nav-link active" href="#overview">Overview</a>
-      <a class="nav-link" href="#customers" id="qr-scans-nav">QR Referral Scan</a>
-      <a class="nav-link" href="#csv-references" id="csv-references-nav">Card Details</a>
-      <a class="nav-link" href="#business-cards" id="business-cards-nav">Scan Card</a>
-      <button type="button" class="nav-link qr-nav-toggle" id="qr-visibility-toggle" aria-controls="qr-flyer" aria-expanded="false"><span class="qr-toggle-label">Show QR flyer</span></button>
-      <a class="nav-link" href="./" target="_blank" rel="noopener noreferrer" id="sidebar-site-link">Customer website</a>
-    </nav>
-    <div class="sidebar-card"><span class="sidebar-card-star">✦</span><h3>Every event.<br>Every connection.</h3><p>Campaign data remains in your existing Cloudflare D1 database.</p></div>
+    <nav class="side-nav"><a class="nav-link active" href="#overview"><span>◫</span> Overview</a><a class="nav-link" href="#customers"><span>≡</span> Customer records</a><a class="nav-link" href="#business-cards" id="business-cards-nav"><span aria-hidden="true">▣</span> Business card leads</a><button type="button" class="nav-link qr-nav-toggle" id="qr-visibility-toggle" aria-controls="qr-flyer" aria-expanded="false"><span aria-hidden="true">▦</span><span class="qr-toggle-label">Show QR flyer</span></button><a class="nav-link" href="./" target="_blank" rel="noopener noreferrer"><span>↗</span> Customer website</a></nav>
+    <div class="sidebar-card"><span class="sidebar-card-star">✦</span><h3>One campaign.<br>Every connection.</h3><p>Campaign data remains in your existing Cloudflare D1 database.</p></div>
     <p class="sidebar-footer">HELEN AND SONS · SINCE 2007</p>
   </aside>
   <div class="admin-content">
-    <header class="topbar"><div class="topbar-brand"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official company logo" width="1500" height="454"><div><p class="topbar-kicker">OFFICIAL CAMPAIGN PORTAL</p><div class="topbar-heading">Referral dashboard</div></div></div><div class="topbar-right"><span class="hns-current-event" aria-label="Current event RISE 17 2026">RISE 17 · 2026</span><div class="event-switcher hidden" id="event-switcher"><label for="event-select">Event</label><select id="event-select" aria-label="Choose event"><option value="outdoor-2026">RISE 17 - 2026</option></select><button type="button" class="btn btn-gold" id="event-new-button">+ New Event</button></div><span id="connection-status" class="connection-status" role="status" aria-live="polite">Secure admin access</span><a href="./" target="_blank" rel="noopener noreferrer" class="live-link" id="live-website-link">View live website ↗</a></div></header>
+    <header class="topbar"><div class="topbar-brand"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official company logo" width="1500" height="454"><div><p class="topbar-kicker">OFFICIAL CAMPAIGN PORTAL</p><div class="topbar-heading">Referral dashboard</div></div></div><div class="topbar-right"><span id="connection-status" class="connection-status" role="status" aria-live="polite">Secure admin access</span><a href="./" target="_blank" rel="noopener noreferrer" class="live-link">View live website ↗</a></div></header>
     <main id="overview">
-      <form id="event-create-form" class="event-create-panel hidden" aria-label="Create new event"><div><strong>Create a new event dashboard</strong><p>The new event starts empty. Existing RIZE 17 records stay in their original event.</p></div><label>Event name<input type="text" id="event-new-name" maxlength="90" placeholder="e.g. RISE 18 - 2027" required></label><div class="event-create-actions"><button type="submit" class="btn btn-gold" id="event-create-save">Create event</button><button type="button" class="btn btn-soft" id="event-create-cancel">Cancel</button></div><p id="event-create-status" role="status"></p></form>
       <section class="admin-hero" id="hero-card"><div class="hero-words"><p class="hero-kicker">✦ HELEN AND SONS · REFERRAL PROGRAMME</p><h1>Manage every connection.<br><em>Grow new opportunities.</em></h1><p>Securely manage referral codes, customer registrations and your outdoor campaign QR — all in one place.</p>
         <div class="admin-offers" aria-label="Current consultancy offers">
           <div class="admin-offer"><strong>UP TO 70% OFF</strong><span>– Consultancy Fees</span></div>
@@ -168,188 +30,58 @@
         </div><div class="hero-tags"><span>Cloudflare D1</span><span>QR Campaign</span><span>Customer Records</span></div></div><div class="hero-graphic"><div class="hero-ring" aria-hidden="true"></div><img src="./helen-sons-consultation-2026.jpg" alt="Helen and Sons visa consultation with a client" width="1700" height="1096" loading="eager"><div class="hero-photo-tag" aria-hidden="true">✦ &nbsp; PERSONAL CONSULTATION</div></div></section>
       <section id="login-panel" class="login-wrap" aria-labelledby="login-title"><div class="login-card"><div class="section-kicker">🔒 RESTRICTED ACCESS</div><h2 id="login-title">Welcome back.</h2><p>Enter your existing Cloudflare <strong>ADMIN_TOKEN</strong>. Your token stays in this browser tab's memory and is not stored in a file.</p><form id="login-form"><label for="token-input">Administrator token</label><div class="token-row"><input id="token-input" type="password" placeholder="Paste your private admin token" autocomplete="off" required><button type="button" id="toggle-token" aria-label="Show token" aria-pressed="false">Show</button></div><button class="btn btn-gold btn-full" type="submit" id="sign-in-button">Access dashboard →</button></form><p class="error-message" id="login-error" role="alert"></p></div></section>
       <div id="dashboard" class="dashboard hidden">
-        <section class="overview-section" id="overview-panel" aria-labelledby="overview-title"><div class="section-row"><div><p class="section-kicker">SELECTED EVENT</p><h2 id="overview-title">Dashboard</h2><p class="section-description">Choose what you want to do. Only one section opens at a time.</p></div><div class="section-actions"><button id="refresh-button" class="btn btn-outline" type="button">↻ Refresh data</button><button id="logout-button" class="btn btn-soft" type="button">Sign out</button></div></div>
-          <p class="overview-event-line">Active event: <strong id="overview-event-name">RISE 17 - 2026</strong></p>
-          <div class="overview-hub" role="navigation" aria-label="Dashboard shortcuts">
-            <button type="button" class="overview-tile overview-tile-scan" data-admin-view="#business-cards"><span class="overview-tile-count" id="overview-count-scan" aria-label="Scan Card total">—</span><span class="overview-tile-icon" aria-hidden="true">▤</span><strong>Scan Card</strong><span>saved contacts · import / export CSV or PDF</span></button>
-            <button type="button" class="overview-tile overview-tile-details" data-admin-view="#csv-references"><span class="overview-tile-count" id="overview-count-details" aria-label="Card Details total">—</span><span class="overview-tile-icon" aria-hidden="true">▣</span><strong>Card Details</strong><span>reference contacts · import / export CSV or PDF</span></button>
-            <button type="button" class="overview-tile overview-tile-qr" data-admin-view="#customers"><span class="overview-tile-count" id="overview-count-qr" aria-label="QR Referral Scan total">—</span><span class="overview-tile-icon" aria-hidden="true">◫</span><strong>QR Referral Scan</strong><span>QR registrations · export CSV or PDF</span></button>
-          </div>
-          <p class="overview-status" id="overview-connection" role="status">Sign in to use the dashboard.</p>
-          <span id="total-count" hidden aria-hidden="true"></span><span id="recent-count" hidden aria-hidden="true"></span><span id="email-count" hidden aria-hidden="true"></span><strong id="campaign-name" class="hidden" hidden aria-hidden="true">RISE 17 - 2026</strong><div id="daily-chart" class="hidden" hidden aria-hidden="true"></div>
+        <section class="overview-section" aria-labelledby="overview-title"><div class="section-row"><div><p class="section-kicker">LIVE PERFORMANCE</p><h2 id="overview-title">Campaign at a glance</h2></div><div class="section-actions"><button id="refresh-button" class="btn btn-outline" type="button">↻ Refresh data</button><button id="logout-button" class="btn btn-soft" type="button">Sign out</button></div></div>
+          <div class="metric-grid"><article class="metric metric-major"><div class="metric-label">Total referral codes <span>✦</span></div><strong id="total-count">—</strong><p>Issued in this campaign</p></article><article class="metric"><div class="metric-label">Recent registrations <span>≡</span></div><strong id="recent-count">—</strong><p>Latest 100 records</p></article><article class="metric"><div class="metric-label">Emails recorded <span>✉</span></div><strong id="email-count">—</strong><p>Among recent records · older entries may lack email</p></article><article class="metric"><div class="metric-label">Active campaign <span>◇</span></div><strong id="campaign-name" class="metric-campaign">RISE 17 - 2026</strong><p>Cloudflare D1</p></article></div>
+          <div class="insights-row"><div class="insight-card"><div class="insight-header"><div><p class="section-kicker">RECENT ACTIVITY</p><h3>Registrations by day</h3></div><span>Latest 7 calendar days · from recent 100</span></div><div id="daily-chart" class="daily-chart" aria-label="Recent registrations by day"></div></div><div class="insight-card insights-small"><p class="section-kicker">DATA YOU CAN TRUST</p><h3>Real campaign records</h3><p>The figures shown here come from your existing Cloudflare API. The recent-record charts are based on the latest 100 registrations, not estimated or invented data.</p><div class="insight-chip"><span>●</span> Live API connected</div></div></div>
         </section>
-        <section id="customers" class="records-section hidden" aria-labelledby="customers-title"><div class="section-row"><div><p class="section-kicker">CUSTOMER DIRECTORY</p><h2 id="customers-title">QR Referral Scan</h2><p class="section-description">Shows registrations from event QR links only. Historic and direct-link registrations are preserved separately below; a registration is not proof of a physical QR scan.</p></div><div class="refs-head-actions section-io-actions"><button id="csv-button" class="btn btn-gold" type="button">↓ Export CSV</button><button id="qr-export-pdf" class="btn btn-outline" type="button">↓ Export PDF</button></div></div><div class="table-toolbar"><label class="search-box"><span>⌕</span><input type="search" id="record-search" placeholder="Search name, mobile, email or code…" aria-label="Search recent records" autocomplete="off"></label><span id="display-count">— records shown</span></div><p id="qr-data-status" class="refs-helper" role="status"></p><div class="table-scroll"><table><thead><tr><th>Customer name</th><th>Mobile number</th><th>Email address</th><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="5">Sign in to load records.</td></tr></tbody></table></div><p id="admin-error" class="error-message" role="alert"></p><details class="legacy-details"><summary>Other registrations (legacy source unknown / direct links)</summary><p class="section-description">Historical registrations without a recorded source and new direct-link registrations appear here, not in QR-only results.</p><div class="table-scroll"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Email</th><th>Code</th><th>Created (UTC)</th></tr></thead><tbody id="legacy-referral-rows"><tr><td colspan="5">Sign in to view registrations.</td></tr></tbody></table></div></details><p class="records-footnote">Customer contact details are visible only after administrator authentication. Do not share admin screenshots containing personal information.</p></section>
-        <section id="csv-references" class="refs-section hidden" aria-labelledby="ref-title">
-          <div class="section-row">
-            <div>
-              <p class="section-kicker">SELECTED EVENT · SEPARATE CONTACT LIST</p>
-              <h2 id="ref-title">Card Details</h2>
-              <p class="section-description">Your existing references are kept as business-card details in a separate contact list. QR registrations and scanner contacts are not mixed.</p>
-            </div>
-            <div class="refs-head-actions">
-              <button id="ref-open" class="btn btn-outline" type="button" aria-expanded="false" aria-controls="ref-import-panel">↑ Import CSV</button><button id="ref-refresh" class="btn btn-outline" type="button">↻ Refresh</button>
-              <button id="ref-export" class="btn btn-gold" type="button">↓ Export CSV</button><button id="ref-export-pdf" class="btn btn-outline" type="button">↓ Export PDF</button>
-            </div>
-          </div>
-          <p id="ref-count" class="refs-helper" role="status" aria-live="polite">Sign in to view imported reference contacts.</p>
-          <div id="ref-import-panel" class="refs-import-panel hidden" aria-label="Import CSV to references">
-            <div class="refs-panel-top"><div><h3>Import contacts from CSV</h3><p>Choose a CSV, set a manual reference number, review details, then confirm. No referral code or thank-you email is generated.</p></div>
-              <button type="button" class="btn btn-soft" id="ref-close">✕ Close</button></div>
-            <div class="refs-config-grid">
-              <label>CSV file<input id="ref-file" type="file" accept=".csv,text/csv" aria-label="Select references CSV file"></label>
-              <label>Manual reference prefix / batch number <input id="ref-prefix" type="text" maxlength="35" value="RISE17-2026" placeholder="RISE17-1001" required></label>
-              <label>Start number<input id="ref-start" type="number" min="1" max="999999" step="1" value="1" required></label>
-            </div>
-            <div class="refs-helper-row"><button class="btn btn-outline" type="button" id="ref-template">↓ CSV template</button><span>Example IDs: <strong>RISE17-1001-001</strong>, <strong>RISE17-1001-002</strong>. Change the reference number for any row before importing.</span></div>
-            <div id="ref-map" class="refs-mapping" aria-label="Match CSV columns"></div>
-            <div class="refs-helper" id="ref-file-status" role="status">CSV headers: Person Name, Company Name, Email, Phone, Job Title, Website, Notes. Reference Number column is optional.</div>
-            <div class="refs-preview-head"><strong>Review reference numbers and contacts</strong><span id="ref-preview-count"></span></div>
-            <div class="refs-preview-wrap"><table><thead><tr><th>CSV row</th><th>Reference No. (editable)</th><th>Person</th><th>Company</th><th>Email</th><th>Mobile</th><th>Status</th></tr></thead><tbody id="ref-preview"></tbody></table></div>
-            <p class="refs-helper">Only import contacts you have permission to retain. Existing records will not be overwritten. Duplicate reference numbers are skipped.</p>
-            <progress id="ref-progress" class="refs-progress" max="1" value="0" hidden></progress>
-            <p id="ref-import-status" class="refs-helper" role="status" aria-live="polite"></p>
-            <div class="refs-head-actions"><button id="ref-confirm" type="button" class="btn btn-gold" disabled>✓ Confirm CSV import</button><button id="ref-stop" type="button" class="btn btn-soft" disabled>Stop import</button></div>
-          </div>
-          <div class="table-toolbar refs-table-toolbar"><label class="search-box"><span>⌕</span><input id="ref-search" type="search" placeholder="Search reference, person, company, email or mobile…" autocomplete="off" aria-label="Search reference contacts"></label><span id="ref-shown">—</span></div>
-          <div class="table-scroll refs-table-wrap"><table><thead><tr><th>Reference No.</th><th>Person name</th><th>Company</th><th>Email</th><th>Mobile</th><th>Job title</th><th>Added (UTC)</th><th>Actions</th></tr></thead><tbody id="ref-rows"><tr><td colspan="8">Open Business Card Details to load contacts.</td></tr></tbody></table></div>
-          <p id="ref-feedback" class="refs-helper" role="status" aria-live="polite"></p>
-        </section>
+        <section id="customers" class="records-section" aria-labelledby="customers-title"><div class="section-row"><div><p class="section-kicker">CUSTOMER DIRECTORY</p><h2 id="customers-title">Recent customer records</h2><p class="section-description">Search the latest 100 registrations. The CSV export includes your complete campaign.</p></div><button id="csv-button" class="btn btn-gold" type="button">↓ Export all CSV</button></div><div class="table-toolbar"><label class="search-box"><span>⌕</span><input type="search" id="record-search" placeholder="Search name, mobile, email or code…" aria-label="Search recent records" autocomplete="off"></label><span id="display-count">— records shown</span></div><div class="table-scroll"><table><thead><tr><th>Customer name</th><th>Mobile number</th><th>Email address</th><th>Referral code</th><th>Created (UTC)</th></tr></thead><tbody id="referral-rows"><tr><td colspan="5">Sign in to load records.</td></tr></tbody></table></div><p id="admin-error" class="error-message" role="alert"></p><p class="records-footnote">Customer contact details are visible only after administrator authentication. Do not share admin screenshots containing personal information.</p></section>
 
         <!-- Private event business-card contacts. Only visible after admin authentication. -->
-        <section id="business-cards" class="leads-section hidden" aria-labelledby="leads-title">
+        <section id="business-cards" class="leads-section" aria-labelledby="leads-title">
           <div class="section-row">
-            <div><p class="section-kicker">CONTACT CAPTURE STUDIO</p><h2 id="leads-title">Business card scanner<span class="hns-heading-dot">.</span></h2>
-              <p class="section-description">Capture a clear card photo, review the detected details, and save the contact securely. If the scan misses a detail, you can share the original image.</p></div>
-            <div class="refs-head-actions section-io-actions">
-              <button class="btn btn-outline" type="button" id="leads-import-open-toolbar">↑ Import CSV / Excel</button>
-              <button class="btn btn-gold" type="button" id="leads-export-toolbar-csv">↓ Export CSV</button>
-              <button class="btn btn-outline" type="button" id="leads-export-toolbar-pdf">↓ Export PDF</button>
-              <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh</button>
-            </div>
+            <div><p class="section-kicker">RISE 17 - 2026 · EVENT CONTACTS</p><h2 id="leads-title">Business card scanner</h2>
+              <p class="section-description">Photograph a business card, review the detected details, and save them separately from referral registrations.</p></div>
+            <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh contacts</button>
           </div>
-          <div class="hns-scan-steps" aria-label="How it works">
-            <span><b>01</b> Add card image</span><i aria-hidden="true">›</i><span><b>02</b> Review details</span><i aria-hidden="true">›</i><span><b>03</b> Save or share</span>
+          <div class="leads-toolbar">
+            <label class="btn btn-gold leads-file-button" for="lead-camera-input">📷 Scan with phone camera</label>
+            <input type="file" id="lead-camera-input" accept="image/*" capture="environment" class="leads-file-input" aria-label="Take a business card photo">
+            <label class="btn btn-outline leads-file-button" for="lead-file-input">▣ Upload card image</label>
+            <input type="file" id="lead-file-input" accept="image/*" class="leads-file-input" aria-label="Upload a business card image">
+            <button type="button" class="btn btn-soft" id="lead-open-webcam">Live camera</button>
           </div>
-          <div class="hns-capture-panel">
-            <div class="hns-capture-title"><div><span class="hns-section-marker">01</span><strong>Get your business card</strong><small>Use your camera or select an existing photo</small></div><span class="hns-capture-secure">◈ Secure admin workspace</span></div>
-            <div class="leads-toolbar">
-              <button type="button" class="btn btn-gold" id="lead-open-webcam"><span aria-hidden="true">◉</span> Open camera &amp; scan</button>
-              <label class="btn btn-outline leads-file-button" for="lead-camera-input"><span aria-hidden="true">◷</span> Take photo</label>
-              <input type="file" id="lead-camera-input" accept="image/*" capture="environment" class="leads-file-input" aria-label="Take a business card photo">
-              <label class="btn btn-outline leads-file-button" for="lead-file-input"><span aria-hidden="true">⇧</span> Upload / attach image</label>
-              <input type="file" id="lead-file-input" accept="image/*" class="leads-file-input" aria-label="Upload or attach a business card image">
-            </div>
-          </div>
-          <p class="leads-privacy-note"><span aria-hidden="true">🔒</span> <strong>Private by design:</strong> The card photo stays in your browser. Only reviewed contact text is saved to Cloudflare D1. Use the share buttons to send the photo separately; attaching it does not save the image to Cloudflare.</p>
-          <div class="leads-api-status" id="lead-api-status" role="status" aria-live="polite">Sign in and open Business Card Leads to check database connection.</div>
+          <p class="leads-privacy-note">🔒 Scan runs on your phone/computer. The business card photo is not uploaded; only details you confirm are saved in private Cloudflare D1. No automatic marketing emails.</p>
           <div class="leads-webcam hidden" id="leads-webcam" aria-label="Live business card camera">
-            <div class="lead-camera-stage">
-              <video id="lead-video" autoplay playsinline muted aria-label="Business card camera preview"></video>
-              <div class="lead-card-guide" aria-hidden="true"><span>Fit the whole card inside the frame</span></div>
-            </div>
-            <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Scan this card</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
+            <video id="lead-video" autoplay playsinline muted aria-label="Business card camera preview"></video>
+            <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Capture card</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
           </div>
           <div class="leads-workspace">
             <div class="lead-picture-column">
-              <div class="hns-workspace-title"><div><span class="hns-section-marker">02</span><strong>Card photo &amp; tools</strong></div><span class="hns-workspace-tag">IMAGE PREVIEW</span></div>
-              <div class="lead-picture-box" id="lead-crop-box"><div id="lead-photo-placeholder"><span class="hns-photo-symbol" aria-hidden="true">▧</span><strong>No image selected</strong><small>Your card photo will appear here</small></div><div id="lead-image-wrap" class="lead-image-wrap"><img id="lead-photo" alt="Preview of photographed business card" class="hidden"><div id="lead-crop-rect" class="lead-crop-rect hidden" aria-hidden="true"></div></div></div>
-              <div class="leads-image-tools">
-                <button class="btn btn-outline" id="lead-crop-mode" type="button" disabled>✂ Select card area</button>
-                <button class="btn btn-gold" id="lead-crop-apply" type="button" disabled>Crop &amp; scan</button>
-                <button class="btn btn-outline" id="lead-rotate" type="button" disabled>⟳ Rotate 90°</button>
-                <button class="btn btn-soft" id="lead-deep-scan" type="button" disabled>🔎 Deep scan</button>
-              </div>
-              <p class="lead-mobile-scan-tip"><strong>For the clearest scan:</strong> Place one card on a flat surface with good light. Crop out the background, then try <b>Deep scan</b> if phone or email is missing.</p>
-              <div class="hns-image-fallback" aria-labelledby="hns-fallback-title">
-                <div class="hns-image-fallback-head"><span class="hns-fallback-icon" aria-hidden="true">⇧</span><div><strong id="hns-fallback-title">OCR not reading correctly?</strong><p>Keep the card image as a reference. Send or download it, then enter the details manually.</p></div></div>
-                <div class="hns-image-actions">
-                  <label class="btn btn-outline leads-file-button" for="lead-file-input">Replace photo</label>
-                  <button class="btn btn-gold" id="hns-send-card-image" type="button" disabled>↗ Send image</button>
-                  <button class="btn btn-outline" id="hns-download-card-image" type="button" disabled>↓ Save photo</button>
-                </div>
-                <p id="hns-image-status" class="hns-image-help" role="status" aria-live="polite">Upload or scan a photo to enable image sharing.</p>
-              </div>
+              <div class="lead-picture-box"><div id="lead-photo-placeholder">📷<br>Business card preview</div><img id="lead-photo" alt="Preview of photographed business card" class="hidden"></div>
               <p id="lead-scan-status" class="lead-scan-status" role="status" aria-live="polite">Take a clear photo with good lighting to scan the details.</p>
               <button class="btn btn-outline" type="button" id="lead-rescan" disabled>↻ Read text again</button>
-              <div class="lead-voice-panel">
-                <div class="lead-voice-head">
-                  <button type="button" class="btn btn-gold" id="lead-mic" aria-pressed="false">🎤 Mic</button>
-                  <p>Speak. The words appear in the box below.</p>
-                </div>
-                <label class="lead-voice-label" for="lead-voice-note">Voice note
-                  <textarea id="lead-voice-note" rows="4" maxlength="2000" placeholder="Tap Mic and speak, or type the note here"></textarea>
-                </label>
-                <div class="hns-share-destinations">
-                  <strong class="hns-share-label">Share the card details + voice transcript</strong>
-                  <div class="hns-share-recipient-grid">
-                    <label for="lead-share-wa-destination">Send to WhatsApp number <small>(your/company number)</small>
-                      <input id="lead-share-wa-destination" type="tel" inputmode="tel" maxlength="24" placeholder="+971 50 123 4567" autocomplete="off">
-                    </label>
-                    <label for="lead-share-email-destination">Send to email address <small>(your/company email)</small>
-                      <input id="lead-share-email-destination" type="email" maxlength="254" placeholder="team@example.com" autocomplete="off">
-                    </label>
-                  </div>
-                  <p class="hns-share-helper">Optional: leave a recipient blank to choose one in the app. The scanned business card's number/email is included in the message, but is <strong>not</strong> used as the recipient.</p>
-                </div>
-                <details class="hns-share-message-preview" open>
-                  <summary>Preview message before sharing</summary>
-                  <textarea id="lead-share-preview" readonly rows="9" aria-label="Preview of card details and voice transcript to be shared"></textarea>
-                </details>
-                <p class="lead-voice-hint">WhatsApp/Email opens a prefilled draft. Review the recipient and press Send yourself. If you want to send the card image, use the separate Send image button or attach the downloaded photo manually.</p>
-                <div class="lead-send-actions">
-                  <button type="button" class="btn btn-gold" id="lead-send-whatsapp">Open WhatsApp draft</button>
-                  <button type="button" class="btn btn-outline" id="lead-send-email">Open email draft</button>
-                  <button type="button" class="btn btn-outline" id="lead-copy-message">Copy full message</button>
-                </div>
-                <p id="lead-share-status" class="lead-scan-status" role="status" aria-live="polite"></p>
-              </div>
               <details class="lead-ocr-details"><summary>View detected text</summary><textarea id="lead-raw-text" readonly rows="7" aria-label="Text detected from business card"></textarea></details>
             </div>
             <form id="lead-form" class="lead-form">
-              <div class="lead-form-heading"><div><p class="section-kicker">STEP 03 · CHECK &amp; SAVE</p><h3 id="lead-form-title">Contact details</h3><p class="hns-form-subtitle">Review the extracted details and correct any missing fields.</p></div><span class="lead-manual-label">✦ Editable fields</span></div>
-              <div id="lead-readout" class="lead-readout" hidden>
-                <span data-field="personName">Name</span>
-                <span data-field="phone">Mobile</span>
-                <span data-field="email">Email</span>
-              </div>
+              <div class="lead-form-heading"><div><p class="section-kicker">REVIEW BEFORE SAVING</p><h3 id="lead-form-title">Contact details</h3></div><span class="lead-manual-label">Manual entry also works</span></div>
               <div class="lead-form-grid">
                 <label>Person name<input id="lead-person" name="personName" maxlength="120" placeholder="Full name" autocomplete="off"></label>
-                <label>Phone / WhatsApp<input id="lead-phone" name="phone" type="tel" maxlength="40" placeholder="+971 50 123 4567" autocomplete="off"></label>
-                <label>Email address<input id="lead-email" name="email" type="email" maxlength="254" placeholder="name@company.com" autocomplete="off"></label>
                 <label>Company name<input id="lead-company" name="companyName" maxlength="160" placeholder="Company / organization" autocomplete="off"></label>
+                <label>Email address<input id="lead-email" name="email" type="email" maxlength="254" placeholder="name@company.com" autocomplete="off"></label>
+                <label>Phone / WhatsApp<input id="lead-phone" name="phone" type="tel" maxlength="40" placeholder="+971 50 123 4567" autocomplete="off"></label>
                 <label>Job title<input id="lead-title" name="jobTitle" maxlength="120" placeholder="Managing Director" autocomplete="off"></label>
                 <label>Website<input id="lead-website" name="website" maxlength="200" placeholder="example.com" autocomplete="off"></label>
-                <label>Event<input id="lead-event" name="eventName" maxlength="120" value="RISE 17 - 2026" autocomplete="off" readonly></label>
+                <label>Event<input id="lead-event" name="eventName" maxlength="120" value="RISE 17 - 2026" autocomplete="off"></label>
                 <label>Notes<input id="lead-notes" name="notes" maxlength="500" placeholder="Meeting notes (optional)" autocomplete="off"></label>
               </div>
-              <p class="lead-required-note">Check the printed card carefully. Person or company name is required. Save only contacts you are authorized to retain; image files are <strong>not</strong> stored with contact records.</p>
+              <p class="lead-required-note">Person name or company name is required. All OCR results can be corrected. Only save contacts you are authorized to retain.</p>
               <div class="leads-form-actions"><button class="btn btn-gold" type="submit" id="lead-save">✓ Save business contact</button><button class="btn btn-soft" type="button" id="lead-clear">Clear form</button></div>
               <p id="lead-save-status" class="lead-scan-status" role="status" aria-live="polite"></p>
             </form>
           </div>
           <div class="leads-directory">
             <div class="section-row"><div><p class="section-kicker">PRIVATE BUSINESS CONTACTS</p><h3>Saved event contacts</h3><p class="section-description" id="lead-total-label">Open this section to load your contacts.</p></div>
-              <div class="lead-import-top-actions">
-                <button class="btn btn-gold" type="button" id="leads-import-open" aria-expanded="false" aria-controls="lead-import-panel">↑ Import Excel / CSV</button>
-                <button class="btn btn-outline" type="button" id="leads-export-excel">↓ Export Excel</button>
-                <button class="btn btn-outline" type="button" id="leads-export">↓ Export leads CSV</button>
-              </div></div>
-            <div class="lead-import-panel hidden" id="lead-import-panel" aria-label="Import existing event contacts">
-              <div class="lead-import-head"><div><h4>Import existing contacts from Excel</h4><p>Import .xlsx, .xls or .csv. Data is previewed locally before saving to the private business-card contacts database.</p></div><button class="btn btn-soft" id="lead-import-close" type="button" aria-label="Close Excel import">✕ Close</button></div>
-              <div class="lead-import-upload-row">
-                <label class="lead-import-file-label" for="lead-import-file">Choose Excel / CSV file<input type="file" id="lead-import-file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></label>
-                <button type="button" id="lead-import-template" class="btn btn-outline">↓ Download CSV template</button>
-              </div>
-              <p id="lead-import-file-status" role="status" class="lead-import-caption">Choose Excel/CSV file (first row = column names, maximum 1,000 contacts).</p>
-              <p class="lead-import-caption">Choose which Excel columns map to each field. Empty fields can stay unmapped. For phone numbers with leading zeroes, format the Excel column as Text.</p>
-              <div id="lead-import-map" class="lead-import-mapping" aria-label="Excel column mapping"></div>
-              <div class="lead-import-preview-head"><strong>Preview before import</strong><span id="lead-import-info"></span></div>
-              <div class="lead-import-preview-scroll"><table><thead><tr><th>Row</th><th>Person</th><th>Company</th><th>Email</th><th>Phone</th><th>Check</th></tr></thead><tbody id="lead-import-preview-rows"></tbody></table></div>
-              <p class="lead-import-caption">Existing contacts are not overwritten. Before saving, all current leads are checked for duplicate email/phone. Import will not send any emails. Import only contacts you are authorized to store.</p>
-              <progress id="lead-import-progress" class="lead-import-progress" max="1" value="0" hidden></progress>
-              <p id="lead-import-status" class="lead-import-caption" role="status" aria-live="polite"></p>
-              <div class="lead-import-bottom-actions"><button id="lead-import-confirm" type="button" class="btn btn-gold" disabled>✓ Confirm Import</button><button id="lead-import-cancel" type="button" class="btn btn-soft" disabled>Stop Import</button></div>
-            </div>
+              <button class="btn btn-outline" type="button" id="leads-export">↓ Export leads CSV</button></div>
             <div class="table-toolbar"><label class="search-box"><span>⌕</span><input id="lead-search" type="search" autocomplete="off" placeholder="Search person, company, email or phone..." aria-label="Search business card contacts"></label><span id="lead-display-count">—</span></div>
             <div class="table-scroll leads-table-scroll"><table class="leads-table"><thead><tr><th>Person</th><th>Company</th><th>Email</th><th>Phone</th><th>Job title</th><th>Added (UTC)</th><th>Actions</th></tr></thead><tbody id="lead-rows"><tr><td colspan="7">Open the scanner section after login to load contacts.</td></tr></tbody></table></div>
           </div>
@@ -360,61 +92,4 @@
     <footer class="admin-footer"><span>Helen and Sons Visa Consultancy · Official Referral Programme</span><span>Do not share your ADMIN_TOKEN</span></footer>
   </div>
 </div>
-<script id="hns-card-image-share-v1">
-/* Standalone enhancement: reuses existing scanner's image preview. Does NOT upload photos to Cloudflare. */
-(() => {
-  const $ = id => document.getElementById(id);
-  const preview = $('lead-photo');
-  const sendBtn = $('hns-send-card-image');
-  const saveBtn = $('hns-download-card-image');
-  const status = $('hns-image-status');
-  if (!preview || !sendBtn || !saveBtn || !status) return;
-  const hasPhoto = () => /^data:image\/(?:jpeg|png|webp);base64,/.test(preview.getAttribute('src') || '') && !preview.classList.contains('hidden');
-  function update() {
-    const ready = hasPhoto();
-    sendBtn.disabled = !ready;
-    saveBtn.disabled = !ready;
-    if (ready) status.textContent = 'Card photo ready. You can send or download it. The image is not stored in Cloudflare.';
-  }
-  function currentPhotoFile() {
-    if (!hasPhoto()) return null;
-    const match = (preview.getAttribute('src') || '').match(/^data:(image\/(?:jpeg|png|webp));base64,([\s\S]+)$/);
-    if (!match) return null;
-    const raw = atob(match[2]);
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-    const ext = match[1] === 'image/png' ? 'png' : match[1] === 'image/webp' ? 'webp' : 'jpg';
-    const name = ($('lead-person')?.value.trim() || 'business-card').replace(/[^a-z0-9_-]/gi,'-').slice(0,36);
-    return new File([bytes], `${name || 'business-card'}.${ext}`, {type:match[1]});
-  }
-  function download(file) {
-    const url = URL.createObjectURL(file);
-    const link = document.createElement('a');
-    link.href = url; link.download = file.name;
-    document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 12000);
-  }
-  saveBtn.addEventListener('click', () => {
-    try { const file = currentPhotoFile(); if (!file) throw Error('No card photo selected.');
-      download(file); status.textContent = 'Photo downloaded. You can attach it manually to a message or keep it for reference.';
-    } catch (error) { status.textContent = error.message || 'Photo could not be downloaded.'; }
-  });
-  sendBtn.addEventListener('click', async () => {
-    let file;
-    try { file = currentPhotoFile(); if (!file) throw Error('Upload a card photo first.'); }
-    catch (error) { status.textContent = error.message; return; }
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({title:'Business card image',text:'Business card photo for review',files:[file]});
-        status.textContent = 'Share sheet opened. Confirm the destination and send the photo there.';
-        return;
-      } catch(error) { if (error?.name === 'AbortError') { status.textContent = 'Sharing cancelled.'; return; } }
-    }
-    download(file);
-    status.textContent = 'Your browser cannot attach images automatically here. Photo downloaded — open WhatsApp or email and attach it manually.';
-  });
-  new MutationObserver(update).observe(preview,{attributes:true,attributeFilter:['src','class']});
-  update();
-})();
-</script>
 </body></html>

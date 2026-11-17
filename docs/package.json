@@ -1,0 +1,22 @@
+{
+  "name": "qr-referral-campaign",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Outdoor campaign QR-to-referral website with SQLite and CSV export",
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^16.6.1",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "qrcode": "^1.5.4"
+  }
+}
