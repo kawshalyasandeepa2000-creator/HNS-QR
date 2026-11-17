@@ -218,10 +218,11 @@
   }
   function renderTable(){
     const q=els.search.value.toLowerCase().trim();
-    const list=loaded.filter(item=>[item.referenceNo,item.personName,item.companyName,item.email,item.phone,item.jobTitle].some(v=>String(v||'').toLowerCase().includes(q)));
+    const filter=window.HNSContactStatus?.getFilter('ref-status-filter')||'all';
+    const list=loaded.filter(item=>(window.HNSContactStatus?.matches('reference',item.id,filter)??true)&&[item.referenceNo,item.personName,item.companyName,item.email,item.phone,item.jobTitle].some(v=>String(v||'').toLowerCase().includes(q)));
     els.table.replaceChildren();
     if(!list.length){
-      const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent=q?'No matches.':'No reference contacts imported yet.';tr.append(td);els.table.append(tr);
+      const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=9;td.textContent=q||filter!=='all'?'No contacts match this search/status filter.':'No reference contacts imported yet.';tr.append(td);els.table.append(tr);
     }
     for(const item of list){
       const tr=document.createElement('tr');
@@ -229,6 +230,7 @@
         const td=document.createElement('td');td.textContent=item[key]||'—';
         if(key==='referenceNo')td.className='refs-refno';tr.append(td);
       }
+      const statusTd=document.createElement('td');statusTd.append(window.HNSContactStatus.create('reference',item.id,item.personName||item.referenceNo));tr.append(statusTd);
       const td=document.createElement('td'),del=document.createElement('button');
       del.type='button';del.className='refs-row-delete';del.textContent='Delete';del.dataset.id=item.id;
       del.setAttribute('aria-label',`Delete reference ${item.referenceNo}`);td.append(del);tr.append(td);
@@ -285,14 +287,26 @@
   window.addEventListener('hns:event-references-view',()=>{if(isSignedIn())loadReferences();});
   window.addEventListener('hns:event-changed',()=>{loaded=[];total=0;allFetched=false;stopRequested=true;els.prefix.value=selectedEventSlug.toUpperCase();els.table.replaceChildren();status(els.total,'Loading selected event references…');});
   els.search.addEventListener('input',renderTable);
+  $('#ref-status-filter').addEventListener('change',renderTable);
+  window.addEventListener('hns:contact-statuses-changed',renderTable);
   els.export.addEventListener('click',async()=>{
     els.export.disabled=true;
     try{
-      const csv=await(await referenceApi('/api/admin/references/export.csv')).text();
+      const csv=await(await referenceApi(`/api/admin/references/export.csv${window.HNSContactStatus.exportFilter('ref-status-filter').replace('&','?')}`)).text();
       downloadCsv(csv,`${selectedEventSlug}-Business-Card-Details.csv`);
       status(els.feedback,'✓ Separate references CSV exported.');
     }catch(error){status(els.feedback,`Export failed: ${error.message}`,true);}
     finally{els.export.disabled=false;}
+  });
+  $('#ref-export-pdf').addEventListener('click',async()=>{
+    const button=$('#ref-export-pdf');button.disabled=true;
+    try{
+      const csv=await(await referenceApi(`/api/admin/references/export.csv${window.HNSContactStatus.exportFilter('ref-status-filter').replace('&','?')}`)).text();
+      const {headers,rows}=window.hnsDataExport.parseExportCsv(csv);
+      window.hnsDataExport.exportTablePdf({title:'Card Details',
+        subtitle:`${selectedEventName} · current status filter · Save as PDF in the print dialog`,headers,rows});
+    }catch(error){status(els.feedback,`PDF export failed: ${error.message}`,true);}
+    finally{button.disabled=false;}
   });
   els.table.addEventListener('click',async(event)=>{
     const button=event.target.closest('button[data-id]');if(!button)return;

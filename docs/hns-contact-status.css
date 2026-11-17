@@ -1,0 +1,20 @@
+/* Card to Deal contact pipeline status: scoped to three private admin tables. */
+.hns-admin .hns-status-toolbar {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hns-admin .hns-status-filter-label {display:inline-flex;align-items:center;gap:8px;color:#475d83;font-size:12px;font-weight:700;white-space:nowrap}
+.hns-admin .hns-status-filter,.hns-admin .hns-row-status {font-family:inherit;color:#102b68;border:1px solid #bdcef0;background:#fff;border-radius:10px;min-height:38px;padding:7px 32px 7px 10px;font-size:12px;max-width:100%;cursor:pointer}
+.hns-admin .hns-row-status {min-width:155px;font-weight:700}
+.hns-admin .hns-row-status[data-state="won"] {background:#e7f8ee;border-color:#82d5a7;color:#0c7044}
+.hns-admin .hns-row-status[data-state="lost"] {background:#fff0f0;border-color:#efb5ba;color:#a52938}
+.hns-admin .hns-row-status[data-state="qtn-send"] {background:#fff7db;border-color:#e5c55b;color:#775300}
+.hns-admin .hns-row-status[data-state="follow-up-started"] {background:#eaf2ff;border-color:#a9c6f7;color:#174c97}
+.hns-admin .hns-row-status:disabled {opacity:.65;cursor:not-allowed}
+.hns-admin .hns-status-connection{font-size:11px;color:#52698f;margin:5px 0 9px}
+.hns-admin .hns-status-connection.hns-status-error{color:#aa2c38;font-weight:700}
+.hns-admin #customers .table-scroll,.hns-admin .refs-table-wrap,.hns-admin .leads-table-scroll{overflow-x:auto}
+.hns-admin #customers table,.hns-admin .refs-table-wrap table,.hns-admin .leads-table-scroll table{min-width:740px}
+@media(max-width:640px){
+ .hns-admin .hns-status-toolbar{align-items:stretch;gap:10px}
+ .hns-admin .hns-status-filter-label{width:100%;justify-content:space-between;white-space:normal}
+ .hns-admin .hns-status-filter{min-width:185px;max-width:70%}
+ .hns-admin .hns-status-toolbar .search-box{width:100%;max-width:none}
+}

@@ -275,7 +275,7 @@
     ui.exportXlsx.disabled=true;
     try {
       const XLSX=await loadXlsx();
-      const csv=await(await leadApi('/api/admin/business-cards/export.csv')).text();
+      const csv=await(await leadApi(`/api/admin/business-cards/export.csv${window.HNSContactStatus.exportFilter('lead-status-filter').replace('&','?')}`)).text();
       const grid=parseCsvToRows(csv);
       if(!grid.length)throw new Error('No contacts to export.');
       // The CSV export prefixes dangerous formula-like values with an apostrophe.
@@ -288,7 +288,7 @@
         if (address.startsWith('!')) continue;
         if (typeof ws[address].v === 'string') {ws[address].t='s';delete ws[address].f;}
       }
-      ws['!cols']=[{wch:26},{wch:31},{wch:33},{wch:22},{wch:25},{wch:30},{wch:23},{wch:36},{wch:26},{wch:26}];
+      ws['!cols']=[{wch:26},{wch:31},{wch:33},{wch:22},{wch:25},{wch:30},{wch:23},{wch:36},{wch:26},{wch:26},{wch:22}];
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Event Contacts');
       XLSX.writeFile(wb,`${selectedEventSlug}-Business-Card-Leads.xlsx`);
     }catch(error){alert(`Could not export Excel file: ${error.message||'Please try the CSV export.'}`);}

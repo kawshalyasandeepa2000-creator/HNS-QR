@@ -112,14 +112,15 @@ function makeCell(row, index) {
 
 function renderRecords() {
   const query = dom.search.value.trim().toLowerCase();
-  const filtered = recentRecords.filter(row => [
+  const pipelineFilter = window.HNSContactStatus?.getFilter('qr-status-filter') || 'all';
+  const filtered = recentRecords.filter(row => (window.HNSContactStatus?.matches('qr', row.code, pipelineFilter) ?? true) && [
     row.fullName, row.mobileNumber, row.email, row.code, row.createdAt
   ].some(value => String(value || "").toLowerCase().includes(query)));
   dom.records.replaceChildren();
   if (filtered.length === 0) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 5;
+    td.colSpan = 6;
     td.className = "empty-records";
     td.textContent = query ? "No customers match this search." : "No referral registrations yet.";
     tr.append(td);
@@ -129,16 +130,19 @@ function renderRecords() {
       const tr = document.createElement("tr");
       [row.fullName || "—", row.mobileNumber || "—", row.email || "—", row.code || "—", row.createdAt || "—"]
         .forEach((value, index) => tr.append(makeCell(value, index)));
+      const statusTd = document.createElement('td');
+      statusTd.append(window.HNSContactStatus.create('qr', row.code, row.fullName || row.code));
+      tr.append(statusTd);
       dom.records.append(tr);
     }
   }
   $("#display-count").textContent = `${filtered.length} of ${recentRecords.length} QR registrations shown`;
   const olderBody = $("#legacy-referral-rows");
   olderBody.replaceChildren();
-  const older = oldRecords.filter(row => [row.fullName,row.mobileNumber,row.email,row.code,row.createdAt]
+  const older = oldRecords.filter(row => (window.HNSContactStatus?.matches('qr', row.code, pipelineFilter) ?? true) && [row.fullName,row.mobileNumber,row.email,row.code,row.createdAt]
     .some(value => String(value||"").toLowerCase().includes(query)));
-  if (!older.length) { const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.textContent="No legacy registrations for this event.";tr.append(td);olderBody.append(tr); }
-  else for (const row of older) { const tr=document.createElement("tr");[row.fullName||"—",row.mobileNumber||"—",row.email||"—",row.code||"—",row.createdAt||"—"].forEach((value,i)=>tr.append(makeCell(value,i)));olderBody.append(tr); }
+  if (!older.length) { const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=6;td.textContent="No other registrations match this filter.";tr.append(td);olderBody.append(tr); }
+  else for (const row of older) { const tr=document.createElement("tr");[row.fullName||"—",row.mobileNumber||"—",row.email||"—",row.code||"—",row.createdAt||"—"].forEach((value,i)=>tr.append(makeCell(value,i)));const statusTd=document.createElement('td');statusTd.append(window.HNSContactStatus.create('qr',row.code,row.fullName||row.code));tr.append(statusTd);olderBody.append(tr); }
 }
 
 function paintStats(data) {
@@ -253,6 +257,8 @@ async function fetchDashboard() {
   const event = selectedEventSlug;
   const data = await (await api(`/api/admin/stats?event=${encodeURIComponent(event)}`)).json();
   if (generation !== eventLoadSerial || event !== selectedEventSlug) return data;
+  await window.HNSContactStatus.load();
+  if (generation !== eventLoadSerial || event !== selectedEventSlug) return data;
   paintStats(data);
   if (currentView === "qr-flyer") buildQR();
   return data;
@@ -299,9 +305,13 @@ $("#refresh-button").addEventListener("click", async () => {
 });
 
 dom.search.addEventListener("input", renderRecords);
+$('#qr-status-filter').addEventListener('change', renderRecords);
+$('#lead-status-filter').addEventListener('change', renderBusinessCardLeads);
+window.addEventListener('hns:contact-statuses-changed', () => { renderRecords(); renderBusinessCardLeads(); });
 
 $("#logout-button").addEventListener("click", () => {
   adminToken = "";
+  window.HNSContactStatus?.reset();
   recentRecords = [];
   oldRecords = [];
   ++eventLoadSerial;
@@ -413,7 +423,7 @@ $("#csv-button").addEventListener("click", async () => {
   const button = $("#csv-button");
   button.disabled = true;
   try {
-    const blob = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}&source=qr`)).blob();
+    const blob = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}&source=qr${window.HNSContactStatus.exportFilter('qr-status-filter')}`)).blob();
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = objectUrl;
@@ -431,7 +441,7 @@ $("#qr-export-pdf").addEventListener("click", async () => {
   button.disabled = true;
   dom.adminError.textContent = "";
   try {
-    const csv = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}&source=qr`)).text();
+    const csv = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}&source=qr${window.HNSContactStatus.exportFilter('qr-status-filter')}`)).text();
     const { headers, rows } = parseExportCsv(csv);
     exportTablePdf({
       title: "QR Referral Scan",
@@ -1405,14 +1415,16 @@ function leadCell(value,kind) {
 }
 function renderBusinessCardLeads() {
   const q=leadEls.search.value.trim().toLowerCase();
-  const list=leadsList.filter(lead=> [lead.personName,lead.companyName,lead.email,lead.phone,lead.jobTitle,lead.eventName].some(v=>String(v||'').toLowerCase().includes(q)));
+  const filter=window.HNSContactStatus?.getFilter('lead-status-filter')||'all';
+  const list=leadsList.filter(lead=> (window.HNSContactStatus?.matches('scanned',lead.id,filter)??true) && [lead.personName,lead.companyName,lead.email,lead.phone,lead.jobTitle,lead.eventName].some(v=>String(v||'').toLowerCase().includes(q)));
   leadEls.rows.replaceChildren();
   if (!list.length) {
-    const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=7;td.textContent=q?'No matching business contacts.':'No saved business cards yet.';tr.append(td);leadEls.rows.append(tr);
+    const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=8;td.textContent=q||filter!=='all'?'No contacts match this search/status filter.':'No saved business cards yet.';tr.append(td);leadEls.rows.append(tr);
   }
   for(const lead of list){
     const tr=document.createElement('tr');
     [['personName',null],['companyName',null],['email','email'],['phone','phone'],['jobTitle',null],['createdAt',null]].forEach(([key,kind])=>tr.append(leadCell(lead[key],kind)));
+    const statusTd=document.createElement('td');statusTd.append(window.HNSContactStatus.create('scanned',lead.id,lead.personName||lead.companyName));tr.append(statusTd);
     const td=document.createElement('td');const controls=document.createElement('div');controls.className='leads-row-actions';
     const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.dataset.action='edit';edit.dataset.id=lead.id;
     const del=document.createElement('button');del.type='button';del.textContent='Delete';del.className='lead-delete-btn';del.dataset.action='delete';del.dataset.id=lead.id;
@@ -1465,7 +1477,7 @@ leadEls.rows.addEventListener('click',async event => {
 $('#leads-export').addEventListener('click',async()=>{
   const button=$('#leads-export');button.disabled=true;
   try {
-    const blob=await(await leadApi('/api/admin/business-cards/export.csv')).blob();
+    const blob=await(await leadApi(`/api/admin/business-cards/export.csv${window.HNSContactStatus.exportFilter('lead-status-filter').replace('&','?')}`)).blob();
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
     a.download=`Helen-and-Sons-Scan-Card-${selectedEventSlug}.csv`;document.body.append(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -1474,7 +1486,7 @@ $('#leads-export').addEventListener('click',async()=>{
 async function exportScanCardPdf(button) {
   if (button) button.disabled = true;
   try {
-    const csv = await (await leadApi('/api/admin/business-cards/export.csv')).text();
+    const csv = await (await leadApi(`/api/admin/business-cards/export.csv${window.HNSContactStatus.exportFilter('lead-status-filter').replace('&','?')}`)).text();
     const { headers, rows } = parseExportCsv(csv);
     exportTablePdf({
       title: 'Scan Card contacts',
@@ -1597,6 +1609,10 @@ function switchEvent(slug){
   const target=eventList.find(item=>item.slug===slug);
   if(!target||!eventsBackendReady)return;
   if(leadEditingId)resetLeadForm();
+  window.HNSContactStatus?.reset();
+  for (const id of ['qr-status-filter','ref-status-filter','lead-status-filter']) {
+    const select=document.getElementById(id);if(select)select.value='all';
+  }
   selectedEventSlug=target.slug;selectedEventName=target.name;
   $("#event-select").value=slug;
   updateEventLinks();
