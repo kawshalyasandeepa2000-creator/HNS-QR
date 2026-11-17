@@ -144,6 +144,7 @@ function renderRecords() {
 function paintStats(data) {
   const list = Array.isArray(data?.recent) ? data.recent : [];
   const isNewApi = Array.isArray(data?.recentQr) && Array.isArray(data?.recentLegacy);
+  const isTracked = isNewApi && data?.sourceTrackingReady !== false;
   recentRecords = isNewApi ? data.recentQr : [];
   oldRecords = isNewApi ? data.recentLegacy : list;
   $("#campaign-name").textContent = selectedEventName;
@@ -412,7 +413,7 @@ $("#csv-button").addEventListener("click", async () => {
   const button = $("#csv-button");
   button.disabled = true;
   try {
-    const blob = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}`)).blob();
+    const blob = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}&source=qr`)).blob();
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = objectUrl;
@@ -430,7 +431,7 @@ $("#qr-export-pdf").addEventListener("click", async () => {
   button.disabled = true;
   dom.adminError.textContent = "";
   try {
-    const csv = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}`)).text();
+    const csv = await (await api(`/api/admin/export.csv?event=${encodeURIComponent(selectedEventSlug)}&source=qr`)).text();
     const { headers, rows } = parseExportCsv(csv);
     exportTablePdf({
       title: "QR Referral Scan",
@@ -641,6 +642,7 @@ function resetLeadForm(options = {}) {
   if (options.clearVoice) {
     const note = $('#lead-voice-note');
     if (note) note.value = '';
+    refreshLeadSharePreview();
     setLeadShareStatus('');
   }
   for (const input of [leadFields.personName, leadFields.phone, leadFields.email]) {
@@ -648,6 +650,7 @@ function resetLeadForm(options = {}) {
   }
   const readout = $('#lead-readout');
   if (readout) readout.hidden = true;
+  refreshLeadSharePreview();
 }
 $('#lead-clear').addEventListener('click', () => resetLeadForm({clearVoice:true}));
 for (const input of [leadFields.personName, leadFields.phone, leadFields.email]) {
@@ -1108,6 +1111,7 @@ $('#lead-mic').addEventListener('click', () => {
       } else interim += piece;
     }
     note.value = `${leadVoiceCommitted}${interim ? ` ${interim}` : ''}`.trim();
+    refreshLeadSharePreview();
   };
   rec.onerror = event => {
     if (event.error === 'aborted' || event.error === 'no-speech') return;
@@ -1123,33 +1127,60 @@ $('#lead-mic').addEventListener('click', () => {
     button.classList.remove('is-listening');
     button.setAttribute('aria-pressed', 'false');
     button.textContent = '🎤 Mic';
-    if (note.value.trim()) setLeadShareStatus('Voice note ready. Send it on WhatsApp or email.');
+    refreshLeadSharePreview();
+    if (note.value.trim()) setLeadShareStatus('Transcript ready. Review the message and select WhatsApp or Email.');
   };
   try { rec.start(); }
   catch { setLeadShareStatus('Microphone is already in use. Stop it, then try again.', true); }
 });
 
+// The card's phone and email are CONTENT, never the outbound recipient.
+// An administrator explicitly chooses the outbound WhatsApp/email destination.
 function leadShareText() {
   const payload = leadFormPayload();
-  const note = ($('#lead-voice-note')?.value || '').trim();
-  const lines = ['Helen and Sons business card'];
-  if (payload.personName) lines.push(`Name: ${payload.personName}`);
-  if (payload.companyName) lines.push(`Company: ${payload.companyName}`);
-  if (payload.phone) lines.push(`Mobile: ${payload.phone}`);
-  if (payload.email) lines.push(`Email: ${payload.email}`);
-  if (payload.jobTitle) lines.push(`Title: ${payload.jobTitle}`);
-  if (payload.website) lines.push(`Website: ${payload.website}`);
-  if (payload.eventName) lines.push(`Event: ${payload.eventName}`);
-  if ((!payload.personName || !payload.phone || !payload.email) && leadImageCanvas) {
-    lines.push('', 'Some card details were not read. The card photo is included.');
-  }
-  if (note) lines.push('', note);
+  const transcript = ($('#lead-voice-note')?.value || '').trim();
+  const lines = ['HELEN & SONS | Business Card Details'];
+  const fields = [
+    ['Person name', payload.personName],
+    ['Company', payload.companyName],
+    ['Phone / WhatsApp (on card)', payload.phone],
+    ['Email (on card)', payload.email],
+    ['Job title', payload.jobTitle],
+    ['Website', payload.website],
+    ['Event', payload.eventName]
+  ];
+  for (const [label, value] of fields) if (value) lines.push(`${label}: ${value}`);
+  if (payload.notes) lines.push('', 'Meeting notes:', payload.notes);
+  if (transcript) lines.push('', 'Voice transcript:', transcript);
   return {
     text: lines.join('\n'),
-    phone: payload.phone.replace(/\D/g, ''),
-    email: payload.email,
-    note
+    hasDetails: !!(payload.personName || payload.companyName || payload.phone || payload.email || payload.jobTitle || payload.website || payload.notes || transcript),
+    transcript
   };
+}
+
+function refreshLeadSharePreview() {
+  const preview = $('#lead-share-preview');
+  if (preview) preview.value = leadShareText().text;
+}
+
+// Preview updates whenever form fields or the dictated / manually typed note changes.
+for (const field of Object.values(leadFields)) field.addEventListener('input', refreshLeadSharePreview);
+$('#lead-voice-note')?.addEventListener('input', refreshLeadSharePreview);
+refreshLeadSharePreview();
+
+function whatsappRecipient() {
+  const raw = ($('#lead-share-wa-destination')?.value || '').trim();
+  if (!raw) return '';
+  const digits = raw.replace(/[\s()+.\-]/g, '');
+  if (!/^[1-9]\d{7,14}$/.test(digits)) throw new Error('Enter a valid international WhatsApp number, e.g. +971501234567, or leave it blank.');
+  return digits;
+}
+
+function emailRecipient() {
+  const email = ($('#lead-share-email-destination')?.value || '').trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid destination email address, or leave it blank.');
+  return email;
 }
 
 function downloadLeadFile(file) {
@@ -1172,42 +1203,60 @@ async function leadCardFile() {
 }
 
 async function sendLeadCard(channel) {
+  // Do not share a partial transcription while the mic is still capturing speech.
+  if (leadListening) {
+    setLeadShareStatus('Tap Stop mic first, check the transcript, then share.', true);
+    return;
+  }
   const share = leadShareText();
-  const hasSomething = share.note || share.phone || share.email || leadFields.personName.value.trim() || leadFields.companyName.value.trim() || leadImageCanvas;
-  if (!hasSomething) {
-    setLeadShareStatus('Scan a card or speak a note before sending.', true);
+  if (!share.hasDetails) {
+    setLeadShareStatus('Fill in card details or speak/type a voice note before sharing.', true);
     return;
   }
-  const file = await leadCardFile();
-  if (channel === 'whatsapp' && file && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], text: share.text, title: 'Business card' });
-      setLeadShareStatus('Shared. Choose WhatsApp to send the card photo and the words.');
-      return;
-    } catch (error) {
-      if (error?.name === 'AbortError') return;
-    }
-  }
+  let to;
+  try { to = channel === 'whatsapp' ? whatsappRecipient() : emailRecipient(); }
+  catch (error) { setLeadShareStatus(error.message, true); return; }
+
   if (channel === 'whatsapp') {
-    const target = share.phone.length >= 8 && share.phone.length <= 15 ? share.phone : '';
-    window.open(`https://wa.me/${target}?text=${encodeURIComponent(share.text)}`, '_blank', 'noopener,noreferrer');
-    if (file) {
-      downloadLeadFile(file);
-      setLeadShareStatus('WhatsApp opened. The card photo downloaded — attach that image in the chat.');
-    } else setLeadShareStatus('WhatsApp opened with the note.');
+    // wa.me opens a chat draft. The user must choose/verify the chat and tap Send.
+    // Never default to the number printed on the scanned business card.
+    const url = `https://wa.me/${to}?text=${encodeURIComponent(share.text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    // noopener browsers can return null even when the new tab opened correctly.
+    setLeadShareStatus('WhatsApp draft requested. Check the recipient and tap Send. If no tab opened, allow popups or copy the message. Photo attachments are separate.');
     return;
   }
-  const mail = document.createElement('a');
-  mail.href = `mailto:${share.email}?subject=${encodeURIComponent('Business card')}&body=${encodeURIComponent(share.text)}`;
-  mail.click();
-  if (file) {
-    downloadLeadFile(file);
-    setLeadShareStatus('Email opened. The card photo downloaded — attach that image. Email cannot attach the photo by itself.');
-  } else setLeadShareStatus('Email opened with the note.');
+  // mailto only opens an unsent draft in the user's mail app, no mail server change.
+  const subject = 'Helen & Sons | Business card and voice transcript';
+  const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(share.text)}`;
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setLeadShareStatus('Email draft opened. Confirm recipient and transcript, then click Send. Attach photo manually if needed.');
 }
 
-$('#lead-send-whatsapp').addEventListener('click', () => { sendLeadCard('whatsapp'); });
-$('#lead-send-email').addEventListener('click', () => { sendLeadCard('email'); });
+$('#lead-send-whatsapp').addEventListener('click', () => { void sendLeadCard('whatsapp'); });
+$('#lead-send-email').addEventListener('click', () => { void sendLeadCard('email'); });
+$('#lead-copy-message').addEventListener('click', async () => {
+  const share = leadShareText();
+  if (!share.hasDetails) { setLeadShareStatus('Nothing to copy yet. Enter card details or a voice note.', true); return; }
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(share.text);
+    else {
+      const temp = document.createElement('textarea');
+      temp.value = share.text;
+      temp.style.position = 'fixed'; temp.style.opacity = '0';
+      document.body.append(temp); temp.select();
+      if (!document.execCommand('copy')) throw new Error('Browser denied clipboard access.');
+      temp.remove();
+    }
+    setLeadShareStatus('Card details + voice transcript copied. Paste into WhatsApp or email.');
+  } catch {
+    setLeadShareStatus('Could not copy automatically. Select and copy the message preview above.', true);
+  }
+});
 
 function leadFormPayload() {
   return Object.fromEntries(Object.entries(leadFields).map(([key,input]) => [key,input.value.trim()]));
