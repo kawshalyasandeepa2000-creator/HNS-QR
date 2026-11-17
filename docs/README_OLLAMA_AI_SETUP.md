@@ -30,7 +30,7 @@ Log in as Admin, Scan Card, correct OCR data, speak/type inquiry, review it, tic
 
 ## Privacy and caveats
 
-Only the inquiry transcript (with best-effort phone/email redaction) and approved company knowledge are sent to Ollama Cloud, **not** the client card image, phone, email, or contact name. Avoid putting names, identifiers or other confidential details in the inquiry. Ollama is an external cloud AI processor, so follow your consent/privacy practices. Cloud models may need a qualifying plan/credits; the example model may change. Model responses must be reviewed for accuracy before sending.
+For client AI draft generation, only the inquiry transcript (with best-effort phone/email redaction) and approved company knowledge are sent to Ollama Cloud. **Separately**, choosing Scan with Ollama Vision after explicit consent sends a resized business-card photo to Ollama Cloud. It is not persisted by the application. Avoid putting names, identifiers or other confidential details in the inquiry. Ollama is an external cloud AI processor, so follow your consent/privacy practices. Cloud models may need a qualifying plan/credits; the example model may change. Model responses must be reviewed for accuracy before sending.
 
 The integration is locally code-tested with mock Ollama responses; this package is **NOT live-deployed or verified with your secret**, and does not automatically send WhatsApp or email messages.
 

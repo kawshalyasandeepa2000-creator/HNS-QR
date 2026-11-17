@@ -1,0 +1,20 @@
+CARD TO DEAL — BUSINESS CARD SCANNER BUTTON (17 Nov 2026)
+
+What changed
+- Scan Card screen has a prominent Business Card Scanner open/hide button.
+- Default state: scanner is collapsed, saved event contacts remain visible below.
+- Clicking Open Scanner reveals ALL existing camera, photo, OCR, crop/deep scan, client-note, Ollama AI, image sharing, save/edit and form features unchanged.
+- Editing an existing saved contact auto-opens the scanner form.
+- Hiding a scanner with its camera running calls the existing Close Camera handler to stop the stream.
+- Mobile button spans width for comfortable touch.
+
+GitHub update (no Cloudflare change)
+1. Back up your current GitHub docs/admin.html (commit history suffices for rollback).
+2. Open repository docs/ folder -> Add file -> Upload files.
+3. Upload the admin.html file contained in the small update ZIP (not the ZIP itself), replacing docs/admin.html.
+4. Commit, wait for GitHub Pages deployment, hard refresh (Ctrl+Shift+R).
+5. Open Scan Card: saved contacts visible; press Open Scanner, then Hide Scanner. Test Edit on a saved contact, client note/AI, and photo scanner.
+
+Do NOT overwrite Cloudflare Worker or D1 for this UI-only change.
+Cloudflare data is not bundled into these source ZIPs.
+Use the latest Status Update version as base; files other than docs/admin.html are unchanged.
