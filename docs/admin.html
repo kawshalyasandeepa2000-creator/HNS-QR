@@ -235,6 +235,35 @@
       .hns-admin #business-cards .leads-toolbar .btn,.hns-admin #business-cards .leads-toolbar .leads-file-button{font-size:11px}
     }
   </style>
+  <style id="hns-scanner-button-toggle-v1">
+    /* A progressive-enhancement toggle. Does not change scanner JS, IDs, backend or D1. */
+    .hns-admin #business-cards .hns-business-scanner-switch{margin:0 0 20px;min-width:0}
+    .hns-admin #business-cards .hns-scanner-launch{list-style:none;cursor:pointer;display:flex;align-items:center;gap:15px;padding:19px 20px;border-radius:19px;border:1px solid #cfdcf0;background:linear-gradient(110deg,#ffffff,#f5f8ff);box-shadow:0 8px 25px rgba(11,36,99,.08);color:#102e6c;outline-offset:4px;transition:box-shadow .15s ease,transform .15s ease}
+    .hns-admin #business-cards .hns-scanner-launch::-webkit-details-marker{display:none}
+    .hns-admin #business-cards .hns-scanner-launch::marker{content:""}
+    .hns-admin #business-cards .hns-scanner-launch:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(11,36,99,.13)}
+    .hns-admin #business-cards .hns-scanner-launch:focus-visible{outline:3px solid #f5c342}
+    .hns-admin #business-cards .hns-scanner-launch-emblem{display:flex;align-items:center;justify-content:center;flex:none;width:46px;height:46px;border-radius:14px;background:#e5edff;color:#123a80;font-size:25px;font-weight:800}
+    .hns-admin #business-cards .hns-scanner-launch-copy{display:flex;flex-direction:column;min-width:0;gap:4px;flex:1}
+    .hns-admin #business-cards .hns-scanner-launch-copy strong{font-size:17px;font-weight:800;line-height:1.25;letter-spacing:-.35px;color:#0f2b68}
+    .hns-admin #business-cards .hns-scanner-launch-copy small{font-size:11px;line-height:1.5;font-weight:500;color:#5d7297}
+    .hns-admin #business-cards .hns-scanner-launch-action{flex:none;display:flex;align-items:center;justify-content:center;gap:12px;padding:13px 17px;border-radius:12px;background:linear-gradient(110deg,#f7da68,#e5b62d);box-shadow:0 4px 0 #b58e1e;border:1px solid #d7ad35;font-size:12px;font-weight:800;color:#0c2964;min-width:138px}
+    .hns-admin #business-cards .hns-scanner-launch .hns-scanner-close-text{display:none}
+    .hns-admin #business-cards .hns-business-scanner-switch[open] .hns-scanner-launch .hns-scanner-open-text{display:none}
+    .hns-admin #business-cards .hns-business-scanner-switch[open] .hns-scanner-launch .hns-scanner-close-text{display:inline}
+    .hns-admin #business-cards .hns-business-scanner-switch[open] .hns-scanner-chevron{transform:rotate(180deg)}
+    .hns-admin #business-cards .hns-scanner-chevron{font-size:18px;display:inline-block;transition:transform .17s ease}
+    .hns-admin #business-cards .hns-scanner-expanded{padding-top:17px;min-width:0}
+    @media(max-width:650px){
+      .hns-admin #business-cards .hns-scanner-launch{gap:10px;padding:13px;border-radius:15px;flex-wrap:wrap}
+      .hns-admin #business-cards .hns-scanner-launch-emblem{width:39px;height:39px;font-size:21px;border-radius:11px}
+      .hns-admin #business-cards .hns-scanner-launch-copy strong{font-size:14px}
+      .hns-admin #business-cards .hns-scanner-launch-copy small{font-size:10px}
+      .hns-admin #business-cards .hns-scanner-launch-action{width:100%;padding:10px 13px;min-height:43px;min-width:0}
+      .hns-admin #business-cards .hns-scanner-expanded{padding-top:12px}
+    }
+    @media(prefers-reduced-motion:reduce){.hns-admin #business-cards .hns-scanner-launch,.hns-admin #business-cards .hns-scanner-chevron{transition:none}}
+  </style>
 </head>
 <body class="hns-admin">
 <div class="dashboard-shell">
@@ -322,6 +351,21 @@
               <button class="btn btn-outline" type="button" id="leads-refresh">↻ Refresh</button>
             </div>
           </div>
+          <!-- Optional scanner workspace. All original scanner controls remain in the DOM unchanged. -->
+          <details id="hns-business-scanner-switch" class="hns-business-scanner-switch">
+            <summary class="hns-scanner-launch" aria-label="Open or close the complete business card scanner">
+              <span class="hns-scanner-launch-emblem" aria-hidden="true">▤</span>
+              <span class="hns-scanner-launch-copy">
+                <strong>Business Card Scanner</strong>
+                <small>Open camera, scan photos, use Client Note &amp; AI, and save contacts</small>
+              </span>
+              <span class="hns-scanner-launch-action" aria-hidden="true">
+                <span class="hns-scanner-open-text">Open Scanner</span>
+                <span class="hns-scanner-close-text">Hide Scanner</span>
+                <span class="hns-scanner-chevron">⌄</span>
+              </span>
+            </summary>
+            <div class="hns-scanner-expanded">
           <div class="hns-scan-steps" aria-label="How it works">
             <span><b>01</b> Add card image</span><i aria-hidden="true">›</i><span><b>02</b> Review details</span><i aria-hidden="true">›</i><span><b>03</b> Save or share</span>
           </div>
@@ -438,6 +482,8 @@
               <p id="lead-save-status" class="lead-scan-status" role="status" aria-live="polite"></p>
             </form>
           </div>
+            </div>
+          </details>
           <div class="leads-directory">
             <div class="section-row"><div><p class="section-kicker">PRIVATE BUSINESS CONTACTS</p><h3>Saved event contacts</h3><p class="section-description" id="lead-total-label">Open this section to load your contacts.</p></div>
               <div class="lead-import-top-actions">
@@ -526,6 +572,23 @@
   });
   new MutationObserver(update).observe(preview,{attributes:true,attributeFilter:['src','class']});
   update();
+})();
+</script>
+<script id="hns-scanner-toggle-safety-v1">
+/* Preserve every original scanner operation; only control its visibility. */
+(() => {
+  const toggle = document.getElementById('hns-business-scanner-switch');
+  if (!toggle) return;
+  // When closing while live camera is on, invoke the existing camera-stop handler.
+  toggle.addEventListener('toggle', () => {
+    if (!toggle.open && !document.getElementById('leads-webcam')?.classList.contains('hidden')) {
+      document.getElementById('lead-close-webcam')?.click();
+    }
+  });
+  // Editing a saved card must expose its existing contact form before the old scroll handler runs.
+  document.getElementById('lead-rows')?.addEventListener('click', event => {
+    if (event.target.closest('button[data-action="edit"]')) toggle.open = true;
+  }, true);
 })();
 </script>
 </body></html>
