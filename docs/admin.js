@@ -1079,6 +1079,15 @@ let leadRecognizer = null;
 let leadListening = false;
 let leadVoiceCommitted = '';
 
+// Manual typing and microphone transcription share this same Client Note field.
+// The existing AI handler reads #lead-voice-note regardless of how it was entered.
+$('#lead-note-type')?.addEventListener('click', () => {
+  if (leadListening) { try { leadRecognizer?.stop(); } catch {} }
+  const note = $('#lead-voice-note');
+  note?.focus();
+  setLeadShareStatus('Type your client enquiry in Client Note, then tap Generate AI reply.');
+});
+
 $('#lead-mic').addEventListener('click', () => {
   const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
   const button = $('#lead-mic');
@@ -1131,7 +1140,7 @@ $('#lead-mic').addEventListener('click', () => {
     button.setAttribute('aria-pressed', 'false');
     button.textContent = '🎤 Mic';
     refreshLeadSharePreview();
-    if (note.value.trim()) setLeadShareStatus('Transcript ready. Prepare an editable service reply before sharing with the client.');
+    if (note.value.trim()) setLeadShareStatus('Client Note ready. Generate an AI reply or use the offline template before sending.');
   };
   try { rec.start(); }
   catch { setLeadShareStatus('Microphone is already in use. Stop it, then try again.', true); }
@@ -1232,11 +1241,11 @@ $('#lead-generate-ai-reply')?.addEventListener('click', async () => {
   }
   const inquiry = ($('#lead-voice-note')?.value || '').trim();
   if (inquiry.length < 8 || inquiry.length > 2200) {
-    setLeadShareStatus('Speak or type an inquiry of 8–2200 characters first.', true);
+    setLeadShareStatus('Type or speak a Client Note of 8–2200 characters first.', true);
     return;
   }
   if (!$('#lead-ollama-consent')?.checked) {
-    setLeadShareStatus('Review the transcript and tick the Ollama Cloud consent box first.', true);
+    setLeadShareStatus('Review the Client Note and tick the Ollama Cloud consent box first.', true);
     return;
   }
   if (!adminToken || dom.dashboard.classList.contains('hidden')) {
@@ -1270,7 +1279,7 @@ $('#lead-generate-ai-reply')?.addEventListener('click', async () => {
   } finally {
     clearTimeout(timer);
     button.disabled = false;
-    button.textContent = '✨ Generate AI reply (Ollama)';
+    button.textContent = '✨ Generate AI reply';
   }
 });
 
