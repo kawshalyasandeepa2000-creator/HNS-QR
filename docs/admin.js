@@ -642,6 +642,8 @@ function resetLeadForm(options = {}) {
   if (options.clearVoice) {
     const note = $('#lead-voice-note');
     if (note) note.value = '';
+    const reply = $('#lead-share-preview');
+    if (reply) reply.value = '';
     refreshLeadSharePreview();
     setLeadShareStatus('');
   }
@@ -881,6 +883,7 @@ function fillLeadFields(values) {
   for (const [key, input] of Object.entries(leadFields)) {
     input.value = typeof values[key] === 'string' ? values[key] : (key === 'eventName' ? selectedEventName : '');
   }
+  refreshLeadSharePreview();
 }
 
 async function decodeLeadFile(file) {
@@ -1128,60 +1131,148 @@ $('#lead-mic').addEventListener('click', () => {
     button.setAttribute('aria-pressed', 'false');
     button.textContent = '🎤 Mic';
     refreshLeadSharePreview();
-    if (note.value.trim()) setLeadShareStatus('Transcript ready. Review the message and select WhatsApp or Email.');
+    if (note.value.trim()) setLeadShareStatus('Transcript ready. Prepare an editable service reply before sharing with the client.');
   };
   try { rec.start(); }
   catch { setLeadShareStatus('Microphone is already in use. Stop it, then try again.', true); }
 });
 
-// The card's phone and email are CONTENT, never the outbound recipient.
-// An administrator explicitly chooses the outbound WhatsApp/email destination.
+// Point 4: the CLIENT printed on the card is the destination; never your company's number.
+// Your company account is the WhatsApp session / default mail app chosen on the device.
+function normalizedClientWhatsApp(raw) {
+  const compact = String(raw || '').trim().replace(/[\s().-]/g, '');
+  if (!compact) return '';
+  let digits = compact.replace(/^\+/, '');
+  if (/^05\d{8}$/.test(digits)) digits = `971${digits.slice(1)}`;
+  else if (/^5\d{8}$/.test(digits)) digits = `971${digits}`;
+  if (!/^[1-9]\d{7,14}$/.test(digits)) return '';
+  return digits;
+}
+
+function clientEmail() {
+  const email = leadFields.email.value.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254 ? email : '';
+}
+
+function syncClientRecipients() {
+  const phoneRaw = leadFields.phone.value.trim();
+  const emailRaw = leadFields.email.value.trim();
+  $('#lead-share-wa-destination').value = phoneRaw;
+  $('#lead-share-email-destination').value = emailRaw;
+  const whatsapp = normalizedClientWhatsApp(phoneRaw);
+  const email = clientEmail();
+  $('#lead-send-whatsapp').disabled = !whatsapp;
+  $('#lead-send-email').disabled = !email;
+  const hint = $('#lead-recipient-hint');
+  if (hint) {
+    hint.textContent = !whatsapp && !email
+      ? 'Add/correct the client phone or email in Contact details to enable sending.'
+      : 'Client recipient auto-filled. Check the client details before opening a draft.';
+  }
+}
+
+// IMPORTANT: the outgoing message contains ONLY the approved client-facing reply.
+// Raw OCR card fields, phone/email and the voice transcript stay in the admin form.
 function leadShareText() {
-  const payload = leadFormPayload();
-  const transcript = ($('#lead-voice-note')?.value || '').trim();
-  const lines = ['HELEN & SONS | Business Card Details'];
-  const fields = [
-    ['Person name', payload.personName],
-    ['Company', payload.companyName],
-    ['Phone / WhatsApp (on card)', payload.phone],
-    ['Email (on card)', payload.email],
-    ['Job title', payload.jobTitle],
-    ['Website', payload.website],
-    ['Event', payload.eventName]
-  ];
-  for (const [label, value] of fields) if (value) lines.push(`${label}: ${value}`);
-  if (payload.notes) lines.push('', 'Meeting notes:', payload.notes);
-  if (transcript) lines.push('', 'Voice transcript:', transcript);
-  return {
-    text: lines.join('\n'),
-    hasDetails: !!(payload.personName || payload.companyName || payload.phone || payload.email || payload.jobTitle || payload.website || payload.notes || transcript),
-    transcript
-  };
+  const text = ($('#lead-share-preview')?.value || '').trim();
+  return { text, hasDetails: text.length > 0, transcript: ($('#lead-voice-note')?.value || '').trim() };
 }
 
 function refreshLeadSharePreview() {
-  const preview = $('#lead-share-preview');
-  if (preview) preview.value = leadShareText().text;
+  syncClientRecipients();
 }
 
-// Preview updates whenever form fields or the dictated / manually typed note changes.
+// Programmatic OCR and saved-contact editing do not dispatch browser 'input' events;
+// fillLeadFields() also calls refreshLeadSharePreview() after setting its fields.
 for (const field of Object.values(leadFields)) field.addEventListener('input', refreshLeadSharePreview);
 $('#lead-voice-note')?.addEventListener('input', refreshLeadSharePreview);
 refreshLeadSharePreview();
 
-function whatsappRecipient() {
-  const raw = ($('#lead-share-wa-destination')?.value || '').trim();
-  if (!raw) return '';
-  const digits = raw.replace(/[\s()+.\-]/g, '');
-  if (!/^[1-9]\d{7,14}$/.test(digits)) throw new Error('Enter a valid international WhatsApp number, e.g. +971501234567, or leave it blank.');
-  return digits;
+// This is an intentionally limited offline template, NOT Ollama or another AI model.
+// It cannot make promises about prices, approvals, eligibility or specific licence terms.
+function basicClientServiceReply(note, personName) {
+  const firstName = String(personName || '').trim().split(/\s+/)[0].slice(0, 50);
+  const greeting = `Hello${firstName ? ' ' + firstName : ''},`;
+  const text = String(note || '').toLowerCase();
+  const mainland = /\bmain\s*land\b/.test(text);
+  const freezone = /\bfree\s*zone\b/.test(text);
+  let subject = 'your enquiry';
+  let detail = 'We would be happy to discuss how our team can assist you.';
+  if (mainland && freezone) {
+    subject = 'UAE mainland and free zone company setup';
+    detail = 'Mainland and free zone setups can differ in activity permissions, licensing requirements, office options and visa processes. The best route depends on your planned business activity and operating needs.';
+  } else if (mainland) {
+    subject = 'mainland company setup in the UAE';
+    detail = 'For mainland company setup, the required licence, approvals, premises and documents depend on the business activity and relevant authority. Our team can help you understand the suitable next steps.';
+  } else if (freezone) {
+    subject = 'free zone company setup in the UAE';
+    detail = 'For free zone company setup, available activities, licence packages, workspace and visa options depend on the free zone authority. Our team can help you explore suitable options.';
+  }
+  return `${greeting}\n\nThank you for your interest in ${subject}.\n\n${detail}\n\nCould you share your planned business activity and any specific requirements? We can then discuss the next steps with you.\n\nKind regards,\nHelen & Sons Visa Consultancy`;
 }
 
-function emailRecipient() {
-  const email = ($('#lead-share-email-destination')?.value || '').trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid destination email address, or leave it blank.');
-  return email;
-}
+$('#lead-prepare-client-reply').addEventListener('click', () => {
+  if (leadListening) {
+    setLeadShareStatus('Please stop the microphone before preparing a reply.', true);
+    return;
+  }
+  const box = $('#lead-share-preview');
+  if (box.value.trim() && !confirm('Replace the current reply draft with a basic template?')) return;
+  box.value = basicClientServiceReply($('#lead-voice-note')?.value, leadFields.personName.value);
+  box.focus();
+  setLeadShareStatus('Basic draft prepared (not AI). Edit and check before sending.');
+});
+
+// Ollama AI: sends ONLY the reviewed enquiry text; no OCR/card fields, PII or images.
+// Uses the server-side Cloudflare Secret. Result is editable and NEVER auto-sent.
+$('#lead-generate-ai-reply')?.addEventListener('click', async () => {
+  if (leadListening) {
+    setLeadShareStatus('Stop the microphone before generating the AI reply.', true);
+    return;
+  }
+  const inquiry = ($('#lead-voice-note')?.value || '').trim();
+  if (inquiry.length < 8 || inquiry.length > 2200) {
+    setLeadShareStatus('Speak or type an inquiry of 8–2200 characters first.', true);
+    return;
+  }
+  if (!$('#lead-ollama-consent')?.checked) {
+    setLeadShareStatus('Review the transcript and tick the Ollama Cloud consent box first.', true);
+    return;
+  }
+  if (!adminToken || dom.dashboard.classList.contains('hidden')) {
+    setLeadShareStatus('Sign in to the Admin Dashboard first.', true);
+    return;
+  }
+  const output = $('#lead-share-preview');
+  if (output.value.trim() && !confirm('Replace the current reply with an AI-generated draft?')) return;
+  const button = $('#lead-generate-ai-reply');
+  button.disabled = true;
+  button.textContent = 'Generating AI reply…';
+  setLeadShareStatus('Preparing a client-facing reply with Ollama Cloud. Please review before sending.');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 38000);
+  try {
+    const response = await fetch(`${apiOrigin}/api/admin/ai/draft`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inquiry, confirmed: true }),
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || `AI unavailable (HTTP ${response.status})`);
+    if (typeof result.reply !== 'string' || !result.reply.trim()) throw new Error('AI returned no message.');
+    output.value = result.reply.trim();
+    output.focus();
+    setLeadShareStatus('AI draft ready. Check company claims and client recipient, then open an unsent WhatsApp/email draft.');
+  } catch (error) {
+    setLeadShareStatus(error.name === 'AbortError' ? 'AI request timed out. Please try again.' : `AI error: ${error.message || 'Unknown error'}. You can use the offline template.`, true);
+  } finally {
+    clearTimeout(timer);
+    button.disabled = false;
+    button.textContent = '✨ Generate AI reply (Ollama)';
+  }
+});
 
 function downloadLeadFile(file) {
   const url = URL.createObjectURL(file);
@@ -1202,59 +1293,56 @@ async function leadCardFile() {
   return new File([blob], `${safe}.jpg`, { type: 'image/jpeg' });
 }
 
-async function sendLeadCard(channel) {
-  // Do not share a partial transcription while the mic is still capturing speech.
+function sendLeadCard(channel) {
   if (leadListening) {
-    setLeadShareStatus('Tap Stop mic first, check the transcript, then share.', true);
+    setLeadShareStatus('Stop the mic before sharing a reply.', true);
     return;
   }
-  const share = leadShareText();
-  if (!share.hasDetails) {
-    setLeadShareStatus('Fill in card details or speak/type a voice note before sharing.', true);
+  const reply = leadShareText();
+  if (!reply.hasDetails) {
+    setLeadShareStatus('Write or prepare a client-facing reply first. The card details are not sent automatically.', true);
     return;
   }
-  let to;
-  try { to = channel === 'whatsapp' ? whatsappRecipient() : emailRecipient(); }
-  catch (error) { setLeadShareStatus(error.message, true); return; }
-
   if (channel === 'whatsapp') {
-    // wa.me opens a chat draft. The user must choose/verify the chat and tap Send.
-    // Never default to the number printed on the scanned business card.
-    const url = `https://wa.me/${to}?text=${encodeURIComponent(share.text)}`;
+    const to = normalizedClientWhatsApp(leadFields.phone.value);
+    if (!to) { setLeadShareStatus('Enter/correct the CLIENT WhatsApp number in Contact details.', true); return; }
+    // WhatsApp uses the account already logged into the user's device/app.
+    // The URL opens a DRAFT; the administrator reviews and presses Send.
+    const url = `https://wa.me/${to}?text=${encodeURIComponent(reply.text)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
-    // noopener browsers can return null even when the new tab opened correctly.
-    setLeadShareStatus('WhatsApp draft requested. Check the recipient and tap Send. If no tab opened, allow popups or copy the message. Photo attachments are separate.');
+    setLeadShareStatus('WhatsApp draft opened for the CLIENT number. Verify the chat and send from your logged-in company account.');
     return;
   }
-  // mailto only opens an unsent draft in the user's mail app, no mail server change.
-  const subject = 'Helen & Sons | Business card and voice transcript';
-  const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(share.text)}`;
+  const to = clientEmail();
+  if (!to) { setLeadShareStatus('Enter/correct the CLIENT email under Contact details.', true); return; }
+  const subject = 'Helen & Sons | Information about your enquiry';
+  const url = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reply.text)}`;
   const anchor = document.createElement('a');
   anchor.href = url;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  setLeadShareStatus('Email draft opened. Confirm recipient and transcript, then click Send. Attach photo manually if needed.');
+  setLeadShareStatus('Email draft opened for the CLIENT. Select your company sending account in the mail app, check the message and click Send.');
 }
 
-$('#lead-send-whatsapp').addEventListener('click', () => { void sendLeadCard('whatsapp'); });
-$('#lead-send-email').addEventListener('click', () => { void sendLeadCard('email'); });
+$('#lead-send-whatsapp').addEventListener('click', () => { sendLeadCard('whatsapp'); });
+$('#lead-send-email').addEventListener('click', () => { sendLeadCard('email'); });
 $('#lead-copy-message').addEventListener('click', async () => {
-  const share = leadShareText();
-  if (!share.hasDetails) { setLeadShareStatus('Nothing to copy yet. Enter card details or a voice note.', true); return; }
+  const reply = leadShareText();
+  if (!reply.hasDetails) { setLeadShareStatus('Write or prepare the client reply first.', true); return; }
   try {
-    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(share.text);
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(reply.text);
     else {
       const temp = document.createElement('textarea');
-      temp.value = share.text;
+      temp.value = reply.text;
       temp.style.position = 'fixed'; temp.style.opacity = '0';
       document.body.append(temp); temp.select();
-      if (!document.execCommand('copy')) throw new Error('Browser denied clipboard access.');
+      if (!document.execCommand('copy')) throw new Error('Clipboard denied.');
       temp.remove();
     }
-    setLeadShareStatus('Card details + voice transcript copied. Paste into WhatsApp or email.');
+    setLeadShareStatus('Client-facing reply copied. No raw card details were added.');
   } catch {
-    setLeadShareStatus('Could not copy automatically. Select and copy the message preview above.', true);
+    setLeadShareStatus('Copy failed. Select and copy the reply text above.', true);
   }
 });
 
@@ -1273,9 +1361,19 @@ leadEls.form.addEventListener('submit', async event => {
   try {
     const editing = !!leadEditingId;
     const path = editing ? `/api/admin/business-cards/${encodeURIComponent(leadEditingId)}` : '/api/admin/business-cards';
-    await leadApi(path, {method: editing ? 'PATCH' : 'POST', data:payload});
-    resetLeadForm();
-    setLeadSaveStatus(editing ? '✓ Business contact updated and saved.' : '✓ Business contact saved to Cloudflare D1.');
+    const response = await leadApi(path, {method: editing ? 'PATCH' : 'POST', data:payload});
+    // Keep the client destination visible so the operator can share the reply after saving.
+    // Newly created contacts switch to Edit mode to prevent duplicate POST on repeat Save.
+    if (!editing) {
+      const saved = await response.json().catch(() => ({}));
+      if (typeof saved.id === 'string' && saved.id) {
+        leadEditingId = saved.id;
+        $('#lead-form-title').textContent = 'Saved contact (editable)';
+        leadEls.save.textContent = '✓ Update contact';
+      }
+    }
+    refreshLeadSharePreview();
+    setLeadSaveStatus(editing ? '✓ Business contact updated and saved. You can now share the reply.' : '✓ Business contact saved. Client recipient preserved for sharing. Use Clear form when finished.');
     leadApiReady=true;
     await loadBusinessCardLeads();
   } catch (error) {setLeadSaveStatus(`NOT SAVED: ${error.message || 'Unknown error'}`, true);leadEls.apiStatus.textContent=`⚠ Save issue: ${error.message||'Unknown error'}`;}
@@ -1393,7 +1491,7 @@ bindClick('#leads-export-pdf', event => exportScanCardPdf(event.currentTarget));
 // Keep contact data out of the UI after logout; the original login mechanism
 // and in-memory admin token remain unchanged.
 $('#logout-button').addEventListener('click',()=>{
-  leadsList=[];leadsLoaded=false;resetLeadForm();closeLeadCamera();
+  leadsList=[];leadsLoaded=false;resetLeadForm({clearVoice:true});closeLeadCamera();
   leadEls.raw.value='';leadImageCanvas=null;leadEls.preview.src='';
   leadEls.preview.classList.add('hidden');leadEls.placeholder.classList.remove('hidden');
   leadEls.rows.replaceChildren();

@@ -131,7 +131,10 @@
     .hns-admin #business-cards .hns-share-recipient-grid label{display:block;font-size:11px;font-weight:750;color:#17386f;line-height:1.5}
     .hns-admin #business-cards .hns-share-recipient-grid small{display:block;font-size:10px;font-weight:500;color:#64799f}
     .hns-admin #business-cards .hns-share-recipient-grid input{width:100%;margin-top:6px;padding:10px 12px;min-height:44px;border-radius:10px;border:1px solid #cddbf0;background:#fbfdff;color:#112c62;font:500 12px 'Poppins',sans-serif}
-    .hns-admin #business-cards .hns-share-recipient-grid input:focus{outline:2px solid #8fafea;outline-offset:1px}
+    .hns-admin #business-cards .hns-share-recipient-grid input[readonly]{background:#f0f5fc;color:#1b3a72;cursor:default}
+    .hns-admin #business-cards .hns-share-preview-label{display:block;padding:12px 15px;font-size:12px;color:#123370;font-weight:750;background:#f5f8fe}
+    .hns-admin #business-cards .hns-share-preview-label small{display:block;color:#607695;font-weight:500;line-height:1.6;margin-top:5px}
+    .hns-admin #business-cards #lead-prepare-client-reply{margin:0 13px 7px;font-size:11px;min-height:40px}
     .hns-admin #business-cards .hns-share-helper{margin:10px 0 0;font-size:10px;line-height:1.6;color:#61769b}
     .hns-admin #business-cards .hns-share-message-preview{margin:10px 0 15px;border:1px solid #d4e0f0;border-radius:13px;background:#fff;overflow:hidden}
     .hns-admin #business-cards .hns-share-message-preview summary{cursor:pointer;list-style:revert;padding:12px 15px;color:#123370;font-weight:750;font-size:12px;background:#f5f8fe}
@@ -280,26 +283,38 @@
                   <textarea id="lead-voice-note" rows="4" maxlength="2000" placeholder="Tap Mic and speak, or type the note here"></textarea>
                 </label>
                 <div class="hns-share-destinations">
-                  <strong class="hns-share-label">Share the card details + voice transcript</strong>
+                  <strong class="hns-share-label">Send a service reply to the client</strong>
+                  <p class="hns-share-helper">Recipients below come from the scanned card's contact fields and update automatically. If OCR read them incorrectly, correct the <strong>Phone / WhatsApp</strong> and <strong>Email address</strong> fields in Contact details. These are the <strong>client's</strong> details, not your company sender details.</p>
                   <div class="hns-share-recipient-grid">
-                    <label for="lead-share-wa-destination">Send to WhatsApp number <small>(your/company number)</small>
-                      <input id="lead-share-wa-destination" type="tel" inputmode="tel" maxlength="24" placeholder="+971 50 123 4567" autocomplete="off">
+                    <label for="lead-share-wa-destination">Client WhatsApp <small>(auto-filled from card)</small>
+                      <input id="lead-share-wa-destination" type="tel" inputmode="tel" readonly placeholder="Scan or enter client's mobile" aria-label="Client WhatsApp number read from contact form">
                     </label>
-                    <label for="lead-share-email-destination">Send to email address <small>(your/company email)</small>
-                      <input id="lead-share-email-destination" type="email" maxlength="254" placeholder="team@example.com" autocomplete="off">
+                    <label for="lead-share-email-destination">Client email <small>(auto-filled from card)</small>
+                      <input id="lead-share-email-destination" type="email" readonly placeholder="Scan or enter client's email" aria-label="Client email address read from contact form">
                     </label>
                   </div>
-                  <p class="hns-share-helper">Optional: leave a recipient blank to choose one in the app. The scanned business card's number/email is included in the message, but is <strong>not</strong> used as the recipient.</p>
+                  <p id="lead-recipient-hint" class="hns-share-helper" role="status">Fill in the client's phone or email under Contact details.</p>
                 </div>
-                <details class="hns-share-message-preview" open>
-                  <summary>Preview message before sharing</summary>
-                  <textarea id="lead-share-preview" readonly rows="9" aria-label="Preview of card details and voice transcript to be shared"></textarea>
-                </details>
-                <p class="lead-voice-hint">WhatsApp/Email opens a prefilled draft. Review the recipient and press Send yourself. If you want to send the card image, use the separate Send image button or attach the downloaded photo manually.</p>
+                <div class="hns-share-message-preview">
+                  <label class="hns-share-preview-label" for="lead-share-preview">Client-facing reply <small>(editable — no business-card fields or raw transcript are included automatically)</small></label>
+                  <textarea id="lead-share-preview" rows="9" maxlength="5000" placeholder="Prepare a reply from the voice note, or type an approved message for the client here." aria-label="Editable client-facing service reply"></textarea>
+                  <div class="hns-ai-consent" style="margin:0 13px 12px;padding:11px 12px;border:1px solid #cdddf0;border-radius:10px;background:#f4f8fd">
+                    <label style="display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.5;color:#17386f;cursor:pointer">
+                      <input id="lead-ollama-consent" type="checkbox" style="margin-top:3px;flex:none">
+                      <span>I reviewed the voice transcript and agree to send <strong>only this inquiry text</strong> to Ollama Cloud to generate a draft. No card image, client phone or email is sent to Ollama.</span>
+                    </label>
+                  </div>
+                  <div class="hns-ai-actions" style="padding:0 13px 9px;display:flex;flex-wrap:wrap;gap:9px">
+                    <button type="button" class="btn btn-gold" id="lead-generate-ai-reply">✨ Generate AI reply (Ollama)</button>
+                    <button type="button" class="btn btn-outline" id="lead-prepare-client-reply">Use basic offline template</button>
+                  </div>
+                  <p class="hns-share-helper" style="padding:0 13px 12px">AI uses the approved company knowledge configured in Cloudflare. Always verify the reply before opening a WhatsApp/email draft. The offline template is available if AI is unavailable. <strong>AI never sends messages automatically.</strong></p>
+                </div>
+                <p class="lead-voice-hint">WhatsApp opens a draft in the account currently signed into WhatsApp; Email opens your configured default mail app. Use your company account there. Neither button sends automatically. The scanned card image is not attached.</p>
                 <div class="lead-send-actions">
-                  <button type="button" class="btn btn-gold" id="lead-send-whatsapp">Open WhatsApp draft</button>
-                  <button type="button" class="btn btn-outline" id="lead-send-email">Open email draft</button>
-                  <button type="button" class="btn btn-outline" id="lead-copy-message">Copy full message</button>
+                  <button type="button" class="btn btn-gold" id="lead-send-whatsapp">WhatsApp client</button>
+                  <button type="button" class="btn btn-outline" id="lead-send-email">Email client</button>
+                  <button type="button" class="btn btn-outline" id="lead-copy-message">Copy reply</button>
                 </div>
                 <p id="lead-share-status" class="lead-scan-status" role="status" aria-live="polite"></p>
               </div>
