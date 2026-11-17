@@ -1,0 +1,22 @@
+HELEN & SONS — APPROVED COMPANY KNOWLEDGE (EDIT BEFORE USING IN PRODUCTION)
+
+Company name: Helen & Sons Visa Consultancy.
+Known enquiry topics from project conversations: visa consultancy, UAE mainland company setup questions, UAE free-zone company setup questions.
+
+COMPLETE AND APPROVE THESE FIELDS:
+Company official website: [ADD VERIFIED URL]
+Approved services actually offered: [LIST ONLY VERIFIED SERVICES]
+Approved Free Zone services: [PROVIDE DETAILS / AUTHORITIES]
+Approved Mainland services: [PROVIDE DETAILS / AUTHORITIES]
+Approved visa consultation categories: [PROVIDE DETAILS]
+Working hours and contact methods: [ADD IF VERIFIED]
+Pricing, packages, processing times: [OMIT IF NOT CURRENTLY VERIFIED]
+
+Important reply policy:
+- Replies must be reviewed by company staff before sending.
+- Do not promise approval, pricing, guaranteed visas, or timeframes.
+- Ask the client about business activity, desired location/authority, number of visas and other relevant non-sensitive requirements.
+- Do not include client phone numbers, emails or raw business-card contents in the Ollama prompt.
+
+After approving, copy ONLY the verified text to Cloudflare Worker → Settings → Variables and Secrets → Add text variable HNS_KNOWLEDGE_BASE.
+No extra D1 SQL needed. Without this variable, the Worker uses a deliberately minimal default knowledge base.
