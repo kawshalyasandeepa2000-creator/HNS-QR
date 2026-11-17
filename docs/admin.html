@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-cards-fixed-3"><link rel="stylesheet" href="./hns-contact-status.css?v=20261117-status-v1">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261117-cardtodeal-mobile-v1"></script>
+  <script defer src="./admin.js?v=20261117-manual-merge-vision-v1"></script>
   <script defer src="./hns-contact-status.js?v=20261117-status-v1"></script>
   <script defer src="./hns-leads-import.js?v=20261116-events-v2"></script>
   <script defer src="./hns-references.js?v=20261116-restored-3"></script>
@@ -122,7 +122,26 @@
       .hns-admin .sidebar .side-nav {gap:7px; justify-content:flex-start; overflow-x:auto;}
       .hns-admin .sidebar .side-nav .nav-link {font-size:12px!important; flex:0 0 auto;}
     }
-  </style>
+  
+  /* Opt-in Ollama Vision card scan: does not remove the local OCR tools */
+  .hns-admin #business-cards .hns-vision-box{border:1px solid #b9cff2;background:linear-gradient(135deg,#f7faff,#eef5ff);border-radius:15px;padding:14px;margin:11px 0 16px}
+  .hns-admin #business-cards .hns-vision-box strong{display:block;color:#0b2861;font-weight:800;font-size:14px}
+  .hns-admin #business-cards .hns-vision-box p{color:#4f6587;margin:6px 0 12px;font-size:12px;line-height:1.5}
+  .hns-admin #business-cards .hns-vision-consent{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5;color:#30466b;margin:10px 0}
+  .hns-admin #business-cards .hns-vision-consent input{flex:0 0 auto;width:17px;height:17px;margin:2px 0 0;accent-color:#1d5db8}
+  .hns-admin #business-cards #lead-ai-vision-button{width:100%;min-height:44px;font-size:13px;font-weight:800}
+  .hns-admin #business-cards .hns-vision-result{background:#fff;border:1px solid #d2e0f4;border-radius:12px;padding:12px;margin-top:12px}
+  .hns-admin #business-cards .hns-vision-result h4{margin:0 0 5px;font-size:13px;color:#12336a}
+  .hns-admin #business-cards .hns-vision-result-row{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid #edf1f8;font-size:12px;overflow-wrap:anywhere}
+  .hns-admin #business-cards .hns-vision-result-row input{flex:0 0 auto;width:17px;height:17px;accent-color:#1d5db8}
+  .hns-admin #business-cards .hns-vision-result-row span{min-width:0;flex:1}
+  .hns-admin #business-cards .hns-vision-result-row small{display:block;color:#587198;font-size:10px;margin-top:2px}
+  .hns-admin #business-cards .hns-vision-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .hns-admin #business-cards .hns-vision-actions .btn{flex:1;min-height:42px;min-width:120px}
+  .hns-admin #business-cards #lead-ai-vision-status{font-size:11px;color:#335988;line-height:1.5;margin-top:8px}
+  @media(max-width:650px){.hns-admin #business-cards .hns-vision-box{padding:12px}.hns-admin #business-cards .hns-vision-actions{flex-direction:column}}
+
+</style>
 
   <style id="hns-voice-share-style-v1">
     /* Voice notes + verified contact details: preview and manually addressed drafts. */
@@ -264,6 +283,26 @@
     }
     @media(prefers-reduced-motion:reduce){.hns-admin #business-cards .hns-scanner-launch,.hns-admin #business-cards .hns-scanner-chevron{transition:none}}
   </style>
+
+<style id="hns-username-password-ui">
+  .login-card #username-input{display:block;width:100%;min-width:0;padding:14px 15px;border:1px solid #c6d6f0;border-radius:11px;background:#fff;color:#0B2463;font:inherit;font-size:14px;outline:none}
+  .login-card #username-input:focus{border-color:#2d70d6;box-shadow:0 0 0 3px rgba(30,144,255,.15)}
+  .login-card .hns-login-help{margin:16px 0 0;color:#7183a0;font-size:11px;line-height:1.6}
+  @media(max-width:560px){.login-card #username-input{font-size:16px}.login-card #password-input{font-size:16px}}
+</style>
+
+<style id="hns-manual-mobile-scan-merge-v1">
+  .hns-admin #business-cards .hns-mobile-photo-guide{border:1px solid #d6e5f6;border-radius:10px;background:#f8fbff;margin:11px 0 13px;padding:9px 12px;color:#34537c;font-size:12px;line-height:1.5}
+  .hns-admin #business-cards .hns-mobile-photo-guide summary{cursor:pointer;font-weight:750;color:#143876}
+  .hns-admin #business-cards .hns-mobile-photo-guide p{margin:8px 0 0}
+  .hns-admin #business-cards #lead-torch{min-height:44px;white-space:normal}
+  .hns-admin #business-cards #lead-torch.hidden{display:none!important}
+  @media(max-width:620px){
+    .hns-admin #business-cards .leads-webcam-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .hns-admin #business-cards .leads-webcam-actions .btn{flex:1 1 115px;min-height:44px}
+    .hns-admin #business-cards .hns-mobile-photo-guide{font-size:11px}
+  }
+</style>
 </head>
 <body class="hns-admin">
 <div class="dashboard-shell">
@@ -290,7 +329,7 @@
           <div class="admin-offer"><strong>UP TO 70% OFF</strong><span>– Consultancy Fees</span></div>
           <div class="admin-offer"><strong>20% OFF</strong><span>– Company Setup Service Fees</span></div>
         </div><div class="hero-tags"><span>Cloudflare D1</span><span>QR Campaign</span><span>Customer Records</span></div></div><div class="hero-graphic"><div class="hero-ring" aria-hidden="true"></div><img src="./helen-sons-consultation-2026.jpg" alt="Helen and Sons visa consultation with a client" width="1700" height="1096" loading="eager"><div class="hero-photo-tag" aria-hidden="true">✦ &nbsp; PERSONAL CONSULTATION</div></div></section>
-      <section id="login-panel" class="login-wrap" aria-labelledby="login-title"><div class="login-card"><div class="section-kicker">🔒 RESTRICTED ACCESS</div><h2 id="login-title">Welcome back.</h2><p>Enter your existing Cloudflare <strong>ADMIN_TOKEN</strong>. Your token stays in this browser tab's memory and is not stored in a file.</p><form id="login-form"><label for="token-input">Administrator token</label><div class="token-row"><input id="token-input" type="password" placeholder="Paste your private admin token" autocomplete="off" required><button type="button" id="toggle-token" aria-label="Show token" aria-pressed="false">Show</button></div><button class="btn btn-gold btn-full" type="submit" id="sign-in-button">Access dashboard →</button></form><p class="error-message" id="login-error" role="alert"></p></div></section>
+      <section id="login-panel" class="login-wrap" aria-labelledby="login-title"><div class="login-card"><div class="section-kicker">SECURE ADMIN LOGIN</div><h2 id="login-title">Welcome back.</h2><p>Sign in to <strong>CARD TO DEAL</strong> using your administrator username and password.</p><form id="login-form"><label for="username-input">Username</label><input id="username-input" type="text" placeholder="Enter username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required><label for="password-input">Password</label><div class="token-row"><input id="password-input" type="password" placeholder="Enter password" autocomplete="current-password" maxlength="256" required><button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false">Show</button></div><button class="btn btn-gold btn-full" type="submit" id="sign-in-button">Sign in →</button></form><p class="error-message" id="login-error" role="alert"></p><p class="hns-login-help">Private administrator access. You will be asked to sign in again when this tab is reloaded or the session expires.</p></div></section>
       <div id="dashboard" class="dashboard hidden">
         <section class="overview-section" id="overview-panel" aria-labelledby="overview-title"><div class="section-row"><div><p class="section-kicker">SELECTED EVENT</p><h2 id="overview-title">Dashboard</h2><p class="section-description">Choose what you want to do. Only one section opens at a time.</p></div><div class="section-actions"><button id="refresh-button" class="btn btn-outline" type="button">↻ Refresh data</button><button id="logout-button" class="btn btn-soft" type="button">Sign out</button></div></div>
           <p class="overview-event-line">Active event: <strong id="overview-event-name">RISE 17 - 2026</strong></p>
@@ -379,14 +418,14 @@
               <input type="file" id="lead-file-input" accept="image/*" class="leads-file-input" aria-label="Upload or attach a business card image">
             </div>
           </div>
-          <p class="leads-privacy-note"><span aria-hidden="true">🔒</span> <strong>Private by design:</strong> Card photos stay in your browser. Only reviewed contact text is saved to Cloudflare D1.<span class="hns-desktop-extra"> Images must be shared separately and are not saved to Cloudflare.</span></p>
+          <p class="leads-privacy-note"><span aria-hidden="true">🔒</span> <strong>Private by design:</strong> By default, card photos stay in your browser for local OCR. If you choose Ollama Vision and give permission, a resized photo is sent to Ollama Cloud for extraction. Only reviewed contact text is saved to Cloudflare D1.<span class="hns-desktop-extra"> Images must be shared separately and are not saved to Cloudflare.</span></p>
           <div class="leads-api-status" id="lead-api-status" role="status" aria-live="polite">Sign in and open Business Card Leads to check database connection.</div>
           <div class="leads-webcam hidden" id="leads-webcam" aria-label="Live business card camera">
             <div class="lead-camera-stage">
               <video id="lead-video" autoplay playsinline muted aria-label="Business card camera preview"></video>
               <div class="lead-card-guide" aria-hidden="true"><span>Fit the whole card inside the frame</span></div>
             </div>
-            <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Scan this card</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
+            <div class="leads-webcam-actions"><button type="button" class="btn btn-gold" id="lead-take-photo">Scan this card</button><button type="button" class="btn btn-soft hidden" id="lead-torch" aria-pressed="false" aria-label="Turn camera light on">🔦 Light on</button><button type="button" class="btn btn-outline" id="lead-close-webcam">Close camera</button></div>
           </div>
           <div class="leads-workspace">
             <div class="lead-picture-column">
@@ -398,7 +437,19 @@
                 <button class="btn btn-outline" id="lead-rotate" type="button" disabled>⟳ Rotate 90°</button>
                 <button class="btn btn-soft" id="lead-deep-scan" type="button" disabled>🔎 Deep scan</button>
               </div>
+              <div class="hns-vision-box" id="lead-ai-vision-section">
+                <strong>Scan card with AI (Ollama Vision)</strong>
+                <p>If mobile OCR misses names, emails or phone numbers, use AI to read the card photo. Suggestions are reviewed before they fill your form.</p>
+                <label class="hns-vision-consent" for="lead-ai-vision-consent">
+                  <input type="checkbox" id="lead-ai-vision-consent">
+                  <span>I have permission to process this business card and agree to send its photo to Ollama Cloud for text extraction. It is not saved as a card photo in Cloudflare D1.</span>
+                </label>
+                <button class="btn btn-gold" id="lead-ai-vision-button" type="button" disabled>Scan with Ollama Vision</button>
+                <p id="lead-ai-vision-status" role="status" aria-live="polite">Select or capture a card photo first.</p>
+                <div class="hns-vision-result" id="lead-ai-vision-review" hidden aria-label="Review AI card suggestions"></div>
+              </div>
               <p class="lead-mobile-scan-tip"><strong>For the clearest scan:</strong> Place one card on a flat surface with good light. Crop out the background, then try <b>Deep scan</b> if phone or email is missing.</p>
+              <details class="hns-mobile-photo-guide"><summary>📱 Mobile photo scanning tips</summary><p>📸 MOBILE: place ONE business card on a plain surface, fill most of the camera frame, hold steady until the text is sharp, and avoid reflections. Tap Select card area &rarr; Crop & scan if the card is small in the photo.</p><p>For dark photos, open the live camera and tap <strong>Light on</strong> when the torch is supported. Mobile OCR automatically tries multiple reading passes, including sharpened text. You can also use Ollama Vision when local OCR cannot read the card.</p></details>
               <details class="hns-image-fallback" aria-labelledby="hns-fallback-title">
                 <summary id="hns-fallback-title">OCR not reading correctly? Share or save the photo</summary>
                 <div class="hns-image-fallback-head"><span class="hns-fallback-icon" aria-hidden="true">⇧</span><div><p>Keep the card image as a reference. Share or download it, then correct the contact details manually.</p></div></div>
@@ -514,7 +565,7 @@
         <section id="qr-flyer" class="qr-section hidden" aria-labelledby="qr-title"><div class="qr-details"><p class="section-kicker">PRINT &amp; SHARE</p><h2 id="qr-title">Your campaign.<br><em>One powerful QR.</em></h2><p>Download a branded QR image or print an A4 campaign flyer. Each visitor can register and receive their own unique code.</p><div class="qr-actions"><button id="qr-download" class="btn btn-gold" type="button">↓ Download branded QR PNG</button><button id="print-button" class="btn btn-outline" type="button">Print A4 flyer</button></div><p id="qr-notice" role="status" aria-live="polite" class="qr-notice"></p><div class="qr-tip">Test the printed QR with a phone before mass distribution.</div></div><div class="flyer-frame"><div class="poster" id="poster"><div class="poster-logo"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons official logo since 2007" width="1500" height="454"></div><div class="poster-kicker">OFFICIAL REFERRAL PROGRAMME</div><h3>SCAN &amp; GET YOUR<br><span>REFERRAL CODE</span></h3><p>Enter your name, mobile number and email address.</p><div class="qr-outer"><div id="qr-container" class="qr-container" aria-label="QR code for the Helen and Sons referral website"></div></div><div id="qr-url" class="qr-url"></div><div class="poster-bottom">HELEN AND SONS VISA CONSULTANCY · SINCE 2007</div></div></div></section>
       </div>
     </main>
-    <footer class="admin-footer"><span>Helen and Sons Visa Consultancy · Official Referral Programme</span><span>Do not share your ADMIN_TOKEN</span></footer>
+    <footer class="admin-footer"><span>Helen and Sons Visa Consultancy · Official Referral Programme</span><span>Secure administrator access</span></footer>
   </div>
 </div>
 <script id="hns-card-image-share-v1">

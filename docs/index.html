@@ -1,14 +1,96 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HNS QR Referral Website</title>
-  <meta http-equiv="refresh" content="0; url=./docs/index.html">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0B2463"><link rel="icon" type="image/png" href="./helen-sons-logo-icon.png?v=20261111-own-code-v2">
+  <meta name="description" content="Helen and Sons Visa Consultancy official referral campaign. Register your name, mobile number and email address to receive your unique referral pass.">
+  <title>Helen and Sons | Referral Programme</title>
+  <!-- Independent CSS: avoids old styling conflicts and cached broken 3D layouts. -->
+  <style>html{box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}body{margin:0}.hns-main{width:min(1400px,calc(100% - 48px));margin:auto}.hero-layout{display:grid;grid-template-columns:minmax(0,1.13fr) minmax(370px,.87fr);gap:28px;align-items:start}.brand-art{position:relative;max-width:100%;overflow:hidden}.brand-art img{display:block;width:100%;max-height:440px;object-fit:contain}@media(max-width:880px){.hero-layout{grid-template-columns:1fr}.hns-main{width:min(100% - 28px,700px)}} </style>
+  <link rel="stylesheet" href="./hns-official-ui.css?v=20261112-partner-white-v3">
+  <link rel="preconnect" href="https://qr-referral-api.kawshalyasandeepa2000.workers.dev" crossorigin>
+  <link rel="dns-prefetch" href="//qr-referral-api.kawshalyasandeepa2000.workers.dev">
+  <script defer src="./config.js"></script>
+  <script defer src="./app.js?v=20261116-events-v2"></script>
+  <script defer src="./motion.js?v=20261111-crand-b"></script>
+  <!-- Poppins for all website and dashboard interface text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
 </head>
-<body>
-  <p>Opening your referral website...</p>
-  <a href="./docs/index.html">Open customer website</a>
+<body class="hns-official hns-cinematic hns-customer">
+  <div class="ambient ambient-left" aria-hidden="true"></div>
+  <div class="ambient ambient-right" aria-hidden="true"></div>
+<header class="site-header hns-partner-header">
+  <div class="header-brand-pair">
+    <a class="brand-lockup" href="./" aria-label="Helen and Sons referral homepage">
+      <img class="hns-header-mark" src="./hns-header-official.png?v=20261112-whitepartner" alt="Helen and Sons · Since 2007" width="1100" height="301">
+    </a>
+    <span class="header-logo-divider" aria-hidden="true"></span>
+    <div class="rise-header-mark" aria-label="RISE Seventeen UAE · Unite and Excel">
+      <img src="./rise17-uae-official.png?v=20261112-whitepartner" alt="The RISE Seventeen UAE — Unite and Excel" width="700" height="526">
+    </div>
+  </div>
+  <nav class="header-links" aria-label="Navigation">
+    <a href="./privacy.html">Privacy</a>
+    <a class="header-cta" href="#get-code">Get referral code <span aria-hidden="true">↗</span></a>
+  </nav>
+  <!-- Existing PNG pass generation uses the dark-background logo. Keep it preloaded but visually hidden. -->
+  <img id="hns-official-logo" class="hns-pass-logo-preload" src="./helen-sons-logo.png?v=20261111-wide-2" alt="" aria-hidden="true" width="1" height="1">
+</header>
+  <main class="hns-main">
+    <div class="trust-band"><span class="mini-gold-dot"></span> OFFICIAL REFERRAL PROGRAMME <span class="trust-line"></span> HELEN AND SONS VISA CONSULTANCY</div>
+    <p id="public-event-note" style="display:none;background:#fff;color:#0B2463;border-left:4px solid #C89116;padding:12px 16px;border-radius:10px;margin:12px 0;font-weight:700"></p>
+    <div class="hero-layout">
+      <section class="hero-story" aria-labelledby="hero-title" data-reveal>
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="gold-rule"></span><span class="eyebrow-desktop">A WORLD OF OPPORTUNITIES</span><strong class="eyebrow-mobile">RISE 17</strong></div>
+          <h1 id="hero-title">YOUR UAE BUSINESS<br><em>JOURNEY STARTS HERE!</em></h1>
+          <div class="hero-offers" aria-label="Current consultancy offers">
+            <div class="hero-offer"><strong>UP TO 70% OFF</strong><span>– Consultancy Fees</span></div>
+            <div class="hero-offer"><strong>20% OFF</strong><span>– Company Setup Service Fees</span></div>
+          </div>
+          <div class="hero-pills"><span><span aria-hidden="true">✦</span> Quick registration</span><span><span aria-hidden="true">✦</span> Your own referral code</span></div>
+        </div>
+        <div class="brand-art stage-wrap" id="cinematic-stage">
+          <div class="globe-halo" aria-hidden="true"></div>
+          <div class="travel-orbit orbit-one" aria-hidden="true"></div>
+          <div class="travel-orbit orbit-two" aria-hidden="true"></div>
+          <img class="travel-image" src="./helen-sons-consultation-2026.jpg" alt="Helen and Sons consultants meeting with a client in a modern office" width="1700" height="1096" loading="eager">
+          <div class="floating-glass floating-one" aria-hidden="true"><span class="sparkle">✦</span><span>EXPERT<br><b>CONSULTATION</b></span></div>
+          <div class="floating-glass floating-two" aria-hidden="true"><b>2007</b><span>TRUST BUILT OVER TIME</span></div>
+        </div>
+        <div class="hero-bottom"><span>VISA CONSULTANCY · UAE</span><span>SHARE THE OPPORTUNITY <span aria-hidden="true">↗</span></span></div>
+      </section>
+      <section class="registration-card" id="get-code" aria-labelledby="ticket-title" data-reveal>
+        <div class="registration-card-top"><div class="card-badge">✦</div><div><div class="card-kicker">YOUR REFERRAL JOURNEY STARTS HERE</div><h2 id="ticket-title">Get your <span>referral code</span></h2></div></div>
+        <p class="card-summary">Complete the form below to receive your personal referral code and downloadable PNG pass.</p>
+        <p id="status" class="form-status" role="status" aria-live="polite">Enter your details to begin.</p>
+        <form id="referral-form" class="registration-form">
+          <label for="full-name">Full name <span class="required">*</span></label>
+          <input id="full-name" name="fullName" autocomplete="name" minlength="2" maxlength="100" placeholder="Your full name" required>
+          <label for="mobile-number">Mobile / WhatsApp number <span class="required">*</span></label>
+          <input id="mobile-number" name="mobileNumber" type="tel" autocomplete="tel" inputmode="tel" maxlength="32" placeholder="+971 50 123 4567" required>
+          <label for="email-address">Email address <span class="required">*</span></label>
+          <input id="email-address" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+          <p class="form-note">Full name, mobile number and email address are required.</p>
+          <label class="consent" for="contact-consent"><input type="checkbox" id="contact-consent" required><span>I consent to Helen and Sons storing the details I submit for this referral campaign and contacting me about my referral. I have read the <a href="./privacy.html" target="_blank" rel="noopener noreferrer">privacy notice</a>.</span></label>
+          <button id="claim-button" class="button button-gold button-full" type="submit">Get my referral code <span aria-hidden="true">→</span></button>
+        </form>
+        <div id="pass-details" class="pass-details hidden">
+          <div class="pass-top"><img src="./helen-sons-logo.png?v=20261111-wide-2" alt="Helen and Sons logo" width="1500" height="454"><div><span>OFFICIAL REFERRAL PASS</span><strong>Helen and Sons</strong><small>VISA CONSULTANCY</small></div></div>
+          <div class="pass-label">YOUR UNIQUE REFERRAL CODE</div>
+          <div id="referral-code" class="referral-code loading" aria-live="polite">••••••••</div>
+          <p id="issued-to" class="pass-detail-text"></p>
+          <p id="created-at" class="pass-detail-text"></p>
+          <p class="form-note">Share the referral code with people you refer.</p>
+        </div>
+        <div id="referral-actions" class="referral-actions hidden"><button id="download-button" class="button button-gold" type="button" disabled>↓ Download PNG pass</button><button id="copy-button" class="button button-white" type="button" disabled>Copy code</button></div>
+        <div class="registration-footer"><span class="footer-sparkle">✦</span> YOUR DETAILS ARE USED FOR THIS REFERRAL CAMPAIGN</div>
+      </section>
+    </div>
+    <footer class="customer-footer customer-footer-simple"><span>© 2026</span></footer>
+  </main>
 </body>
 </html>

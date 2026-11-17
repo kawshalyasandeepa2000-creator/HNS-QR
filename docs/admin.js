@@ -1,6 +1,6 @@
 "use strict";
 // Uses the exact same Cloudflare Worker endpoints as your current dashboard.
-// Admin token lives only in this tab's memory; it is never saved to disk.
+// Username/password is verified by Cloudflare; the short-lived signed session lives only in this tab's memory.
 const config = window.CAMPAIGN_CONFIG;
 const apiOrigin = config?.apiBaseUrl?.replace(/\/$/, "");
 const customerUrl = new URL("./", document.baseURI).href;
@@ -8,7 +8,7 @@ const customerUrlForEvent = () => { const url = new URL(customerUrl); url.search
 const $ = selector => document.querySelector(selector);
 const dom = {
   dashboard: $("#dashboard"), loginPanel: $("#login-panel"), loginError: $("#login-error"),
-  adminError: $("#admin-error"), tokenInput: $("#token-input"), loginButton: $("#sign-in-button"),
+  adminError: $("#admin-error"), usernameInput: $("#username-input"), passwordInput: $("#password-input"), loginButton: $("#sign-in-button"),
   status: $("#connection-status"), records: $("#referral-rows"), search: $("#record-search")
 };
 let adminToken = "";
@@ -77,7 +77,7 @@ async function api(path) {
     cache: "no-store"
   });
   if (!response.ok) {
-    if (response.status === 401) throw new Error("Invalid admin token. Please check the token in Cloudflare.");
+    if (response.status === 401) throw new Error("Your login session expired or is invalid. Please sign in again.");
     throw new Error(`Cloudflare API error (${response.status}).`);
   }
   return response;
@@ -267,13 +267,26 @@ async function fetchDashboard() {
 $("#login-form").addEventListener("submit", async event => {
   event.preventDefault();
   dom.loginError.textContent = "";
-  adminToken = dom.tokenInput.value.trim();
+  adminToken = "";
   dom.loginButton.disabled = true;
   dom.loginButton.textContent = "Signing in…";
   try {
+    if (!apiOrigin?.startsWith("https://")) throw new Error("Cloudflare API address is not configured.");
+    const response = await fetch(`${apiOrigin}/api/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: dom.usernameInput.value.trim(), password: dom.passwordInput.value }),
+      cache: "no-store"
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result?.ok || typeof result.token !== "string") {
+      throw new Error(result.error || `Login failed (${response.status}).`);
+    }
+    adminToken = result.token;
+    // Check the session against existing protected APIs before showing private records.
     await fetchDashboard();
     await loadEvents();
-    dom.tokenInput.value = "";
+    dom.passwordInput.value = "";
     dom.loginPanel.classList.add("hidden");
     dom.dashboard.classList.remove("hidden");
     document.body.classList.add("is-signed-in");
@@ -283,17 +296,18 @@ $("#login-form").addEventListener("submit", async event => {
     adminToken = "";
     showError(dom.loginError, error);
   } finally {
+    dom.passwordInput.value = "";
     dom.loginButton.disabled = false;
-    dom.loginButton.textContent = "Access dashboard →";
+    dom.loginButton.textContent = "Sign in →";
   }
 });
 
-$("#toggle-token").addEventListener("click", () => {
-  const showing = dom.tokenInput.type === "text";
-  dom.tokenInput.type = showing ? "password" : "text";
-  $("#toggle-token").textContent = showing ? "Show" : "Hide";
-  $("#toggle-token").setAttribute("aria-label", showing ? "Show token" : "Hide token");
-  $("#toggle-token").setAttribute("aria-pressed", String(!showing));
+$("#toggle-password").addEventListener("click", () => {
+  const showing = dom.passwordInput.type === "text";
+  dom.passwordInput.type = showing ? "password" : "text";
+  $("#toggle-password").textContent = showing ? "Show" : "Hide";
+  $("#toggle-password").setAttribute("aria-label", showing ? "Show password" : "Hide password");
+  $("#toggle-password").setAttribute("aria-pressed", String(!showing));
 });
 
 $("#refresh-button").addEventListener("click", async () => {
@@ -470,8 +484,8 @@ if (window.matchMedia?.("(hover: hover) and (pointer: fine) and (prefers-reduced
 }
 
 
-/* Private business-card leads. Uses existing in-memory ADMIN_TOKEN from admin.js.
- * Photos stay on device. Only reviewed contact fields are sent to the Worker.
+/* Private business-card leads. Uses existing in-memory signed session from admin.js.
+ * Photos stay on device for local OCR. Optional Ollama Vision scan sends a resized photo on explicit consent. Only reviewed contact fields are saved to D1.
  */
 const leadEls = {
   section: $('#business-cards'), camera: $('#lead-camera-input'), upload: $('#lead-file-input'),
@@ -588,7 +602,7 @@ async function leadApi(path, { method = 'GET', data = undefined } = {}) {
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     if (response.status === 404) throw new Error('Business Card API not installed (404). Deploy the business-card Worker update from the ZIP. GitHub files alone cannot save contacts.');
-    if (response.status === 401) throw new Error('Admin token was rejected (401). Sign out and sign in again.');
+    if (response.status === 401) throw new Error('Login session expired (401). Sign out and sign in again.');
     if (response.status === 403) throw new Error('Cloudflare blocked this website origin (403). Check Worker allowed origins.');
     if (response.status === 500) throw new Error('Database or Worker error (500). Check qr-referral-api Observability logs / D1 binding.');
     throw new Error(typeof body.error === 'string' ? `${body.error} (HTTP ${response.status})` : `Save request failed (HTTP ${response.status}).`);
@@ -819,6 +833,59 @@ function parseBusinessCardText(raw) {
 }
 function lineLooksLikeEmail(text){return String(text).includes('@');}
 
+function isMobileLeadDevice() {
+  return window.matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+}
+
+/** Trim bright photo margins so OCR sees the card larger on phone photos. */
+function autoTrimCardCanvas(source, padding = 0.025) {
+  const ctx = source.getContext('2d');
+  if (!ctx) return source;
+  const { width, height } = source;
+  const img = ctx.getImageData(0, 0, width, height);
+  const d = img.data;
+  let minX = width; let minY = height; let maxX = 0; let maxY = 0;
+  let found = false;
+  const step = Math.max(1, Math.floor(Math.min(width, height) / 360));
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      const i = (y * width + x) * 4;
+      const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      const chroma = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]);
+      if (lum < 238 || chroma > 16) {
+        found = true;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (!found) return source;
+  const padX = Math.round(width * padding);
+  const padY = Math.round(height * padding);
+  minX = Math.max(0, minX - padX);
+  minY = Math.max(0, minY - padY);
+  maxX = Math.min(width, maxX + padX);
+  maxY = Math.min(height, maxY + padY);
+  const w = maxX - minX;
+  const h = maxY - minY;
+  if (w < width * 0.22 || h < height * 0.16 || w > width * 0.98) return source;
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  const outCtx = out.getContext('2d');
+  outCtx.imageSmoothingQuality = 'high';
+  outCtx.drawImage(source, minX, minY, w, h, 0, 0, w, h);
+  return out;
+}
+
+function prepareLeadScanCanvas(canvas) {
+  let work = canvas;
+  if (isMobileLeadDevice()) work = autoTrimCardCanvas(work);
+  return work;
+}
+
 function leadOcrQuality(data) {
   const raw=String(data?.text||'').trim();
   const parsed=parseBusinessCardText(raw);
@@ -832,8 +899,9 @@ function leadOcrQuality(data) {
 // Aggressive whitening on v2 destroyed thin email / phone characters on mobile.
 function makeLeadOcrCanvas(source, mode='natural') {
   const side=Math.max(source.width,source.height);
-  // Native camera resolution is kept up to 2600px to limit mobile RAM usage.
-  const scale=Math.min(2600/side,Math.max(1,1900/side));
+  // User-authored high resolution OCR for mobile; maintain original manual scan settings.
+  const mobile=isMobileLeadDevice();
+  const scale=Math.min((mobile?3400:2600)/side,Math.max(1,(mobile?2800:1900)/side));
   const output=document.createElement('canvas');
   output.width=Math.max(1,Math.round(source.width*scale));
   output.height=Math.max(1,Math.round(source.height*scale));
@@ -855,6 +923,7 @@ function makeLeadOcrCanvas(source, mode='natural') {
     const y=.299*pixels[i]+.587*pixels[i+1]+.114*pixels[i+2];
     let v=(y-low)*255/span;
     if(mode==='binary')v=v>145?255:0;
+    else if(mode==='sharpen'){v=(y-low)*300/span;v=Math.min(255,Math.max(0,v*1.12+8));}
     else v=18+v*.89;
     v=Math.min(255,Math.max(0,v));
     pixels[i]=pixels[i+1]=pixels[i+2]=v;
@@ -905,7 +974,7 @@ async function decodeLeadFile(file) {
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Could not read photo. Please try JPG/PNG.'));img.src=url;});
     const max=Math.max(img.naturalWidth,img.naturalHeight);
     if(!max)throw new Error('Empty photo.');
-    const scale=Math.min(1,3200/max);
+    const scale=Math.min(1,(isMobileLeadDevice()?4000:3200)/max);
     const canvas=document.createElement('canvas');
     canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
     canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
@@ -914,19 +983,33 @@ async function decodeLeadFile(file) {
   } finally {URL.revokeObjectURL(url);}
 }
 
+// Clear earlier AI suggestions whenever a new photo/crop/rotation is selected.
+function resetVisionReview(){
+  const review = $('#lead-ai-vision-review');
+  if(review){review.hidden=true;review.replaceChildren();}
+  const status = $('#lead-ai-vision-status');
+  if(status) status.textContent = leadImageCanvas ? 'Ready. AI suggestions must be reviewed before applying.' : 'Select or capture a card photo first.';
+  const btn=$('#lead-ai-vision-button');
+  if(btn) btn.disabled=!leadImageCanvas;
+}
+
 function displayLeadCanvas(canvas) {
   leadImageCanvas=canvas;
   leadEls.preview.src=canvas.toDataURL('image/jpeg',.92);
   leadEls.preview.classList.remove('hidden');
   leadEls.placeholder.classList.add('hidden');
   leadEls.deepScan.disabled=false;leadEls.rotate.disabled=false;leadEls.crop.disabled=false;
+  resetVisionReview();
 }
 
 async function scanLeadCanvas(canvas, deep=false) {
   if(leadsBusy)return;
+  const mobileDeep=deep||isMobileLeadDevice();
   leadsBusy=true;
   leadScanRuns++;
-  displayLeadCanvas(canvas);
+  const scanCanvas=prepareLeadScanCanvas(canvas);
+  displayLeadCanvas(scanCanvas);
+  if(scanCanvas!==canvas)setLeadStatus('Mobile: zooming in on the card for a sharper read...');
   disableLeadCropMode();
   $('#lead-rescan').disabled=true;
   leadEls.deepScan.disabled=true;
@@ -937,7 +1020,7 @@ async function scanLeadCanvas(canvas, deep=false) {
   if(!worker){leadsBusy=false;$('#lead-rescan').disabled=false;leadEls.deepScan.disabled=false;leadEls.save.disabled=false;return;}
   try {
     const readings=[];
-    const original=makeLeadOcrCanvas(canvas,'natural');
+    const original=makeLeadOcrCanvas(scanCanvas,'natural');
     await worker.setParameters({tessedit_pageseg_mode:window.Tesseract.PSM.SPARSE_TEXT,
       tessedit_char_whitelist:'',preserve_interword_spaces:'1',user_defined_dpi:'300'});
     setLeadStatus('Reading printed names, emails and phone numbers (1/3)...');
@@ -945,16 +1028,16 @@ async function scanLeadCanvas(canvas, deep=false) {
     let first=parseBusinessCardText(readings[0].text||'');
     // Run a second pass if anything important is missing, and always for Deep scan.
     const missing=!first.personName||!first.email||!first.phone||!first.companyName;
-    if(deep || missing || leadOcrQuality(readings[0])<75){
+    if(mobileDeep || missing || leadOcrQuality(readings[0])<75){
       setLeadStatus('Checking small print and card layout (2/3)...');
-      const contrasted=makeLeadOcrCanvas(canvas,'contrast');
+      const contrasted=makeLeadOcrCanvas(scanCanvas,'contrast');
       await worker.setParameters({tessedit_pageseg_mode:window.Tesseract.PSM.AUTO,
         tessedit_char_whitelist:'',preserve_interword_spaces:'1'});
       readings.push((await worker.recognize(contrasted)).data);
     }
     let merged=mergeCardOcrResults(readings);
     // Dedicated numeric/email pass helps phones on busy printed cards.
-    if(deep || !merged.fields.phone || !merged.fields.email){
+    if(mobileDeep || !merged.fields.phone || !merged.fields.email){
       setLeadStatus('Double-checking mobile numbers and email characters (3/3)...');
       await worker.setParameters({tessedit_pageseg_mode:window.Tesseract.PSM.SPARSE_TEXT,
         tessedit_char_whitelist:'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@.+_-/(): ',
@@ -962,6 +1045,13 @@ async function scanLeadCanvas(canvas, deep=false) {
       // Use original colors again; binary filters often lose thin @ and digits.
       readings.push((await worker.recognize(original)).data);
       await worker.setParameters({tessedit_char_whitelist:''});
+    }
+    if(mobileDeep){
+      setLeadStatus('Phone enhanced read (4/4): sharpening text edges...');
+      const sharpened=makeLeadOcrCanvas(scanCanvas,'sharpen');
+      await worker.setParameters({tessedit_pageseg_mode:window.Tesseract.PSM.SINGLE_BLOCK,
+        tessedit_char_whitelist:'',preserve_interword_spaces:'1',user_defined_dpi:'350'});
+      readings.push((await worker.recognize(sharpened)).data);
     }
     merged=mergeCardOcrResults(readings);
     fillLeadFields(merged.fields);
@@ -975,6 +1065,90 @@ async function scanLeadCanvas(canvas, deep=false) {
   } catch(error){setLeadStatus(`OCR error: ${error.message||'Unknown error'}. You can fill details manually.`,true);updateLeadReadout(true);}
   finally {leadsBusy=false;$('#lead-rescan').disabled=false;leadEls.deepScan.disabled=false;leadEls.save.disabled=false;}
 }
+
+// Optional, explicit-consent Ollama Cloud Vision OCR. Existing Tesseract workflow remains unchanged.
+const HNS_VISION_FIELDS = [
+  ['personName','Person name'], ['companyName','Company'], ['email','Email'],
+  ['phone','Mobile / WhatsApp'], ['jobTitle','Job title'], ['website','Website']
+];
+let hnsVisionBusy = false;
+function hnsVisionStatus(text,error=false){
+  const el=$('#lead-ai-vision-status');
+  if(el){el.textContent=text;el.style.color=error?'#a5283e':'#335988';}
+}
+function hnsVisionPayloadFromCanvas(canvas){
+  const maxSide=1900;
+  const scale=Math.min(1,maxSide/Math.max(canvas.width,canvas.height));
+  const out=document.createElement('canvas');
+  out.width=Math.max(1,Math.round(canvas.width*scale));
+  out.height=Math.max(1,Math.round(canvas.height*scale));
+  out.getContext('2d').drawImage(canvas,0,0,out.width,out.height);
+  let dataUrl=out.toDataURL('image/jpeg',.85);
+  // Mobile photos sometimes compress poorly; never exceed Worker input limits.
+  if(dataUrl.length>2600000)dataUrl=out.toDataURL('image/jpeg',.62);
+  if(dataUrl.length>2600000)throw new Error('Card photo is too large for AI. Crop closer to the card first.');
+  return dataUrl;
+}
+function renderVisionReview(fields){
+  const review=$('#lead-ai-vision-review');
+  if(!review)return;
+  review.replaceChildren();
+  const title=document.createElement('h4');title.textContent='Review extracted details';review.append(title);
+  const hint=document.createElement('p');hint.textContent='Choose which suggestions to apply. Compare all numbers and spelling with the printed card.';review.append(hint);
+  let count=0;
+  for(const [field,label] of HNS_VISION_FIELDS){
+    const value=typeof fields[field]==='string'?fields[field].trim():'';
+    if(!value)continue;
+    const row=document.createElement('label');row.className='hns-vision-result-row';
+    const check=document.createElement('input');check.type='checkbox';check.checked=true;check.dataset.field=field;
+    const span=document.createElement('span');const bold=document.createElement('b');bold.textContent=label;
+    const val=document.createElement('small');val.textContent=value;
+    span.append(bold,val);row.append(check,span);review.append(row);count++;
+  }
+  if(!count){hnsVisionStatus('AI could not identify legible fields. Please retake a clearer card photo.',true);review.hidden=true;return;}
+  const actions=document.createElement('div');actions.className='hns-vision-actions';
+  const apply=document.createElement('button');apply.type='button';apply.className='btn btn-gold';apply.textContent='Apply selected to form';
+  apply.addEventListener('click',()=>{
+    for(const box of review.querySelectorAll('input[data-field]:checked')){
+      const field=box.dataset.field;
+      if(!HNS_VISION_FIELDS.some(([key])=>key===field))continue;
+      const value=fields[field];
+      if(typeof value==='string'&&leadFields[field])leadFields[field].value=value.trim();
+    }
+    refreshLeadSharePreview();
+    updateLeadReadout(true);
+    hnsVisionStatus('Selected fields applied. Verify them against the original card, then press Save business contact.');
+    review.hidden=true;
+    leadEls.form.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  const cancel=document.createElement('button');cancel.type='button';cancel.className='btn btn-outline';cancel.textContent='Keep current form';
+  cancel.addEventListener('click',()=>{review.hidden=true;hnsVisionStatus('AI suggestions discarded. Your current form was not changed.');});
+  actions.append(apply,cancel);review.append(actions);review.hidden=false;
+}
+$('#lead-ai-vision-button')?.addEventListener('click',async()=>{
+  if(hnsVisionBusy||leadsBusy)return;
+  if(!leadImageCanvas){hnsVisionStatus('Take or upload a card photo first.',true);return;}
+  if(!$('#lead-ai-vision-consent')?.checked){hnsVisionStatus('Confirm you have permission to send this business card photo to Ollama Cloud first.',true);return;}
+  if(!adminToken){hnsVisionStatus('Sign in to the admin dashboard first.',true);return;}
+  if(!apiOrigin?.startsWith('https://')){hnsVisionStatus('Cloudflare API URL is not configured.',true);return;}
+  const btn=$('#lead-ai-vision-button');
+  const review=$('#lead-ai-vision-review');if(review)review.hidden=true;
+  hnsVisionBusy=true;btn.disabled=true;btn.textContent='Reading with AI…';
+  hnsVisionStatus('Sending this photo securely to Ollama Cloud for text extraction…');
+  try{
+    const image=hnsVisionPayloadFromCanvas(leadImageCanvas);
+    const response=await fetch(`${apiOrigin}/api/admin/ai/card-scan`,{
+      method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${adminToken}`},
+      cache:'no-store',body:JSON.stringify({image,consent:true})
+    });
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(result.error||`AI scan unavailable (${response.status}).`);
+    if(result.isBusinessCard===false)throw new Error('This image does not appear to show a readable business card.');
+    renderVisionReview(result.fields||{});
+    if(!review?.hidden)hnsVisionStatus('AI suggestions ready. Check spelling and phone digits, then apply selected fields.');
+  }catch(error){hnsVisionStatus(error?.message||'AI card scan failed. Your local OCR and manual entry still work.',true);}
+  finally{hnsVisionBusy=false;btn.disabled=!leadImageCanvas;btn.textContent='Scan with Ollama Vision';}
+});
 
 function disableLeadCropMode(){
   leadCropMode=false;leadEls.imageWrap.classList.remove('cropping');
@@ -1053,24 +1227,61 @@ function closeLeadCamera() {
   leadsCameraStream = null;
   leadEls.video.srcObject = null;
   leadEls.webcam.classList.add('hidden');
+  const torch = $('#lead-torch');
+  if (torch) { torch.classList.add('hidden'); torch.setAttribute('aria-pressed', 'false'); }
 }
+$('#lead-torch')?.addEventListener('click', async () => {
+  const track = leadsCameraStream?.getVideoTracks?.()[0];
+  const button = $('#lead-torch');
+  if (!track || !track.getCapabilities?.().torch) return;
+  const on = button.getAttribute('aria-pressed') !== 'true';
+  try {
+    await track.applyConstraints({ advanced: [{ torch: on }] });
+    button.setAttribute('aria-pressed', String(on));
+    button.textContent = on ? '🔦 Light off' : '🔦 Light on';
+  } catch {
+    setLeadStatus('Could not turn the camera light on. Move to brighter light or use Take a photo.', true);
+  }
+});
 $('#lead-open-webcam').addEventListener('click', async () => {
   if (!navigator.mediaDevices?.getUserMedia) { setLeadStatus('Live camera is not available in this browser. Use Take a photo instead.', true); return; }
   try {
     closeLeadCamera();
-    leadsCameraStream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}});
+    const mobile=isMobileLeadDevice();
+    // Prefer the user's full-resolution mobile camera settings; retry with
+    // less strict constraints only when the device cannot support them.
+    try {
+      leadsCameraStream = await navigator.mediaDevices.getUserMedia({audio:false, video:{
+        facingMode:{ideal:'environment'},
+        width:{ideal:mobile?4032:1920,min:1280},
+        height:{ideal:mobile?3024:1080,min:960}
+      }});
+    } catch (cameraError) {
+      if (!['OverconstrainedError','NotFoundError','TypeError'].includes(cameraError?.name)) throw cameraError;
+      leadsCameraStream = await navigator.mediaDevices.getUserMedia({audio:false, video:{
+        facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}
+      }});
+    }
     leadEls.video.srcObject = leadsCameraStream;
     leadEls.webcam.classList.remove('hidden');
     await leadEls.video.play();
     leadEls.webcam.scrollIntoView({behavior:'smooth',block:'center'});
-    setLeadStatus('Fit the whole card inside the yellow frame, hold steady, then tap Scan this card.');
+    const torch=$('#lead-torch');
+    if(torch){
+      const track=leadsCameraStream?.getVideoTracks?.()[0];
+      const canTorch=!!track?.getCapabilities?.().torch;
+      torch.classList.toggle('hidden',!canTorch);
+      torch.setAttribute('aria-pressed','false');
+      torch.textContent='🔦 Light on';
+    }
+    setLeadStatus(mobile?'Fill the yellow frame with the card, hold steady, then tap Scan this card. Extra mobile reads run automatically.':'Fit the whole card inside the yellow frame, hold steady, then tap Scan this card.');
   } catch(error) {closeLeadCamera();setLeadStatus('Camera unavailable or permission denied. Use the photo upload button.', true);}
 });
 $('#lead-close-webcam').addEventListener('click', closeLeadCamera);
 $('#lead-take-photo').addEventListener('click', async () => {
   if (!leadEls.video.videoWidth || !leadEls.video.videoHeight) {setLeadStatus('Camera is not ready yet.',true);return;}
   const sourceW=leadEls.video.videoWidth, sourceH=leadEls.video.videoHeight;
-  const scale=Math.min(1, 2400/Math.max(sourceW,sourceH));
+  const scale=Math.min(1, (isMobileLeadDevice()?4000:2400)/Math.max(sourceW,sourceH));
   const canvas=document.createElement('canvas');
   canvas.width=Math.round(sourceW*scale);canvas.height=Math.round(sourceH*scale);
   canvas.getContext('2d').drawImage(leadEls.video,0,0,canvas.width,canvas.height);
@@ -1510,7 +1721,7 @@ bindClick('#leads-export-toolbar-pdf', event => exportScanCardPdf(event.currentT
 bindClick('#leads-export-pdf', event => exportScanCardPdf(event.currentTarget));
 
 // Keep contact data out of the UI after logout; the original login mechanism
-// and in-memory admin token remain unchanged.
+// and in-memory signed session remain unchanged.
 $('#logout-button').addEventListener('click',()=>{
   leadsList=[];leadsLoaded=false;resetLeadForm({clearVoice:true});closeLeadCamera();
   leadEls.raw.value='';leadImageCanvas=null;leadEls.preview.src='';
