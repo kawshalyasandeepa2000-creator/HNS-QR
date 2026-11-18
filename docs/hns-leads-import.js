@@ -208,6 +208,7 @@
     document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
   window.addEventListener('hns:event-changed',()=>{if(importRunning){stopRequested=true;setStatus('Event changed: import stopped to prevent mixing event records.');}});
+  window.addEventListener('hns:scan-mode-changed',()=>{if(importRunning){stopRequested=true;setStatus('Scan mode changed: import stopped to prevent mixing book and card records.');}resetPreview();ui.fileInput.value='';});
   ui.cancel.addEventListener('click',()=>{
     if(!importRunning)return;
     stopRequested=true;ui.cancel.disabled=true;
@@ -216,6 +217,7 @@
   ui.confirm.addEventListener('click',async()=>{
     if(importRunning||!selected.length)return;
     if(!adminToken||dom.dashboard.classList.contains('hidden')) {setStatus('Please sign in as admin before importing.',true);return;}
+    const importMode=currentView;
     const eligible=selected.filter(x=>!validationError(x.record));
     if(!eligible.length){setStatus('No valid rows to import.',true);return;}
     const confirmed=confirm(`Import contacts from ${importFileName}? Only approved fields will be sent to private Cloudflare D1. Existing records will not be overwritten. Duplicates based on email or phone will be skipped.`);
@@ -251,7 +253,7 @@
       // Concurrency 2 keeps Worker requests responsive and limits mobile data use.
       let index=0;
       async function worker(){
-        while(!stopRequested) {
+        while(!stopRequested && currentView===importMode) {
           const position=index++;
           if(position>=queue.length)break;
           const item=queue[position];
@@ -265,7 +267,7 @@
       const stopped=stopRequested;
       setStatus(`${stopped?'Stopped. ':'Completed. '}Saved ${sent}; skipped ${skipped} duplicates; failed ${failed}.`+
         (failures.length?' Errors: '+failures.slice(0,2).join(' | '):''),!!failed);
-      if(sent>0)await loadBusinessCardLeads();
+      if(sent>0 && currentView===importMode)await loadBusinessCardLeads();
       if(!stopped&&!failed){ui.fileInput.value='';resetPreview();ui.progress.hidden=false;ui.progress.max=1;ui.progress.value=1;}
     }catch(error){setStatus(`Import not started / interrupted: ${error.message}. No existing contacts were overwritten.`,true);}
     finally {importRunning=false;ui.fileInput.disabled=false;ui.cancel.disabled=true;ui.confirm.disabled=!selected.some(x=>!validationError(x.record));}
@@ -289,8 +291,8 @@
         if (typeof ws[address].v === 'string') {ws[address].t='s';delete ws[address].f;}
       }
       ws['!cols']=[{wch:26},{wch:31},{wch:33},{wch:22},{wch:25},{wch:30},{wch:23},{wch:36},{wch:26},{wch:26},{wch:22}];
-      const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Event Contacts');
-      XLSX.writeFile(wb,`${selectedEventSlug}-Business-Card-Leads.xlsx`);
+      const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,currentView==='event-book'?'Event Book':'Event Contacts');
+      XLSX.writeFile(wb,`${selectedEventSlug}-${currentView==='event-book'?'Event-Book-Contacts':'Business-Card-Leads'}.xlsx`);
     }catch(error){alert(`Could not export Excel file: ${error.message||'Please try the CSV export.'}`);}
     finally{ui.exportXlsx.disabled=false;}
   });

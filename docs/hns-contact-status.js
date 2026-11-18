@@ -3,7 +3,7 @@
 // Cloudflare Worker; never store CRM data in localStorage or client-only state.
 (() => {
   const VALUES = ["Follow up started", "QTN Send", "Won", "Lost"];
-  const TYPES = new Set(["qr", "reference", "scanned"]);
+  const TYPES = new Set(["qr", "reference", "scanned", "book"]);
   let rows = new Map();
   let ready = false;
   let generation = 0;

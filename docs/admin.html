@@ -6,12 +6,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261116-cards-fixed-3"><link rel="stylesheet" href="./hns-contact-status.css?v=20261117-status-v1">
+  <link rel="stylesheet" href="./hns-admin-official.css?v=20261116-events-v2"><link rel="stylesheet" href="./hns-events.css?v=20261118-event-book-v1"><link rel="stylesheet" href="./hns-contact-status.css?v=20261117-status-v1">
   <script defer src="./config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="./admin.js?v=20261117-manual-merge-vision-v1"></script>
-  <script defer src="./hns-contact-status.js?v=20261117-status-v1"></script>
-  <script defer src="./hns-leads-import.js?v=20261116-events-v2"></script>
+  <script defer src="./admin.js?v=20261118-event-book-v1"></script>
+  <script defer src="./hns-contact-status.js?v=20261118-book-v1"></script>
+  <script defer src="./hns-leads-import.js?v=20261118-book-v1"></script>
   <script defer src="./hns-references.js?v=20261116-restored-3"></script>
   <style id="hns-scanner-refresh-v1">
     /* HNS-QR admin scanner refresh. Scoped to Scan Card; original IDs, JS and Cloudflare APIs unchanged. */
@@ -314,6 +314,7 @@
       <a class="nav-link" href="#customers" id="qr-scans-nav">QR Referral Scan</a>
       <a class="nav-link" href="#csv-references" id="csv-references-nav">Card Details</a>
       <a class="nav-link" href="#business-cards" id="business-cards-nav">Scan Card</a>
+      <a class="nav-link" href="#event-book" id="event-book-nav">Event Book Scan</a>
       <button type="button" class="nav-link qr-nav-toggle" id="qr-visibility-toggle" aria-controls="qr-flyer" aria-expanded="false"><span class="qr-toggle-label">Show QR flyer</span></button>
       <a class="nav-link" href="./" target="_blank" rel="noopener noreferrer" id="sidebar-site-link">Customer website</a>
     </nav>
@@ -335,6 +336,7 @@
           <p class="overview-event-line">Active event: <strong id="overview-event-name">RISE 17 - 2026</strong></p>
           <div class="overview-hub" role="navigation" aria-label="Dashboard shortcuts">
             <button type="button" class="overview-tile overview-tile-scan" data-admin-view="#business-cards"><span class="overview-tile-count" id="overview-count-scan" aria-label="Scan Card total">—</span><span class="overview-tile-icon" aria-hidden="true">▤</span><strong>Scan Card</strong><span>saved contacts · import / export CSV or PDF</span></button>
+            <button type="button" class="overview-tile overview-tile-book" data-admin-view="#event-book"><span class="overview-tile-count" id="overview-count-book" aria-label="Event Book Scan total">—</span><span class="overview-tile-icon" aria-hidden="true">▦</span><strong>Event Book Scan</strong><span>book contacts · image scan · Excel/CSV import · PDF export</span></button>
             <button type="button" class="overview-tile overview-tile-details" data-admin-view="#csv-references"><span class="overview-tile-count" id="overview-count-details" aria-label="Card Details total">—</span><span class="overview-tile-icon" aria-hidden="true">▣</span><strong>Card Details</strong><span>reference contacts · import / export CSV or PDF</span></button>
             <button type="button" class="overview-tile overview-tile-qr" data-admin-view="#customers"><span class="overview-tile-count" id="overview-count-qr" aria-label="QR Referral Scan total">—</span><span class="overview-tile-icon" aria-hidden="true">◫</span><strong>QR Referral Scan</strong><span>QR registrations · export CSV or PDF</span></button>
           </div>
@@ -381,8 +383,8 @@
         <!-- Private event business-card contacts. Only visible after admin authentication. -->
         <section id="business-cards" class="leads-section hidden" aria-labelledby="leads-title">
           <div class="section-row">
-            <div><p class="section-kicker">CONTACT CAPTURE STUDIO</p><h2 id="leads-title">Business card scanner<span class="hns-heading-dot">.</span></h2>
-              <p class="section-description">Capture a clear card photo, review the detected details, and save the contact securely. If the scan misses a detail, you can share the original image.</p></div>
+            <div><p class="section-kicker" id="hns-scan-mode-kicker">CONTACT CAPTURE STUDIO</p><h2 id="leads-title">Business card scanner<span class="hns-heading-dot">.</span></h2>
+              <p class="section-description" id="hns-scan-mode-description">Capture a clear card photo, review the detected details, and save the contact securely. If the scan misses a detail, you can share the original image.</p></div>
             <div class="refs-head-actions section-io-actions">
               <button class="btn btn-outline" type="button" id="leads-import-open-toolbar">↑ Import CSV / Excel</button>
               <button class="btn btn-gold" type="button" id="leads-export-toolbar-csv">↓ Export CSV</button>
@@ -395,8 +397,8 @@
             <summary class="hns-scanner-launch" aria-label="Open or close the complete business card scanner">
               <span class="hns-scanner-launch-emblem" aria-hidden="true">▤</span>
               <span class="hns-scanner-launch-copy">
-                <strong>Business Card Scanner</strong>
-                <small>Open camera, scan photos, use Client Note &amp; AI, and save contacts</small>
+                <strong id="hns-scan-mode-name">Business Card Scanner</strong>
+                <small id="hns-scan-mode-subtitle">Open camera, scan photos, use Client Note &amp; AI, and save contacts</small>
               </span>
               <span class="hns-scanner-launch-action" aria-hidden="true">
                 <span class="hns-scanner-open-text">Open Scanner</span>
@@ -536,7 +538,8 @@
             </div>
           </details>
           <div class="leads-directory">
-            <div class="section-row"><div><p class="section-kicker">PRIVATE BUSINESS CONTACTS</p><h3>Saved event contacts</h3><p class="section-description" id="lead-total-label">Open this section to load your contacts.</p></div>
+            <p id="hns-book-mode-hint" class="hns-book-mode-hint" hidden>Event Book mode: crop ONE person/entry at a time. Book contacts are saved separately from Scan Card contacts for the selected event. Review the OCR/AI fields before saving.</p>
+            <div class="section-row"><div><p class="section-kicker">PRIVATE BUSINESS CONTACTS</p><h3 id="hns-scan-list-title">Saved event contacts</h3><p class="section-description" id="lead-total-label">Open this section to load your contacts.</p></div>
               <div class="lead-import-top-actions">
                 <button class="btn btn-gold" type="button" id="leads-import-open" aria-expanded="false" aria-controls="lead-import-panel">↑ Import Excel / CSV</button>
                 <button class="btn btn-outline" type="button" id="leads-export-excel">↓ Export Excel</button>

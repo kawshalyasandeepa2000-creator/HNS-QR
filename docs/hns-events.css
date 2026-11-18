@@ -174,3 +174,14 @@ body.is-signed-in #hero-card{display:none!important}
   .hns-current-event{white-space:normal}
 }
 @media(prefers-reduced-motion:reduce){#overview-panel .overview-tile{transition:none}}
+
+
+/* Event Book Scan: fourth dashboard card, phone/tablet friendly. */
+@media(min-width:1161px) {
+  #overview-panel .overview-hub{grid-template-columns:repeat(4,minmax(0,1fr));}
+  #overview-panel .overview-tile{padding:clamp(14px,1.2vw,21px);}
+}
+#overview-panel .overview-tile-book{border-top:4px solid #8b55c8;}
+#overview-panel .overview-tile-book .overview-tile-icon{background:#f0e9fc;color:#7844b3;}
+#hns-book-mode-hint:not([hidden]){padding:12px 15px;border-radius:11px;background:#f4edff;border:1px solid #dfd0f7;color:#50367e;font-size:12px;line-height:1.65;margin-bottom:16px;}
+@media(max-width:760px){#overview-panel .overview-hub{grid-template-columns:1fr;}}

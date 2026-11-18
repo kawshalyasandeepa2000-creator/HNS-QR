@@ -503,6 +503,8 @@ const leadFields = {
   eventName: $('#lead-event'), notes: $('#lead-notes')
 };
 let leadsList = [];
+// Remembers last scanner destination even when navigating through Overview.
+let activeScanMode = 'business-cards';
 let leadEditingId = null;
 let leadImageCanvas = null;
 let leadWorker = null;
@@ -549,6 +551,7 @@ async function refreshOverviewHubCounts(statsData) {
   }
   setOverviewHubCount('#overview-count-details', null, { loading: true });
   setOverviewHubCount('#overview-count-scan', null, { loading: true });
+  setOverviewHubCount('#overview-count-book', null, { loading: true });
   const event = encodeURIComponent(selectedEventSlug);
   await Promise.allSettled([
     (async () => {
@@ -561,11 +564,16 @@ async function refreshOverviewHubCounts(statsData) {
     })(),
     (async () => {
       try {
-        const data = await (await leadApi('/api/admin/business-cards')).json();
-        setOverviewHubCount('#overview-count-scan', Number(data.total || data.items?.length || 0));
-      } catch {
-        setOverviewHubCount('#overview-count-scan', '—');
-      }
+        // Direct request prevents the Book view from altering the Scan Card count.
+        const data = await (await api(`/api/admin/business-cards?event=${event}`)).json();
+        setOverviewHubCount('#overview-count-scan', Number(data.total ?? data.items?.length ?? 0));
+      } catch { setOverviewHubCount('#overview-count-scan', '—'); }
+    })(),
+    (async () => {
+      try {
+        const data = await (await api(`/api/admin/event-book?event=${event}`)).json();
+        setOverviewHubCount('#overview-count-book', Number(data.total ?? data.items?.length ?? 0));
+      } catch { setOverviewHubCount('#overview-count-book', '—'); }
     })()
   ]);
 }
@@ -576,11 +584,17 @@ window.addEventListener('hns:refs-total', event => {
 window.addEventListener('hns:scan-card-total', event => {
   setOverviewHubCount('#overview-count-scan', event.detail?.total);
 });
+window.addEventListener('hns:event-book-total', event => {
+  setOverviewHubCount('#overview-count-book', event.detail?.total);
+});
 
 async function leadApi(path, { method = 'GET', data = undefined } = {}) {
   if (!adminToken || dom.dashboard.classList.contains('hidden')) throw new Error('Admin login expired. Sign in again, then save.');
   if (!apiOrigin?.startsWith('https://')) throw new Error('API URL is missing from docs/config.js.');
-  const scopedUrl=new URL(`${apiOrigin}${path}`);
+  // One scanner interface; independent authenticated storage for Event Book.
+  const scopedPath = currentView === 'event-book'
+    ? path.replace(/^\/api\/admin\/business-cards(?=\/|$)/, '/api/admin/event-book') : path;
+  const scopedUrl=new URL(`${apiOrigin}${scopedPath}`);
   scopedUrl.searchParams.set('event',selectedEventSlug);
   if(data!==undefined)data={...data,eventSlug:selectedEventSlug,eventName:selectedEventName};
   let response;
@@ -601,7 +615,7 @@ async function leadApi(path, { method = 'GET', data = undefined } = {}) {
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    if (response.status === 404) throw new Error('Business Card API not installed (404). Deploy the business-card Worker update from the ZIP. GitHub files alone cannot save contacts.');
+    if (response.status === 404) throw new Error('Scanner API not installed (404). Deploy the Event Book Worker from this ZIP before uploading GitHub files.');
     if (response.status === 401) throw new Error('Login session expired (401). Sign out and sign in again.');
     if (response.status === 403) throw new Error('Cloudflare blocked this website origin (403). Check Worker allowed origins.');
     if (response.status === 500) throw new Error('Database or Worker error (500). Check qr-referral-api Observability logs / D1 binding.');
@@ -1004,6 +1018,7 @@ function displayLeadCanvas(canvas) {
 
 async function scanLeadCanvas(canvas, deep=false) {
   if(leadsBusy)return;
+  const startedMode=currentView;
   const mobileDeep=deep||isMobileLeadDevice();
   leadsBusy=true;
   leadScanRuns++;
@@ -1054,6 +1069,7 @@ async function scanLeadCanvas(canvas, deep=false) {
       readings.push((await worker.recognize(sharpened)).data);
     }
     merged=mergeCardOcrResults(readings);
+    if(currentView!==startedMode)return; // User switched between Book and Card while OCR was running.
     fillLeadFields(merged.fields);
     leadEls.raw.value=readings.map((r,i)=>`PASS ${i+1}\n${String(r.text||'').trim()}`).join('\n\n──────────\n\n');
     const missingFields=['personName','email','phone'].filter(f=>!merged.fields[f]);
@@ -1133,17 +1149,19 @@ $('#lead-ai-vision-button')?.addEventListener('click',async()=>{
   if(!apiOrigin?.startsWith('https://')){hnsVisionStatus('Cloudflare API URL is not configured.',true);return;}
   const btn=$('#lead-ai-vision-button');
   const review=$('#lead-ai-vision-review');if(review)review.hidden=true;
+  const startedMode=currentView;
   hnsVisionBusy=true;btn.disabled=true;btn.textContent='Reading with AI…';
   hnsVisionStatus('Sending this photo securely to Ollama Cloud for text extraction…');
   try{
     const image=hnsVisionPayloadFromCanvas(leadImageCanvas);
     const response=await fetch(`${apiOrigin}/api/admin/ai/card-scan`,{
       method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${adminToken}`},
-      cache:'no-store',body:JSON.stringify({image,consent:true})
+      cache:'no-store',body:JSON.stringify({image,consent:true,sourceType:currentView==='event-book'?'book':'card'})
     });
     const result=await response.json().catch(()=>({}));
     if(!response.ok)throw new Error(result.error||`AI scan unavailable (${response.status}).`);
-    if(result.isBusinessCard===false)throw new Error('This image does not appear to show a readable business card.');
+    if(startedMode!==currentView)return; // Never apply Book scan suggestions to Scan Card, or vice versa.
+    if(result.isBusinessCard===false)throw new Error(currentView==='event-book'?'No clear event-book entry found. Crop one row and try again.':'This image does not appear to show a readable business card.');
     renderVisionReview(result.fields||{});
     if(!review?.hidden)hnsVisionStatus('AI suggestions ready. Check spelling and phone digits, then apply selected fields.');
   }catch(error){hnsVisionStatus(error?.message||'AI card scan failed. Your local OCR and manual entry still work.',true);}
@@ -1582,6 +1600,7 @@ function leadFormPayload() {
 leadEls.form.addEventListener('submit', async event => {
   event.preventDefault();
   const payload = leadFormPayload();
+  const modeAtStart=currentView;
   const voice = ($('#lead-voice-note')?.value || '').trim();
   if (voice && !payload.notes.includes(voice)) payload.notes = [payload.notes, voice].filter(Boolean).join('\n').slice(0, 500);
   if (!payload.personName && !payload.companyName) {setLeadSaveStatus('Enter a person name or company name before saving.', true);return;}
@@ -1605,7 +1624,7 @@ leadEls.form.addEventListener('submit', async event => {
     refreshLeadSharePreview();
     setLeadSaveStatus(editing ? '✓ Business contact updated and saved. You can now share the reply.' : '✓ Business contact saved. Client recipient preserved for sharing. Use Clear form when finished.');
     leadApiReady=true;
-    await loadBusinessCardLeads();
+    if(currentView===modeAtStart)await loadBusinessCardLeads();
   } catch (error) {setLeadSaveStatus(`NOT SAVED: ${error.message || 'Unknown error'}`, true);leadEls.apiStatus.textContent=`⚠ Save issue: ${error.message||'Unknown error'}`;}
   finally {leadEls.save.disabled=false;}
 });
@@ -1627,7 +1646,8 @@ function leadCell(value,kind) {
 function renderBusinessCardLeads() {
   const q=leadEls.search.value.trim().toLowerCase();
   const filter=window.HNSContactStatus?.getFilter('lead-status-filter')||'all';
-  const list=leadsList.filter(lead=> (window.HNSContactStatus?.matches('scanned',lead.id,filter)??true) && [lead.personName,lead.companyName,lead.email,lead.phone,lead.jobTitle,lead.eventName].some(v=>String(v||'').toLowerCase().includes(q)));
+  const type=currentView==='event-book'?'book':'scanned';
+  const list=leadsList.filter(lead=> (window.HNSContactStatus?.matches(type,lead.id,filter)??true) && [lead.personName,lead.companyName,lead.email,lead.phone,lead.jobTitle,lead.eventName].some(v=>String(v||'').toLowerCase().includes(q)));
   leadEls.rows.replaceChildren();
   if (!list.length) {
     const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=8;td.textContent=q||filter!=='all'?'No contacts match this search/status filter.':'No saved business cards yet.';tr.append(td);leadEls.rows.append(tr);
@@ -1635,7 +1655,7 @@ function renderBusinessCardLeads() {
   for(const lead of list){
     const tr=document.createElement('tr');
     [['personName',null],['companyName',null],['email','email'],['phone','phone'],['jobTitle',null],['createdAt',null]].forEach(([key,kind])=>tr.append(leadCell(lead[key],kind)));
-    const statusTd=document.createElement('td');statusTd.append(window.HNSContactStatus.create('scanned',lead.id,lead.personName||lead.companyName));tr.append(statusTd);
+    const statusTd=document.createElement('td');statusTd.append(window.HNSContactStatus.create(type,lead.id,lead.personName||lead.companyName));tr.append(statusTd);
     const td=document.createElement('td');const controls=document.createElement('div');controls.className='leads-row-actions';
     const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.dataset.action='edit';edit.dataset.id=lead.id;
     const del=document.createElement('button');del.type='button';del.textContent='Delete';del.className='lead-delete-btn';del.dataset.action='delete';del.dataset.id=lead.id;
@@ -1649,17 +1669,19 @@ async function loadBusinessCardLeads() {
   if (!adminToken || dom.dashboard.classList.contains('hidden')) return;
   $('#lead-total-label').textContent='Loading saved event contacts...';
   const expectedEvent=selectedEventSlug;
+  const expectedMode=currentView;
   try {
     const data = await (await leadApi('/api/admin/business-cards')).json();
-    if(expectedEvent!==selectedEventSlug)return;
+    if(expectedEvent!==selectedEventSlug || expectedMode!==currentView)return;
     leadsList = Array.isArray(data.items) ? data.items : [];
     const total=Number(data.total??0);
     leadsLoaded=true;leadApiReady=true;
-    leadEls.apiStatus.textContent='✓ Business card database connected. Saving is available.';
-    $('#lead-total-label').textContent=`${total} total business contacts. Showing latest ${leadsList.length}; export CSV for all contacts.`;
-    window.dispatchEvent(new CustomEvent('hns:scan-card-total', { detail: { total } }));
+    const isBook=expectedMode==='event-book';
+    leadEls.apiStatus.textContent=isBook?'✓ Event Book database connected. Saving is available.':'✓ Business card database connected. Saving is available.';
+    $('#lead-total-label').textContent=`${total} total ${isBook?'event-book':'business'} contacts. Showing latest ${leadsList.length}; export CSV for all contacts.`;
+    window.dispatchEvent(new CustomEvent(isBook?'hns:event-book-total':'hns:scan-card-total', { detail: { total } }));
     renderBusinessCardLeads();
-  } catch (error) {leadApiReady=false;leadEls.apiStatus.textContent=`⚠ Scanner database unavailable: ${error.message}`;$('#lead-total-label').textContent=`Could not load business contacts: ${error.message}`;}
+  } catch (error) {if(expectedMode!==currentView)return;leadApiReady=false;leadEls.apiStatus.textContent=`⚠ Scanner database unavailable: ${error.message}`;$('#lead-total-label').textContent=`Could not load contacts: ${error.message}`;}
 }
 $('#leads-refresh').addEventListener('click',loadBusinessCardLeads);
 $('#business-cards-nav').addEventListener('click', () => {
@@ -1690,7 +1712,7 @@ $('#leads-export').addEventListener('click',async()=>{
   try {
     const blob=await(await leadApi(`/api/admin/business-cards/export.csv${window.HNSContactStatus.exportFilter('lead-status-filter').replace('&','?')}`)).blob();
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
-    a.download=`Helen-and-Sons-Scan-Card-${selectedEventSlug}.csv`;document.body.append(a);a.click();a.remove();
+    a.download=`Helen-and-Sons-${currentView==='event-book'?'Event-Book':'Scan-Card'}-${selectedEventSlug}.csv`;document.body.append(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }catch(error){alert(`Could not export business cards: ${error.message}`);}finally{button.disabled=false;}
 });
@@ -1700,8 +1722,8 @@ async function exportScanCardPdf(button) {
     const csv = await (await leadApi(`/api/admin/business-cards/export.csv${window.HNSContactStatus.exportFilter('lead-status-filter').replace('&','?')}`)).text();
     const { headers, rows } = parseExportCsv(csv);
     exportTablePdf({
-      title: 'Scan Card contacts',
-      subtitle: `${selectedEventName} · saved scanner contacts · Save as PDF in print dialog`,
+      title: currentView==='event-book'?'Event Book Scan contacts':'Scan Card contacts',
+      subtitle: `${selectedEventName} · ${currentView==='event-book'?'event book':'scanner'} contacts · Save as PDF in print dialog`,
       headers: headers.length ? headers : ['Person', 'Company', 'Email', 'Phone', 'Job title', 'Added (UTC)'],
       rows
     });
@@ -1733,13 +1755,13 @@ $('#logout-button').addEventListener('click',()=>{
 // If a shared dashboard link points directly to the scanner after login,
 // load its records once authentication has succeeded.
 $('#login-form').addEventListener('submit',()=>{
-  setTimeout(()=>{if (!dom.dashboard.classList.contains('hidden')&&location.hash==='#business-cards'&&!leadsLoaded)loadBusinessCardLeads();},500);
+  setTimeout(()=>{if (!dom.dashboard.classList.contains('hidden')&&['#business-cards','#event-book'].includes(location.hash)&&!leadsLoaded)loadBusinessCardLeads();},500);
 });
 
 
 // Each event is a real, server-authorized D1 event; this never saves contact data to localStorage.
 const adminSections = ["overview-panel","customers","csv-references","business-cards","qr-flyer"];
-const adminViewKeys = ["overview","customers","csv-references","business-cards","qr-flyer"];
+const adminViewKeys = ["overview","customers","csv-references","business-cards","event-book","qr-flyer"];
 function applyAdminShell(next) {
   const signedIn = !dom.dashboard.classList.contains("hidden");
   const hero = $("#hero-card");
@@ -1750,9 +1772,38 @@ function applyAdminShell(next) {
 }
 function showAdminView(target) {
   const hash = String(target||"#overview").replace(/^#/, "");
-  const map = {overview:"overview-panel",customers:"customers","csv-references":"csv-references","business-cards":"business-cards","qr-flyer":"qr-flyer"};
+  const map = {overview:"overview-panel",customers:"customers","csv-references":"csv-references","business-cards":"business-cards","event-book":"business-cards","qr-flyer":"qr-flyer"};
   const next = map[hash] ? hash : "overview";
+  const nextScanner=['business-cards','event-book'].includes(next);
+  // Reset whenever the active scanner destination changes, including through Overview.
+  // Prevent an Event Book contact from appearing in a Scan Card form (or vice versa).
+  if(nextScanner && activeScanMode!==next) {
+    activeScanMode=next;
+    closeLeadCamera();resetLeadForm({clearVoice:true});
+    leadImageCanvas=null;leadEls.preview.removeAttribute('src');leadEls.preview.classList.add('hidden');
+    leadEls.placeholder.classList.remove('hidden');leadEls.raw.value='';
+    $('#lead-ai-vision-review').hidden=true;
+    $('#lead-ai-vision-consent').checked=false;
+    $('#lead-ai-vision-button').disabled=true;
+    $('#lead-search').value='';$('#lead-status-filter').value='all';
+    leadsList=[];leadsLoaded=false;leadEls.rows.replaceChildren();
+    $('#lead-total-label').textContent='Loading contacts for this section…';
+    $('#lead-import-panel')?.classList.add('hidden');
+    window.dispatchEvent(new Event('hns:scan-mode-changed'));
+  }
   currentView = next;
+  const isBook=next==='event-book';
+  // Both sections share the exact existing scanner DOM/camera/OCR/AI/import/export controls.
+  // Only the mode-specific labels and the D1 API endpoint change.
+  $('#hns-scan-mode-kicker').textContent=isBook?'EVENT BOOK CONTACT CAPTURE':'CONTACT CAPTURE STUDIO';
+  $('#leads-title').innerHTML=isBook?'Event Book scanner<span class="hns-heading-dot">.</span>':'Business card scanner<span class="hns-heading-dot">.</span>';
+  $('#hns-scan-mode-description').textContent=isBook
+    ? 'Scan one entry from your event attendance book at a time. Review the contact fields, then save separately from Scan Card contacts. Camera, Ollama Vision, import and exports remain available.'
+    : 'Capture a clear card photo, review the detected details, and save the contact securely. If the scan misses a detail, you can share the original image.';
+  $('#hns-scan-mode-name').textContent=isBook?'Event Book Scanner':'Business Card Scanner';
+  $('#hns-scan-mode-subtitle').textContent=isBook?'Scan a page/entry, review one contact, use Client Note and AI, then save':'Open camera, scan photos, use Client Note & AI, and save contacts';
+  $('#hns-scan-list-title').textContent=isBook?'Saved event book contacts':'Saved event contacts';
+  $('#hns-book-mode-hint').hidden=!isBook;
   const panelId = map[next];
   for (const id of adminSections) {
     const section = $("#"+id);
@@ -1765,7 +1816,7 @@ function showAdminView(target) {
   document.querySelectorAll('.side-nav a[href^="#"]').forEach(a=>a.classList.toggle("active", a.getAttribute("href") === "#"+next));
   if(next==="overview") document.querySelector('.side-nav a[href="#overview"]')?.classList.add("active");
   if(!dom.dashboard.classList.contains("hidden")) {
-    if(next==="business-cards" && typeof loadBusinessCardLeads==="function") loadBusinessCardLeads();
+    if(nextScanner && typeof loadBusinessCardLeads==="function") loadBusinessCardLeads();
     if(next==="csv-references") window.dispatchEvent(new Event("hns:event-references-view"));
     if(next==="overview") {
       fetchDashboard().catch(error=>showError(dom.adminError,error));
@@ -1833,7 +1884,7 @@ function switchEvent(slug){
   dom.status.textContent="Loading event…";
   fetchDashboard().catch(error=>showError(dom.adminError,error));
   if(currentView==="qr-flyer")buildQR();
-  if(currentView==="business-cards")loadBusinessCardLeads();
+  if(["business-cards","event-book"].includes(currentView))loadBusinessCardLeads();
   if(currentView==="csv-references")window.dispatchEvent(new Event("hns:event-references-view"));
 }
 $("#event-select").addEventListener("change",e=>switchEvent(e.target.value));
