@@ -158,8 +158,7 @@ body.is-signed-in #hero-card{display:none!important}
 #overview-panel .overview-tile-qr .overview-tile-icon {background: #def7ea;color:#1e7750}
 #overview-panel .overview-event-line {margin: 9px 0 0;font-size: 13px;line-height: 1.6}
 #overview-panel .overview-status {margin: 10px 0 0;line-height: 1.5;font-weight: 650}
-/* New Event intentionally left out for this revision. Keep old DOM hooks intact. */
-#event-switcher, #event-create-form {display: none!important}
+/* Multi-event is now enabled. The .hidden class handles signed-out and form visibility. */
 .hns-current-event {
   display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
   padding:9px 12px;border-radius:12px;border:1px solid rgba(245,231,126,.35);
@@ -185,3 +184,11 @@ body.is-signed-in #hero-card{display:none!important}
 #overview-panel .overview-tile-book .overview-tile-icon{background:#f0e9fc;color:#7844b3;}
 #hns-book-mode-hint:not([hidden]){padding:12px 15px;border-radius:11px;background:#f4edff;border:1px solid #dfd0f7;color:#50367e;font-size:12px;line-height:1.65;margin-bottom:16px;}
 @media(max-width:760px){#overview-panel .overview-hub{grid-template-columns:1fr;}}
+
+/* Multi-event header and create-form polish (Nov 18, 2026) */
+.hns-current-event{max-width:250px;min-width:0;overflow-wrap:anywhere;line-height:1.3}
+#event-switcher select{width:min(200px,40vw);max-width:220px;text-overflow:ellipsis}
+#event-create-form:not(.hidden){display:flex}
+#event-create-status{overflow-wrap:anywhere}
+#qr-flyer-event-name{overflow-wrap:anywhere}
+@media(max-width:760px){.hns-current-event{max-width:100%;font-size:10px}.event-switcher{gap:7px}.event-switcher select{max-width:100%;width:auto}}

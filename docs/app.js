@@ -18,6 +18,7 @@ const passDetails = document.querySelector("#pass-details");
 const referralActions = document.querySelector("#referral-actions");
 const issuedTo = document.querySelector("#issued-to");
 let referral = null;
+let currentPublicEventName = campaignSlug === cfg.campaign ? "RISE 17 - 2026" : "";
 
 function getVisitorId(campaign) {
   const key = `qr-referral-visitor:${campaign}`;
@@ -193,6 +194,10 @@ function downloadCard(event) {
     ctx.fillStyle = "#F5E77E";
     ctx.font = "700 20px Poppins, Arial, sans-serif";
     ctx.fillText("VISA CONSULTANCY", 595, 198);
+    if (currentPublicEventName) {
+      ctx.font = "700 15px Poppins, Arial, sans-serif";
+      ctx.fillText(currentPublicEventName, 595, 224, 490);
+    }
 
     ctx.fillStyle = NAVY;
     ctx.font = "700 20px Poppins, Arial, sans-serif";
@@ -340,7 +345,7 @@ if (campaignSlug !== cfg.campaign) {
   const riseMobile=document.querySelector('.eyebrow-mobile');if(riseMobile)riseMobile.style.display='none';
   fetch(apiUrl(`/api/public/event?event=${encodeURIComponent(campaignSlug)}`))
     .then(async response=>{if(!response.ok)throw new Error('Invalid event');return response.json();})
-    .then(data=>{if(banner)banner.textContent=`Event: ${data.name}`;})
+    .then(data=>{currentPublicEventName=data.name;if(banner)banner.textContent=`Event: ${data.name}`;document.title=`${data.name} | Helen and Sons Referral`;})
     .catch(()=>{if(banner)banner.textContent='Event not found. Please ask the event organizer for the correct QR link.';const form=document.querySelector('#referral-form');if(form)form.querySelector('button[type=submit]').disabled=true;});
 }
 

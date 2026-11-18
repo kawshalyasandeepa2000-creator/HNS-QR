@@ -284,8 +284,8 @@ $("#login-form").addEventListener("submit", async event => {
     }
     adminToken = result.token;
     // Check the session against existing protected APIs before showing private records.
-    await fetchDashboard();
     await loadEvents();
+    await fetchDashboard();
     dom.passwordInput.value = "";
     dom.loginPanel.classList.add("hidden");
     dom.dashboard.classList.remove("hidden");
@@ -399,6 +399,8 @@ $("#qr-download").addEventListener("click", () => {
     ctx.fillStyle = "#0B2463";
     ctx.font = "bold 27px Arial, sans-serif";
     ctx.fillText("OFFICIAL REFERRAL PROGRAMME", 425, 373, 720);
+    ctx.font = "bold 22px Arial, sans-serif";
+    ctx.fillText(selectedEventName, 425, 405, 705);
     ctx.font = "bold 49px Arial, sans-serif";
     ctx.fillText("SCAN & GET YOUR", 425, 458, 730);
     ctx.fillStyle = "#C89116";
@@ -1833,89 +1835,139 @@ for (const anchor of document.querySelectorAll('.side-nav a[href^="#"]')) anchor
 });
 window.addEventListener("hashchange",()=>{if(!dom.dashboard.classList.contains("hidden"))showAdminView(location.hash);});
 
-async function loadEvents() {
-  const picker=$("#event-select");
+// Event selection is UI state, not a stored credential or contact record.
+// Only the server can create/authorize events and decide their canonical names.
+function savedEventChoice() {
+  try {return sessionStorage.getItem('hns-selected-event') || '';} catch {return '';}
+}
+function persistEventChoice(slug) {
+  try {sessionStorage.setItem('hns-selected-event',slug);} catch {}
+}
+async function loadEvents(preferredSlug = '') {
+  const picker = $('#event-select');
   try {
-    const data = await (await api("/api/admin/events")).json();
-    if(!Array.isArray(data.items)||!data.items.length) throw new Error("Events API not installed.");
-    eventList=data.items;
-    eventsBackendReady=true;
-    picker.disabled=false;$("#event-new-button").disabled=false;
-  } catch(error) {
-    // IMPORTANT: Never lock admins out of the existing single-event dashboard
-    // when the front-end reaches GitHub before the new Worker/migration is ready.
-    eventsBackendReady=false;
-    eventList=[{slug:"outdoor-2026",name:"RISE 17 - 2026"}];
-    selectedEventSlug="outdoor-2026";
-    picker.disabled=true;$("#event-new-button").disabled=true;
-    dom.status.textContent="Single-event mode · Worker events update pending";
+    const data = await (await api('/api/admin/events')).json();
+    if (!Array.isArray(data.items) || !data.items.length) throw new Error('Events API not installed.');
+    eventList = data.items.filter(item => typeof item.slug === 'string' && typeof item.name === 'string');
+    if (!eventList.length) throw new Error('No events returned by Cloudflare.');
+    eventsBackendReady = true;
+    picker.disabled = false;
+    $('#event-new-button').disabled = false;
+    const candidate = preferredSlug || savedEventChoice() || selectedEventSlug;
+    const chosen = eventList.find(item => item.slug === candidate) ||
+      eventList.find(item => item.slug === data.defaultSlug) || eventList[0];
+    selectedEventSlug = chosen.slug;
+    selectedEventName = chosen.name;
+    picker.replaceChildren();
+    for (const item of eventList) picker.append(new Option(item.name, item.slug));
+    picker.value = selectedEventSlug;
+    updateEventLinks();
+    persistEventChoice(selectedEventSlug);
+    return true;
+  } catch (error) {
+    // Old Workers remain usable for RISE 17; new events require this Worker update.
+    eventsBackendReady = false;
+    eventList = [{slug:'outdoor-2026',name:'RISE 17 - 2026'}];
+    selectedEventSlug = 'outdoor-2026';
+    selectedEventName = 'RISE 17 - 2026';
+    picker.replaceChildren(new Option(selectedEventName, selectedEventSlug));
+    picker.disabled = true;
+    $('#event-new-button').disabled = false; // Can display actionable setup error.
+    dom.status.textContent = 'Single-event mode · update Cloudflare Worker to create events';
+    updateEventLinks();
+    return false;
   }
-  picker.replaceChildren();
-  for (const item of eventList) picker.append(new Option(item.name,item.slug));
-  if(!eventList.some(item=>item.slug===selectedEventSlug))selectedEventSlug="outdoor-2026";
-  picker.value=selectedEventSlug;
-  selectedEventName=eventList.find(item=>item.slug===selectedEventSlug)?.name||"RISE 17 - 2026";
-  updateEventLinks();
 }
-function updateEventLinks(){
-  const url=new URL(customerUrl);url.searchParams.set("event",selectedEventSlug);
-  $("#live-website-link").href=url.href;
-  $("#sidebar-site-link").href=url.href;
-  $("#lead-event").value=selectedEventName;
-  const overviewEvent=$("#overview-event-name");
-  if(overviewEvent)overviewEvent.textContent=selectedEventName;
-  if(qrBuilt){qrBuilt=false;$("#qr-container").replaceChildren();}
-  $("#qr-url").textContent=customerUrlForEvent();
+function updateEventLinks() {
+  const url = new URL(customerUrl);
+  url.searchParams.set('event', selectedEventSlug);
+  url.searchParams.set('source', 'qr');
+  $('#live-website-link').href = url.href;
+  $('#sidebar-site-link').href = url.href;
+  leadFields.eventName.value = selectedEventName;
+  const overviewEvent = $('#overview-event-name');
+  if (overviewEvent) overviewEvent.textContent = selectedEventName;
+  const campaignName = $('#campaign-name');
+  if (campaignName) {campaignName.textContent=selectedEventName;campaignName.title=`Database event: ${selectedEventSlug}`;}
+  const badge = $('.hns-current-event');
+  if (badge) {badge.textContent=selectedEventName;badge.setAttribute('aria-label',`Current event: ${selectedEventName}`);badge.title=selectedEventName;}
+  const title = $('#overview-title');
+  if (title) title.textContent = 'Dashboard';
+  // Reference numbers must belong to the selected event, never default to RISE 17.
+  const prefix = $('#ref-prefix');
+  if (prefix && !prefix.closest('.refs-import-panel:not(.hidden)')) prefix.value = selectedEventSlug.toUpperCase().slice(0,35);
+  const refExample = $('#ref-example-numbers');
+  if (refExample) refExample.textContent = `Example IDs: ${selectedEventSlug.toUpperCase()}-001, ${selectedEventSlug.toUpperCase()}-002.`;
+  const flyerEvent = $('#qr-flyer-event-name');
+  if (flyerEvent) flyerEvent.textContent = selectedEventName;
+  if (qrBuilt) {qrBuilt=false;$('#qr-container').replaceChildren();}
+  $('#qr-url').textContent = customerUrlForEvent();
+  document.title = `${selectedEventName} | CARD TO DEAL`; 
 }
-function switchEvent(slug){
-  const target=eventList.find(item=>item.slug===slug);
-  if(!target||!eventsBackendReady)return;
-  if(leadEditingId)resetLeadForm();
+function switchEvent(slug) {
+  const target = eventList.find(item => item.slug === slug);
+  if (!target || !eventsBackendReady) {$('#event-select').value=selectedEventSlug;return;}
+  if (target.slug===selectedEventSlug) {updateEventLinks();return;}
+  ++eventLoadSerial; // Prevent in-flight old-event statistics overwriting new event.
+  // IMPORTANT: clear any form/QR/image being edited before changing D1 event scope.
+  if (typeof resetLeadForm === 'function') resetLeadForm({clearVoice:true});
+  if (typeof closeLeadCamera === 'function') closeLeadCamera();
   window.HNSContactStatus?.reset();
   for (const id of ['qr-status-filter','ref-status-filter','lead-status-filter']) {
     const select=document.getElementById(id);if(select)select.value='all';
   }
-  selectedEventSlug=target.slug;selectedEventName=target.name;
-  $("#event-select").value=slug;
+  selectedEventSlug=target.slug;
+  selectedEventName=target.name;
+  persistEventChoice(selectedEventSlug);
+  $('#event-select').value=slug;
   updateEventLinks();
   recentRecords=[];oldRecords=[];renderRecords();
   leadsList=[];renderBusinessCardLeads();
-  window.dispatchEvent(new CustomEvent("hns:event-changed",{detail:{slug,name:target.name}}));
-  dom.status.textContent="Loading event…";
+  leadEls.raw.value='';
+  window.dispatchEvent(new CustomEvent('hns:event-changed',{detail:{slug,name:target.name}}));
+  dom.status.textContent=`Loading ${target.name}…`;
   fetchDashboard().catch(error=>showError(dom.adminError,error));
-  if(currentView==="qr-flyer")buildQR();
-  if(["business-cards","event-book"].includes(currentView))loadBusinessCardLeads();
-  if(currentView==="csv-references")window.dispatchEvent(new Event("hns:event-references-view"));
+  if(currentView==='qr-flyer')buildQR();
+  if(['business-cards','event-book'].includes(currentView))loadBusinessCardLeads();
+  if(currentView==='csv-references')window.dispatchEvent(new Event('hns:event-references-view'));
 }
-$("#event-select").addEventListener("change",e=>switchEvent(e.target.value));
-$("#event-new-button").addEventListener("click",()=>{
-  if(!eventsBackendReady){
-    $("#event-create-status").textContent="New Event needs the updated Cloudflare Worker and D1 events table. RISE 17 data stays safe until that deploy is done.";
-    showAdminView("#overview");
-    $("#event-create-form").classList.remove("hidden");
-    $("#event-create-form").scrollIntoView({behavior:"smooth",block:"nearest"});
-    return;
-  }
-  showAdminView("#overview");
-  $("#event-create-form").classList.remove("hidden");
-  $("#event-new-name").focus();
+$('#event-select').addEventListener('change',e=>switchEvent(e.target.value));
+$('#event-new-button').addEventListener('click',()=>{
+  showAdminView('#overview');
+  $('#event-create-form').classList.remove('hidden');
+  const message = $('#event-create-status');
+  message.textContent = eventsBackendReady ? 'Create a new, empty event. Existing event contacts remain unchanged.' :
+    'New Event requires the updated Cloudflare Worker in this ZIP. Deploy that Worker first; RISE 17 data remains safe.';
+  $('#event-create-save').disabled = !eventsBackendReady;
+  $('#event-create-form').scrollIntoView({behavior:'smooth',block:'nearest'});
+  if (eventsBackendReady) $('#event-new-name').focus();
 });
-$("#event-create-cancel").addEventListener("click",()=>{$("#event-create-form").classList.add("hidden");$("#event-create-status").textContent="";});
-$("#event-create-form").addEventListener("submit",async event=>{
+$('#event-create-cancel').addEventListener('click',()=>{
+  $('#event-create-form').classList.add('hidden');$('#event-create-status').textContent='';
+});
+$('#event-create-form').addEventListener('submit',async event=>{
   event.preventDefault();
-  const name=$("#event-new-name").value.trim();
-  if(name.length<3)return;
-  const button=$("#event-create-save");button.disabled=true;
+  if (!eventsBackendReady) {$('#event-create-status').textContent='Deploy the events Worker before creating events.';return;}
+  const name=$('#event-new-name').value.trim();
+  if(name.length<3||name.length>90)return;
+  const button=$('#event-create-save');button.disabled=true;
+  $('#event-create-status').textContent=`Creating ${name}…`;
   try {
-    const response=await fetch(`${apiOrigin}/api/admin/events`,{method:"POST",headers:{Authorization:`Bearer ${adminToken}`,"Content-Type":"application/json"},body:JSON.stringify({name})});
+    const response=await fetch(`${apiOrigin}/api/admin/events`,{
+      method:'POST',headers:{Authorization:`Bearer ${adminToken}`,'Content-Type':'application/json'},
+      cache:'no-store',body:JSON.stringify({name})
+    });
     const data=await response.json().catch(()=>({}));
-    if(!response.ok)throw new Error(data.error||`Event creation failed (HTTP ${response.status})`);
-    await loadEvents();switchEvent(data.slug);
-    $("#event-new-name").value="";$("#event-create-status").textContent="";
-    $("#event-create-form").classList.add("hidden");
-    history.replaceState(null,"","#overview");showAdminView("#overview");
-  }catch(error){$("#event-create-status").textContent=error.message;}
-  finally{button.disabled=false;}
+    if(!response.ok||!data.slug)throw new Error(data.error||`Event creation failed (HTTP ${response.status})`);
+    await loadEvents(selectedEventSlug); // Refresh list without accidentally selecting a different event.
+    const target=eventList.find(item=>item.slug===data.slug);
+    if(!target)throw new Error('Created event is not in the event list yet. Refresh and select it.');
+    switchEvent(target.slug);
+    $('#event-new-name').value='';$('#event-create-status').textContent='';
+    $('#event-create-form').classList.add('hidden');
+    history.replaceState(null,'','#overview');showAdminView('#overview');
+  }catch(error){$('#event-create-status').textContent=error.message||'Could not create event.';}
+  finally{button.disabled=!eventsBackendReady;}
 });
 
 showAdminView(location.hash || "#overview");

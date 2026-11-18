@@ -914,25 +914,79 @@ function exportCsv(env, campaign, corsHeaders, qrOnly = false, sourceReady = tru
 // referral-code generator, email sender and campaign slug are not modified.
 
 
-// Single-event Cloudflare D1 compatibility. Existing RIZE 17 data is not migrated.
+// Persist new campaigns in the SAME D1 database, without changing any old
+// referrals, reference contacts, scanner contacts, Event Book data or statuses.
+// The first event retains its original `CAMPAIGN_SLUG` for all legacy QR links.
 const EVENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const LEGACY_EVENT_NAME = "RISE 17 - 2026";
 function eventSlugFrom(url, env) {
   const slug = url.searchParams.get("event") ?? env.CAMPAIGN_SLUG;
-  if (!EVENT_SLUG_PATTERN.test(slug) || slug.length > 80) {
+  if (typeof slug !== "string" || !EVENT_SLUG_PATTERN.test(slug) || slug.length > 80) {
     throw { status: 400, message: "Invalid event slug." };
   }
   return slug;
 }
+async function ensureCampaignEventsTable(env) {
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS hns_campaign_events (
+    slug TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    created_at TEXT NOT NULL
+  )`).run();
+  await env.DB.prepare(`INSERT OR IGNORE INTO hns_campaign_events(slug,name,created_at)
+    VALUES(?,?,?)`).bind(env.CAMPAIGN_SLUG,LEGACY_EVENT_NAME,"2026-01-01T00:00:00.000Z").run();
+}
 async function requireValidEvent(env, slug) {
-  if (slug !== env.CAMPAIGN_SLUG) {
-    throw { status: 404, message: "Event not found. Use the RIZE 17 QR link." };
-  }
-  return { slug, name: "RISE 17 - 2026" };
+  // Keep the legacy campaign working even before the events feature deploys.
+  if (slug === env.CAMPAIGN_SLUG) return {slug, name:LEGACY_EVENT_NAME};
+  await ensureCampaignEventsTable(env);
+  const found = await env.DB.prepare("SELECT slug,name FROM hns_campaign_events WHERE slug=?").bind(slug).first();
+  if (!found) throw { status:404, message:"Event not found. Choose an event from the dashboard or use a valid event QR link." };
+  return {slug:found.slug,name:found.name};
 }
 async function scopedEventSlug(env, request) {
   const slug = eventSlugFrom(new URL(request.url), env);
   await requireValidEvent(env, slug);
   return slug;
+}
+function makeEventSlug(name) {
+  const part = name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60).replace(/-+$/g, "");
+  return part || `event-${hex(crypto.getRandomValues(new Uint8Array(4)))}`;
+}
+async function handleCampaignEvents(request, env, cors) {
+  if (!await isAdmin(request, env)) return json({error:"Admin session expired. Sign in again."},401,cors);
+  await ensureCampaignEventsTable(env);
+  if (request.method === "GET") {
+    const found = await env.DB.prepare(
+      "SELECT slug,name,created_at AS createdAt FROM hns_campaign_events ORDER BY CASE WHEN slug=? THEN 0 ELSE 1 END, created_at ASC, slug ASC"
+    ).bind(env.CAMPAIGN_SLUG).all();
+    return json({items:found.results||[],defaultSlug:env.CAMPAIGN_SLUG},200,cors);
+  }
+  if (request.method !== "POST") return json({error:"Method not allowed."},405,cors);
+  if (!request.headers.get("Content-Type")?.toLowerCase().startsWith("application/json"))
+    return json({error:"JSON body required."},415,cors);
+  if (Number(request.headers.get("Content-Length")||0)>2048) return json({error:"Request too large."},413,cors);
+  const raw = await request.text();
+  if (raw.length>2048) return json({error:"Request too large."},413,cors);
+  let body;
+  try {body=JSON.parse(raw);} catch {return json({error:"Invalid JSON."},400,cors);}
+  const name = typeof body?.name === "string" ? body.name.normalize("NFC").trim().replace(/\s+/g," ") : "";
+  if (name.length<3 || name.length>90 || !/[\p{L}\p{N}]/u.test(name) || /[<>\u0000-\u001f\u007f]/u.test(name))
+    return json({error:"Event name must be 3–90 characters, with letters or numbers."},400,cors);
+  const exists = await env.DB.prepare("SELECT slug FROM hns_campaign_events WHERE name=? COLLATE NOCASE").bind(name).first();
+  if (exists) return json({error:"An event with this name already exists. Select it from the dropdown."},409,cors);
+  const base = makeEventSlug(name);
+  for (let i=1;i<=30;i++) {
+    const slug = i===1 ? base : `${base.slice(0,55)}-${i}`;
+    const createdAt = new Date().toISOString();
+    const saved = await env.DB.prepare("INSERT OR IGNORE INTO hns_campaign_events(slug,name,created_at) VALUES(?,?,?)")
+      .bind(slug,name,createdAt).run();
+    if (Number(saved.meta?.changes||0)>0) return json({ok:true,slug,name,createdAt},201,cors);
+    // A concurrent creation of the same name should never produce two event records.
+    const matching = await env.DB.prepare("SELECT slug FROM hns_campaign_events WHERE name=? COLLATE NOCASE").bind(name).first();
+    if (matching) return json({error:"This event already exists. Select it from the dropdown."},409,cors);
+  }
+  return json({error:"Unable to generate a unique event code. Try a different name."},409,cors);
 }
 // PRAGMA is read-only. This allows old D1 databases to keep working before the
 // optional registration_source column is added in the Cloudflare Console.
@@ -1062,7 +1116,7 @@ function validateBusinessLead(data) {
 
     website: cleanLeadValue(data,'website',200),
 
-    eventName: cleanLeadValue(data,'eventName',120) || 'RISE 17 - 2026',
+    eventName: cleanLeadValue(data,'eventName',120),
 
     notes: cleanLeadValue(data,'notes',500,true)
 
@@ -1162,6 +1216,7 @@ async function handleBusinessCardApi(request,env,cors,pathname) {
   else {await ensureBusinessLeadsTable(env);await ensureContactStatusesTable(env);}
 
   const campaign=await scopedEventSlug(env,request);
+  const activeEvent=await requireValidEvent(env,campaign);
 
   if (!id && request.method==='GET') {
 
@@ -1184,6 +1239,7 @@ async function handleBusinessCardApi(request,env,cors,pathname) {
     const {data,errorResponse}=await readBusinessLeadBody(request,cors);
 
     if (errorResponse) return errorResponse;
+    data.eventName=activeEvent.name; // Never mix labels between events.
 
     const id=crypto.randomUUID();const now=new Date().toISOString();
 
@@ -1202,6 +1258,7 @@ async function handleBusinessCardApi(request,env,cors,pathname) {
     const {data,errorResponse}=await readBusinessLeadBody(request,cors);
 
     if (errorResponse) return errorResponse;
+    data.eventName=activeEvent.name;
 
     const now=new Date().toISOString();
 
@@ -1777,6 +1834,9 @@ export default {
 
       if (pathname === "/api/admin/login") {
         return await hnsAdminLogin(request, env, cors);
+      }
+      if (pathname === "/api/admin/events") {
+        return await handleCampaignEvents(request, env, cors);
       }
 
       if (pathname === "/api/public/event" && request.method === "GET") {

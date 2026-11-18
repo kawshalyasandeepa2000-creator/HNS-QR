@@ -207,7 +207,7 @@
     const a=document.createElement('a');a.href=url;a.download=`${selectedEventSlug}-Import-Contacts-Template.csv`;
     document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
-  window.addEventListener('hns:event-changed',()=>{if(importRunning){stopRequested=true;setStatus('Event changed: import stopped to prevent mixing event records.');}});
+  window.addEventListener('hns:event-changed',()=>{if(importRunning){stopRequested=true;setStatus('Event changed: import stopped to prevent mixing event records.');}resetPreview();ui.fileInput.value='';});
   window.addEventListener('hns:scan-mode-changed',()=>{if(importRunning){stopRequested=true;setStatus('Scan mode changed: import stopped to prevent mixing book and card records.');}resetPreview();ui.fileInput.value='';});
   ui.cancel.addEventListener('click',()=>{
     if(!importRunning)return;
@@ -218,6 +218,7 @@
     if(importRunning||!selected.length)return;
     if(!adminToken||dom.dashboard.classList.contains('hidden')) {setStatus('Please sign in as admin before importing.',true);return;}
     const importMode=currentView;
+    const importEvent=selectedEventSlug;
     const eligible=selected.filter(x=>!validationError(x.record));
     if(!eligible.length){setStatus('No valid rows to import.',true);return;}
     const confirmed=confirm(`Import contacts from ${importFileName}? Only approved fields will be sent to private Cloudflare D1. Existing records will not be overwritten. Duplicates based on email or phone will be skipped.`);
@@ -253,7 +254,7 @@
       // Concurrency 2 keeps Worker requests responsive and limits mobile data use.
       let index=0;
       async function worker(){
-        while(!stopRequested && currentView===importMode) {
+        while(!stopRequested && currentView===importMode && selectedEventSlug===importEvent) {
           const position=index++;
           if(position>=queue.length)break;
           const item=queue[position];
@@ -267,7 +268,7 @@
       const stopped=stopRequested;
       setStatus(`${stopped?'Stopped. ':'Completed. '}Saved ${sent}; skipped ${skipped} duplicates; failed ${failed}.`+
         (failures.length?' Errors: '+failures.slice(0,2).join(' | '):''),!!failed);
-      if(sent>0 && currentView===importMode)await loadBusinessCardLeads();
+      if(sent>0 && currentView===importMode && selectedEventSlug===importEvent)await loadBusinessCardLeads();
       if(!stopped&&!failed){ui.fileInput.value='';resetPreview();ui.progress.hidden=false;ui.progress.max=1;ui.progress.value=1;}
     }catch(error){setStatus(`Import not started / interrupted: ${error.message}. No existing contacts were overwritten.`,true);}
     finally {importRunning=false;ui.fileInput.disabled=false;ui.cancel.disabled=true;ui.confirm.disabled=!selected.some(x=>!validationError(x.record));}
