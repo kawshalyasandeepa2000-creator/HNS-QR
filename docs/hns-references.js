@@ -228,6 +228,19 @@
       const tr=document.createElement('tr');
       for(const key of ['referenceNo','personName','companyName','email','phone','jobTitle','createdAt']){
         const td=document.createElement('td');td.textContent=item[key]||'—';
+        if (key==='phone' && item.phone) {
+          const href=window.hnsWhatsAppHref?.(item.phone);
+          if (href) {
+            const a=document.createElement('a');
+            a.href=href;
+            a.target='_blank';
+            a.rel='noopener noreferrer';
+            a.textContent=item.phone;
+            a.title='Open WhatsApp chat';
+            a.setAttribute('aria-label','Open WhatsApp chat with '+item.phone);
+            td.replaceChildren(a);
+          }
+        }
         if(key==='referenceNo')td.className='refs-refno';tr.append(td);
       }
       const statusTd=document.createElement('td');statusTd.append(window.HNSContactStatus.create('reference',item.id,item.personName||item.referenceNo));tr.append(statusTd);

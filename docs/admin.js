@@ -87,15 +87,32 @@ function showError(target, error) {
   target.textContent = error instanceof Error ? error.message : String(error);
 }
 
+// Only open an unsent WhatsApp chat; do not modify stored contact details.
+// wa.me links require a full international number (digits only).
+function hnsWhatsAppHref(value) {
+  const raw = String(value == null ? "" : value).trim();
+  if (!/^\+?[\d\s().-]{8,40}$/.test(raw)) return "";
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  // UAE local mobile format 05XXXXXXXX can be normalized unambiguously.
+  if (!raw.startsWith("+") && /^05\d{8}$/.test(digits)) digits = "971" + digits.slice(1);
+  if (digits.startsWith("0") || digits.length < 8 || digits.length > 15) return "";
+  return "https://wa.me/" + digits;
+}
+window.hnsWhatsAppHref = hnsWhatsAppHref;
+
 function makeCell(row, index) {
   const td = document.createElement("td");
   const text = row ?? "—";
   if (index === 0) td.className = "customer-name-cell";
-  if (index === 1 && /^\+[0-9]{8,15}$/.test(text)) {
+  if (index === 1 && hnsWhatsAppHref(text)) {
     const a = document.createElement("a");
-    a.href = `tel:${text}`;
+    a.href = hnsWhatsAppHref(text);
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.setAttribute("aria-label", "Open WhatsApp chat with " + text);
     a.textContent = text;
-    a.title = "Call customer";
+    a.title = "Open WhatsApp chat";
     td.append(a);
   } else if (index === 2 && text !== "—" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
     const a = document.createElement("a");
@@ -1634,8 +1651,17 @@ leadEls.form.addEventListener('submit', async event => {
 function safeLeadLink(value, kind) {
   const a=document.createElement('a');
   a.textContent=value;
-  a.href=kind==='email' ? `mailto:${value}` : `tel:${value.replace(/[^\d+]/g,'')}`;
-  if (kind==='phone' && !/^\+?[\d -]{7,40}$/.test(value)) return document.createTextNode(value);
+  if (kind==='phone') {
+    const href=hnsWhatsAppHref(value);
+    if (!href) return document.createTextNode(value);
+    a.href=href;
+    a.target='_blank';
+    a.rel='noopener noreferrer';
+    a.title='Open WhatsApp chat';
+    a.setAttribute('aria-label','Open WhatsApp chat with '+value);
+  } else {
+    a.href='mailto:'+value;
+  }
   return a;
 }
 function leadCell(value,kind) {
